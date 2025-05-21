@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -17,7 +18,7 @@ class ProductController extends Controller
             ['id' => 2, 'name' => 'Product 2', 'price' => 200],
             ['id' => 3, 'name' => 'Product 3', 'price' => 300],
         ];
-        return Inertia::render('ProductIndex')->with([
+        return Inertia::render('admin/products/Index')->with([
             'products' => $products,
         ]);
     }
