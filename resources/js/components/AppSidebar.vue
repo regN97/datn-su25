@@ -39,6 +39,7 @@ const mainNavItems: NavItem[] = [
                 :items="[
                     { label: 'Quản lý sản phẩm', href: route('admin.products.index') },
                     { label: 'Quản lý danh mục', href: route('admin.categories.index') },
+                    { label: 'Quản lý nhà cung cấp', href: route('admin.suppliers.index') },
                 ]"
             />
         </SidebarContent>
