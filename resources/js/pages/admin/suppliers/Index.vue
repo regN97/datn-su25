@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, usePage, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -14,9 +14,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 type Supplier = {
     id: number;
     name: string;
-    contact_person: string | null;
-    email: string | null;
-    phone: string | null;
+    contact_person: string;
+    email: string;
+    phone: string;
     address: string | null;
 }
 
@@ -53,6 +53,10 @@ function changePerPage(event: Event) {
     perPage.value = +(event.target as HTMLSelectElement).value;
     currentPage.value = 1;
 }
+
+function addNewSupplier(){
+    router.visit('/admin/suppliers/create');
+}
 </script>
 
 <template>
@@ -66,7 +70,7 @@ function changePerPage(event: Event) {
                     <!-- Tiêu đề và nút Thêm mới -->
                     <div class="mb-4 flex items-center justify-between">
                         <h1 class="text-2xl font-bold">Nhà cung cấp</h1>
-                        <button class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">Thêm mới</button>
+                        <button @click="addNewSupplier" class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">Thêm mới</button>
                     </div>
 
                     <!-- Bảng danh mục -->
@@ -82,7 +86,7 @@ function changePerPage(event: Event) {
                                     </th>
                                     <th class="p-3 text-sm font-semibold">
                                         Người liên hệ
-                                    </th>
+                                    </th>                                    
                                     <th class="p-3 text-sm font-semibold">
                                         Email
                                     </th>
