@@ -21,115 +21,19 @@ type Supplier = {
 }
 
 const page = usePage<SharedData>();
-const suppliers = ref<Supplier[]>([
-            {
-                id             : 1,
-                name           : 'Công ty TNHH Unilever Việt Nam',
-                contact_person : 'Nguyễn Thị Hoa',
-                email          : 'info.unilever@unilever.com.vn',
-                phone          : '+842838290000',
-                address        : 'Lô A2-A3, KCN Hiệp Phước, Xã Hiệp Phước, Huyện Nhà Bè, TP. Hồ Chí Minh',
-            },
-            {
-                id             : 2,
-                name           : 'Công ty Cổ phần Sữa Việt Nam (Vinamilk)',
-                contact_person : 'Lê Văn Hùng',
-                email          : 'contact@vinamilk.com.vn',
-                phone          : '+842854155555',
-                address        : 'Số 10, Đường Thống Nhất, P.11, Q.Gò Vấp, TP. Hồ Chí Minh',
-            },
-            {
-                id             : 3,
-                name           : 'Tập đoàn Hòa Phát (Gia dụng, Nội thất)',
-                contact_person : 'Trần Thị Thủy',
-                email          : 'info@hoaphat.com.vn',
-                phone          : '+842462810000',
-                address        : 'KCN Phố Nối A, Xã Giai Phạm, Huyện Yên Mỹ, Hưng Yên',
-            },
-            {
-                id             : 4,
-                name           : 'Công ty TNHH Samsung Vina Electronics',
-                contact_person : 'Phạm Quang Minh',
-                email          : 'contact.vn@samsung.com',
-                phone          : '+842838211211',
-                address        : 'Tòa nhà Samsung, 2 Nguyễn Cơ Thạch, KĐT Sala, P.An Lợi Đông, Q.2, TP. Hồ Chí Minh',
-            },
-            {
-                id             : 5,
-                name           : 'Công ty TNHH Unilever Việt Nam',
-                contact_person : 'Nguyễn Thị Hoa',
-                email          : 'info.unilever@unilever.com.vn',
-                phone          : '+842838290000',
-                address        : 'Lô A2-A3, KCN Hiệp Phước, Xã Hiệp Phước, Huyện Nhà Bè, TP. Hồ Chí Minh',
-            },
-            {
-                id             : 6,
-                name           : 'Công ty Cổ phần Sữa Việt Nam (Vinamilk)',
-                contact_person : 'Lê Văn Hùng',
-                email          : 'contact@vinamilk.com.vn',
-                phone          : '+842854155555',
-                address        : 'Số 10, Đường Thống Nhất, P.11, Q.Gò Vấp, TP. Hồ Chí Minh',
-            },
-            {
-                id             : 7,
-                name           : 'Tập đoàn Hòa Phát (Gia dụng, Nội thất)',
-                contact_person : 'Trần Thị Thủy',
-                email          : 'info@hoaphat.com.vn',
-                phone          : '+842462810000',
-                address        : 'KCN Phố Nối A, Xã Giai Phạm, Huyện Yên Mỹ, Hưng Yên',
-            },
-            {
-                id             : 8,
-                name           : 'Công ty TNHH Samsung Vina Electronics',
-                contact_person : 'Phạm Quang Minh',
-                email          : 'contact.vn@samsung.com',
-                phone          : '+842838211211',
-                address        : 'Tòa nhà Samsung, 2 Nguyễn Cơ Thạch, KĐT Sala, P.An Lợi Đông, Q.2, TP. Hồ Chí Minh',
-            },
-            {
-                id             : 9,
-                name           : 'Công ty TNHH Unilever Việt Nam',
-                contact_person : 'Nguyễn Thị Hoa',
-                email          : 'info.unilever@unilever.com.vn',
-                phone          : '+842838290000',
-                address        : 'Lô A2-A3, KCN Hiệp Phước, Xã Hiệp Phước, Huyện Nhà Bè, TP. Hồ Chí Minh',
-            },
-            {
-                id             : 10,
-                name           : 'Công ty Cổ phần Sữa Việt Nam (Vinamilk)',
-                contact_person : 'Lê Văn Hùng',
-                email          : 'contact@vinamilk.com.vn',
-                phone          : '+842854155555',
-                address        : 'Số 10, Đường Thống Nhất, P.11, Q.Gò Vấp, TP. Hồ Chí Minh',
-            },
-            {
-                id             : 11,
-                name           : 'Tập đoàn Hòa Phát (Gia dụng, Nội thất)',
-                contact_person : 'Trần Thị Thủy',
-                email          : 'info@hoaphat.com.vn',
-                phone          : '+842462810000',
-                address        : 'KCN Phố Nối A, Xã Giai Phạm, Huyện Yên Mỹ, Hưng Yên',
-            },
-            {
-                id             : 12,
-                name           : 'Công ty TNHH Samsung Vina Electronics',
-                contact_person : 'Phạm Quang Minh',
-                email          : 'contact.vn@samsung.com',
-                phone          : '+842838211211',
-                address        : 'Tòa nhà Samsung, 2 Nguyễn Cơ Thạch, KĐT Sala, P.An Lợi Đông, Q.2, TP. Hồ Chí Minh',
-            },
-])
+
+const suppliers = page.props.suppliers as Supplier[];
 
 const perPageOptions = [5, 10, 25, 50];
 const perPage = ref(5);
 const currentPage = ref(1);
 
-const total = computed(() => suppliers.value.length);
+const total = computed(() => suppliers.length);
 const totalPages = computed(() => Math.ceil(total.value / perPage.value));
 
 const paginatedSuppliers = computed(() => {
     const start = (currentPage.value - 1) * perPage.value;
-    return suppliers.value.slice(start, start + perPage.value);
+    return suppliers.slice(start, start + perPage.value);
 });
 
 function goToPage(page: number) {
@@ -203,7 +107,7 @@ function changePerPage(event: Event) {
                                         {{ supplier.contact_person || 'N/A' }}
                                     </td>
                                     <td class="p-3 text-sm">
-                                        {{ supplier.email || 'N/A' }}
+                                        {{ supplier.email && supplier.email.length > 15 ? supplier.email.slice(0, 15) + '...' : (supplier.email || 'N/A') }}
                                     </td>
                                     <td class="p-3 text-sm">
                                         {{ supplier.phone || 'N/A' }}

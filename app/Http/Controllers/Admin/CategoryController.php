@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -13,7 +14,11 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        return Inertia::render('admin/categories/Index');
+        $categories = Category::all();
+        // dd($categories);
+        return Inertia::render('admin/categories/Index')->with([
+            'categories' => $categories,
+        ]);
     }
 
     /**

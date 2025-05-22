@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -13,7 +14,11 @@ class SupplierController extends Controller
      */
     public function index()
     {
-        return Inertia::render('admin/suppliers/Index');    
+        $suppliers = Supplier::all();
+
+        return Inertia::render('admin/suppliers/Index')->with([
+            'suppliers' => $suppliers,
+        ]);
     }
 
     /**

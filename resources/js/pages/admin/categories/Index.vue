@@ -14,38 +14,30 @@ const breadcrumbs: BreadcrumbItem[] = [
 type Category = {
     id: number;
     name: string;
-    parent: string | null;
+    parent_id: number | null;
     description: string;
 };
 
 const page = usePage<SharedData>();
 
-// Dữ liệu mẫu
-const categories = ref<Category[]>([
-    { id: 1, name: 'Mì tôm', parent: 'Thực phẩm', description: 'Tổng hợp các sản phẩm mì tôm và mì ăn liền.' },
-    { id: 2, name: 'Nước ngọt', parent: 'Đồ uống', description: 'Tổng hợp các loại nước ngọt' },
-    { id: 3, name: 'Bia', parent: 'Đồ uống', description: 'Tổng hợp các loại bia' },
-    { id: 4, name: 'Thực phẩm', parent: null, description: 'Nhóm thực phẩm tiêu dùng' },
-    { id: 5, name: 'Đồ uống', parent: null, description: 'Nhóm các đồ uống' },
-    { id: 6, name: 'Snack', parent: 'Thực phẩm', description: 'Các loại snack ăn vặt' },
-    { id: 7, name: 'Nước khoáng', parent: 'Đồ uống', description: 'Các loại nước khoáng' },
-    { id: 8, name: 'Bánh kẹo', parent: 'Thực phẩm', description: 'Các loại bánh kẹo' },
-    { id: 9, name: 'Sữa', parent: 'Đồ uống', description: 'Các loại sữa' },
-    { id: 10, name: 'Gia vị', parent: 'Thực phẩm', description: 'Các loại gia vị' },
-    { id: 11, name: 'Trà', parent: 'Đồ uống', description: 'Các loại trà' },
-    { id: 12, name: 'Cà phê', parent: 'Đồ uống', description: 'Các loại cà phê' },
-]);
+const categories = page.props.categories as Category[];
+
+const getParentName = (parent_id: number | null) => {
+    if (!parent_id) return '—';
+    const parent = categories.find(cat => cat.id === parent_id);
+    return parent ? parent.name : '—';
+};
 
 const perPageOptions = [5, 10, 25, 50];
 const perPage = ref(5);
 const currentPage = ref(1);
 
-const total = computed(() => categories.value.length);
+const total = computed(() => categories.length);
 const totalPages = computed(() => Math.ceil(total.value / perPage.value));
 
 const paginatedCategories = computed(() => {
     const start = (currentPage.value - 1) * perPage.value;
-    return categories.value.slice(start, start + perPage.value);
+    return categories.slice(start, start + perPage.value);
 });
 
 function goToPage(page: number) {
@@ -96,7 +88,7 @@ function changePerPage(event: Event) {
                                 <tr v-for="(cat, idx) in paginatedCategories" :key="cat.id" class="border-t">
                                     <td class="p-3 text-sm">{{ (currentPage - 1) * perPage + idx + 1 }}</td>
                                     <td class="p-3 text-sm">{{ cat.name }}</td>
-                                    <td class="p-3 text-sm">{{ cat.parent ?? '—' }}</td>
+                                    <td class="p-3 text-sm">{{ getParentName(cat.parent_id) }}</td>
                                     <td class="p-3 text-sm">{{ cat.description }}</td>
                                     <td class="p-3 text-sm">
                                         <button class="text-gray-500 hover:text-gray-700">...</button>
