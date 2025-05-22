@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\Product;
+use App\Models\Category;
+use App\Models\ProductUnit;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class ProductController extends Controller
 {
@@ -13,13 +16,13 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = [
-            ['id' => 1, 'name' => 'Product 1', 'price' => 100],
-            ['id' => 2, 'name' => 'Product 2', 'price' => 200],
-            ['id' => 3, 'name' => 'Product 3', 'price' => 300],
-        ];
+        $products = Product::all();
+        $categories = Category::all();
+        $units = ProductUnit::all();
         return Inertia::render('admin/products/Index')->with([
             'products' => $products,
+            'categories' => $categories,
+            'units' => $units,
         ]);
     }
 
