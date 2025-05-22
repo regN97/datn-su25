@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, usePage, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -60,16 +60,21 @@ function changePerPage(event: Event) {
 </script>
 
 <template>
+
     <Head title="Products" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-            <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
+            <div
+                class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
                     <!-- Tiêu đề và nút Thêm mới -->
                     <div class="mb-4 flex items-center justify-between">
                         <h1 class="text-2xl font-bold">Danh mục sản phẩm</h1>
-                        <button class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">Thêm mới</button>
+                        <Link href="/admin/categories/create"
+                            class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
+                        Thêm mới
+                        </Link>
                     </div>
 
                     <!-- Bảng danh mục -->
@@ -111,23 +116,19 @@ function changePerPage(event: Event) {
                             trên tổng <span class="font-semibold">{{ total }}</span>
                         </p>
                         <div class="flex items-center space-x-2">
-                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700" :disabled="currentPage === 1" @click="prevPage">
+                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+                                :disabled="currentPage === 1" @click="prevPage">
                                 &larr; Trang trước
                             </button>
                             <template v-for="page in totalPages" :key="page">
-                                <button
-                                    class="rounded px-3 py-1 text-sm"
+                                <button class="rounded px-3 py-1 text-sm"
                                     :class="page === currentPage ? 'bg-gray-200 font-bold' : 'text-gray-500 hover:text-gray-700'"
-                                    @click="goToPage(page)"
-                                >
+                                    @click="goToPage(page)">
                                     {{ page }}
                                 </button>
                             </template>
-                            <button
-                                class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                                :disabled="currentPage === totalPages"
-                                @click="nextPage"
-                            >
+                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+                                :disabled="currentPage === totalPages" @click="nextPage">
                                 Trang sau &rarr;
                             </button>
                         </div>
