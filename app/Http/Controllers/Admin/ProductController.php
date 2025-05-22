@@ -52,7 +52,29 @@ class ProductController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        //fix cứng data
+return Inertia::render('admin/products/Edit', [
+    'product' => $product = [
+        'id' => $id,
+        'name' => 'Product ' . $id,
+        'price' => 100 * $id,
+    ],
+    'categories' => $categorie = [
+        ['id' => 1, 'name' => 'Category 1'],
+        ['id' => 2, 'name' => 'Category 2'],
+        ['id' => 3, 'name' => 'Category 3'],
+    ],
+    'suppliers' => $suppliers = [
+        ['id' => 1, 'name' => 'Supplier 1'],
+        ['id' => 2, 'name' => 'Supplier 2'],
+        ['id' => 3, 'name' => 'Supplier 3'],
+    ],
+    'productSuppliers' => $productSuppliers = [
+        ['id' => 1, 'name' => 'Supplier 1'],
+        ['id' => 2, 'name' => 'Supplier 2'],
+    ],
+
+]);
     }
 
     /**
