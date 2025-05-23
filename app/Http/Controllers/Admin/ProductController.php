@@ -5,9 +5,15 @@ namespace App\Http\Controllers\Admin;
 use Inertia\Inertia;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Supplier;
 use App\Models\ProductUnit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\StoreProductRequest;
 
 class ProductController extends Controller
 {
@@ -26,21 +32,44 @@ class ProductController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
+
     public function create()
     {
-        //
+        return Inertia::render('admin/products/Create', [
+            'suppliers' => Supplier::all(['id', 'name']),
+            'categories' => Category::with('children')->whereNull('parent_id')->get(['id', 'name', 'parent_id']),
+            'product_units' => ProductUnit::all(['id', 'name']),
+            'csrf_token' => csrf_token(),
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+     public function store(StoreProductRequest $request): RedirectResponse
     {
-        //
+        $data = $request->validated();
+        $uploadedFilePath = null; 
+            if ($request->input('image_input_type') === 'file' && $request->hasFile('image_file')) {
+                $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
+                $data['image_url'] = Storage::url($uploadedFilePath);
+                unset($data['image_file']);
+            } elseif ($request->input('image_input_type') === 'url' && !empty($data['image_url'])) {
+                unset($data['image_file']);
+            } else {
+                $data['image_url'] = null; 
+                unset($data['image_file']);
+            }
+
+            $selectedSupplierIds = $data['selected_supplier_ids'];
+            unset($data['selected_supplier_ids']); 
+
+            $product = Product::create($data);
+
+            // Đồng bộ nhà cung cấp sau khi tạo sản phẩm
+            $product->suppliers()->sync($selectedSupplierIds);
+
+            return redirect()->route('admin.products.index')->with('success', 'Sản phẩm đã được tạo thành công.');
+        
     }
+
 
     /**
      * Display the specified resource.

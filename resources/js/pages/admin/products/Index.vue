@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, usePage, Link } from '@inertiajs/vue3';
+import { Head, usePage, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -57,7 +57,7 @@ const products = page.props.products as Product[];
 
 // Cấu hình phân trang
 const perPageOptions = [5, 10, 25, 50];
-const perPage = ref(5);
+const perPage = ref(25);
 const currentPage = ref(1);
 
 // Tổng sản phẩm & tổng số trang
@@ -94,8 +94,12 @@ function nextPage() {
 function changePerPage(event: Event) {
     const value = +(event.target as HTMLSelectElement).value;
     perPage.value = value;
-    currentPage.value = 1; // Reset về trang đầu
+    currentPage.value = 1;
 }
+function goToCreatePage() {
+    router.visit('/admin/products/create');
+}
+
 </script>
 
 
@@ -111,8 +115,10 @@ function changePerPage(event: Event) {
                     <!-- Tiêu đề và nút Thêm mới -->
                     <div class="mb-4 flex items-center justify-between">
                         <h1 class="text-2xl font-bold">Danh mục sản phẩm</h1>
-                        <button class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">Thêm
-                            mới</button>
+                        <button @click="goToCreatePage"
+                            class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
+                            Thêm mới
+                        </button>
                     </div>
 
                     <!-- Bảng danh mục -->
@@ -120,7 +126,7 @@ function changePerPage(event: Event) {
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="bg-gray-200">
-                                    <th class="p-3 text-sm font-semibold">STT</th>
+                                    <th class="p-3 text-sm font-semibold">Hình ảnh</th>
                                     <th class="p-3 text-sm font-semibold">Tên sản phẩm</th>
                                     <th class="p-3 text-sm font-semibold">SKU</th>
                                     <th class="p-3 text-sm font-semibold">Loại danh mục</th>
@@ -132,7 +138,12 @@ function changePerPage(event: Event) {
                             </thead>
                             <tbody>
                                 <tr v-for="(product, idx) in paginatedProducts" :key="product.id" class="border-t">
-                                    <td class="p-3 text-sm">{{ (currentPage - 1) * perPage + idx + 1 }}</td>
+                                    <td class="p-3 text-sm">
+                                        <img :src="product.image_url || 'https://img.pikbest.com/element_our/20230308/bg/033477b05cd97.png!sw800'"
+                                            alt="Product Image" class="w-16 h-16 object-cover rounded"
+                                            onerror="this.onerror=null;this.src='https://img.pikbest.com/element_our/20230308/bg/033477b05cd97.png!sw800';" />
+                                    </td>
+
                                     <td class="p-3 text-sm">{{ product.name || 'Không có' }}</td>
                                     <td class="p-3 text-sm">{{ product.sku || 'Không có' }}</td>
                                     <td class="p-3 text-sm">{{ getCategoryName(product.category_id) }}</td>
@@ -148,12 +159,17 @@ function changePerPage(event: Event) {
                                             {{ product.is_active ? 'Hiện' : 'Ẩn' }}
                                         </span>
                                     </td>
-                                    <td class="p-3 text-sm">
-                                        <Link :href="`/admin/products/${product.id}/edit`"
-                                            class="text-blue-500 hover:underline">
-                                        Sửa
-                                        </Link> |
-                                        <button class="text-red-500 hover:underline">Xóa</button>
+                                    <td class="p-3 text-sm whitespace-nowrap">
+                                        <div class="flex items-center space-x-2">
+                                            <button
+                                                class="px-3 py-1 rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150">
+                                                Sửa
+                                            </button>
+                                            <button
+                                                class="px-3 py-1 rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition ease-in-out duration-150">
+                                                Xóa
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
 
