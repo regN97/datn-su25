@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SupplierRequest;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,15 +27,20 @@ class SupplierController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('admin/suppliers/Create');
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(SupplierRequest $request)
     {
-        //
+        Supplier::create($request->validated());
+
+        return Inertia::render('admin/suppliers/Create', [
+            'status' => 'success',
+            'message' => 'Thêm nhà cung cấp thành công!'
+        ]);    
     }
 
     /**
