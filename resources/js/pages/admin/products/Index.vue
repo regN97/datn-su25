@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, usePage, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -149,8 +149,10 @@ function changePerPage(event: Event) {
                                         </span>
                                     </td>
                                     <td class="p-3 text-sm">
-                                        <button class="text-blue-500 hover:underline">Sửa</button>
-                                        |
+                                        <Link :href="`/admin/products/${product.id}/edit`"
+                                            class="text-blue-500 hover:underline">
+                                        Sửa
+                                        </Link> |
                                         <button class="text-red-500 hover:underline">Xóa</button>
                                     </td>
                                 </tr>
