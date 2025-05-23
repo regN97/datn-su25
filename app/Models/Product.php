@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Category;
+use App\Models\Supplier;
 use App\Models\ProductUnit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -33,5 +34,9 @@ class Product extends Model
     public function unit()
     {
         return $this->belongsTo(ProductUnit::class);
+    }
+    public function suppliers()
+    {
+        return $this->belongsToMany(Supplier::class, 'product_suppliers', 'product_id', 'supplier_id')->withTimestamps();
     }
 }
