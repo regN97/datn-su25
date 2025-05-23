@@ -1,8 +1,21 @@
 <script setup lang="ts">
 // import { ref } from 'vue';
+import { type BreadcrumbItem } from '@/types';
+
 import { useForm, Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Quản lí sản phẩm',
+        href: '/admin/products',
 
+    },
+    {
+        title: 'cập nhập sản phẩm',
+        href: '/admin/products/edit',
+
+    },
+];
 const props = defineProps<{
     product: any,
     categories: { id: number; name: string }[],
@@ -37,25 +50,8 @@ function submit() {
 <template>
 
     <Head title="Thêm sản phẩm" />
-    <AppLayout>
-        <nav class="flex items-center text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
-            <ol class="flex items-center space-x-2">
-                <li>
-                    <Link href="/admin/products" class="hover:underline flex items-center gap-1">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                    Quản lí sản phẩm
-                    </Link>
-                </li>
-                <li>
-                    <span class="mx-2">/</span>
-                </li>
-                <li class="text-gray-900 font-medium">
-                    Cập nhập sản phẩm
-                </li>
-            </ol>
-        </nav>
+    <AppLayout :breadcrumbs="breadcrumbs">
+
         <div class="container mx-auto max-w-5xl mt-8">
             <div class="bg-white rounded-xl shadow p-8">
                 <div class="mb-6 flex items-center justify-between">
