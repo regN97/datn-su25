@@ -21,6 +21,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::resource('products', ProductController::class);
 
+    Route::get('suppliers/trashed', [SupplierController::class, 'trashed'])->name('suppliers.trashed');
+    Route::post('suppliers/{supplier}/restore', [SupplierController::class, 'restore'])->name('suppliers.restore');
+    Route::delete('suppliers/{supplier}/force-delete', [SupplierController::class, 'forceDelete'])->name('suppliers.forceDelete');
     Route::resource('suppliers', SupplierController::class);
     
 })->middleware(['auth', 'verified']);
