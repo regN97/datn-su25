@@ -89,11 +89,17 @@ class CategoryController extends Controller
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    // Trang thùng rác
+
+    // Xóa mềm danh mục
+    public function destroy($id)
     {
-        //
+           $category = Category::find($id); // Tìm danh mục
+    if ($category) { // Đảm bảo danh mục tồn tại trước khi xóa
+        $category->delete(); // Thao tác này sẽ thực hiện xóa mềm do SoftDeletes
+        return redirect()->route('admin.categories.index')->with('success', 'Đã xóa thành công');
+    }
+
+    return redirect()->route('admin.categories.index')->with('error', 'Không tìm thấy danh mục để xóa.');
     }
 }

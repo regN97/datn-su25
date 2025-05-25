@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, usePage, Link } from '@inertiajs/vue3';
+import { Head, usePage, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -20,6 +20,7 @@ type Category = {
 
 const page = usePage<SharedData>();
 
+// Dữ liệu categories sẽ tự động được cập nhật khi backend render lại component
 const categories = page.props.categories as Category[];
 
 const getParentName = (parent_id: number | null) => {
@@ -29,7 +30,7 @@ const getParentName = (parent_id: number | null) => {
 };
 
 const perPageOptions = [5, 10, 25, 50];
-const perPage = ref(5);
+const perPage = ref(20);
 const currentPage = ref(1);
 
 const total = computed(() => categories.length);
@@ -57,27 +58,52 @@ function changePerPage(event: Event) {
     perPage.value = +(event.target as HTMLSelectElement).value;
     currentPage.value = 1;
 }
+
+// --- Logic xóa danh mục sử dụng confirm() mặc định ---
+function deleteCategory(id: number) {
+    if (confirm('Bạn có chắc chắn muốn xóa danh mục này không?')) {
+        router.delete(`/admin/categories/${id}`);
+    }
+}
+// --- Kết thúc Logic xóa danh mục ---
+
 </script>
 
 <template>
 
-    <Head title="Products" />
+    <Head title="Categories" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div
                 class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
-                    <!-- Tiêu đề và nút Thêm mới -->
                     <div class="mb-4 flex items-center justify-between">
-                        <h1 class="text-2xl font-bold">Danh mục sản phẩm</h1>
-                        <Link href="/admin/categories/create"
-                            class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
-                        Thêm mới
-                        </Link>
+                        <h1 class="text-2xl font-bold">Danh sách danh mục</h1>
+                        <div class="flex gap-3">
+                            <Link
+                                href="/admin/categories/create"
+                                class="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                                Thêm mới
+                            </Link>
+
+                            <Link
+                                href="/admin/categories/trashed"
+                                class="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                title="Xem danh mục đã xóa"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                </svg>
+                                Thùng rác
+                            </Link>
+                        </div>
                     </div>
 
-                    <!-- Bảng danh mục -->
                     <div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">
                         <table class="w-full text-left">
                             <thead>
@@ -96,7 +122,16 @@ function changePerPage(event: Event) {
                                     <td class="p-3 text-sm">{{ getParentName(cat.parent_id) }}</td>
                                     <td class="p-3 text-sm">{{ cat.description }}</td>
                                     <td class="p-3 text-sm">
-                                        <button class="text-gray-500 hover:text-gray-700">...</button>
+                                        <div class="flex items-center space-x-2">
+                                            <Link :href="`/admin/categories/${cat.id}/edit`"
+                                                class="px-3 py-1 rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150">
+                                                Sửa
+                                            </Link>
+                                            <button @click="deleteCategory(cat.id)"
+                                                class="px-3 py-1 rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition ease-in-out duration-150 flex items-center gap-1">
+                                                ✂
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 <tr v-if="paginatedCategories.length === 0">
@@ -106,7 +141,6 @@ function changePerPage(event: Event) {
                         </table>
                     </div>
 
-                    <!-- Phân trang -->
                     <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <p class="text-sm">
                             Hiển thị kết quả từ
