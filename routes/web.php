@@ -16,7 +16,8 @@ Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['aut
 
 Route::prefix('admin')->name('admin.')->group(function () {
 
-    Route::resource('categories', CategoryController::class); 
+    Route::resource('categories', CategoryController::class);
+    Route::get('categories/trash', [CategoryController::class, 'trash'])->name('categories.trash'); 
 
     Route::resource('products', ProductController::class);
 
