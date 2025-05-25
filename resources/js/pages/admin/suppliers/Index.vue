@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, usePage, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -22,19 +23,19 @@ type Supplier = {
 
 const page = usePage<SharedData>();
 
-const suppliers = page.props.suppliers as Supplier[];
-
+const suppliers = ref([...page.props.suppliers as Supplier[]]);
 const perPageOptions = [5, 10, 25, 50];
 const perPage = ref(5);
 const currentPage = ref(1);
 
-const total = computed(() => suppliers.length);
+const total = computed(() => suppliers.value.length);
 const totalPages = computed(() => Math.ceil(total.value / perPage.value));
 
 const paginatedSuppliers = computed(() => {
     const start = (currentPage.value - 1) * perPage.value;
-    return suppliers.slice(start, start + perPage.value);
+    return suppliers.value.slice(start, start + perPage.value);
 });
+
 
 function goToPage(page: number) {
     if (page < 1 || page > totalPages.value) return;
@@ -52,6 +53,20 @@ function nextPage() {
 function changePerPage(event: Event) {
     perPage.value = +(event.target as HTMLSelectElement).value;
     currentPage.value = 1;
+} 
+function softDeleteSupplier(id: number) {
+    if (!confirm('Bạn có chắc chắn muốn xóa nhà cung cấp này?')) return;
+
+    router.delete(`/admin/suppliers/${id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            suppliers.value = suppliers.value.filter(s => s.id !== id); 
+            alert('Xóa thành công!');
+        },
+        onError: () => {
+            alert('Xóa thất bại!');
+        }
+    });
 }
 
 function addNewSupplier(){
@@ -67,11 +82,20 @@ function addNewSupplier(){
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
-                    <!-- Tiêu đề và nút Thêm mới -->
+                    <!-- Tiêu đề và nút Thêm mới và thùng rác -->
                     <div class="mb-4 flex items-center justify-between">
-                        <h1 class="text-2xl font-bold">Nhà cung cấp</h1>
-                        <button @click="addNewSupplier" class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">Thêm mới</button>
-                    </div>
+    <h1 class="text-2xl font-bold">Nhà cung cấp</h1>
+    <div class="flex space-x-2">
+        <button @click="addNewSupplier" class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">Thêm mới</button>
+        <a
+            href="/admin/suppliers/trashed"
+            class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
+        >
+            Thùng rác
+        </a>
+    </div>
+</div>
+
 
                     <!-- Bảng danh mục -->
                     <div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">
@@ -121,7 +145,8 @@ function addNewSupplier(){
                                         {{ supplier.address || 'N/A' }}
                                     </td>
                                     <td class="p-3 text-sm">
-                                        <button class="text-gray-500 hover:text-gray-700">...</button>
+                                        <button class="text-gray-500 hover:text-gray-700">Sửa</button>
+                                        <button class="text-red-500 hover:text-red-700 ml-2" @click="softDeleteSupplier(supplier.id)">Xóa</button>
                                     </td>
                                 </tr>
                                 <tr v-if="paginatedSuppliers.length === 0">

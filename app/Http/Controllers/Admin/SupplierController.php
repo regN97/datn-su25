@@ -72,6 +72,44 @@ class SupplierController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $supplier = Supplier::findOrFail($id);
+        $supplier->delete();
+
+        return redirect()->back()->with('success', 'Nhà cung cấp đã được xóa mềm!');
+    }
+
+    /**
+     * Display a listing of trashed resources.
+     */
+    public function trashed()
+    {
+        $suppliers = Supplier::onlyTrashed()->get();
+    
+        return Inertia::render('admin/suppliers/Trashed', [
+            'suppliers' => $suppliers,
+        ]);
+    }
+    
+
+    /**
+     * Restore the specified trashed resource.
+     */
+    public function restore(string $id)
+    {
+        $supplier = Supplier::onlyTrashed()->findOrFail($id);
+        $supplier->restore();
+
+        return redirect()->back()->with('success', 'Nhà cung cấp đã được khôi phục!');
+    }
+
+    /**
+     * Permanently remove the specified resource from storage.
+     */
+    public function forceDelete(string $id)
+    {
+        $supplier = Supplier::onlyTrashed()->findOrFail($id);
+        $supplier->forceDelete();
+
+        return redirect()->back()->with('success', 'Nhà cung cấp đã được xóa vĩnh viễn!');
     }
 }
