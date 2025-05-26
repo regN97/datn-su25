@@ -99,7 +99,9 @@ function changePerPage(event: Event) {
 function goToCreatePage() {
     router.visit('/admin/products/create');
 }
-
+function goToEditPage(id: number) {
+    router.visit(`/admin/products/${id}/edit`);
+}
 </script>
 
 
@@ -162,7 +164,8 @@ function goToCreatePage() {
                                     <td class="p-3 text-sm whitespace-nowrap">
                                         <div class="flex items-center space-x-2">
                                             <button
-                                                class="px-3 py-1 rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150">
+                                                class="px-3 py-1 rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150"
+                                                @click="goToEditPage(product.id)">
                                                 Sửa
                                             </button>
                                             <button

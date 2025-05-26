@@ -3,19 +3,23 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import InputError from '@/components/InputError.vue';
-
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Quản lí nhà cung cấp', href: '/admin/suppliers' },
-    { title: 'Cập nhật nhà cung cấp', href: '/admin/suppliers/edit' },
+    {
+        title: 'Quản lí nhà cung cấp',
+        href: '/admin/suppliers',
+    },
+    {
+        title: 'Cập nhập nhà cung cấp',
+        href: '/admin/suppliers/edit',
+    },
 ];
-
 const props = defineProps<{
     supplier: {
         id: number,
         name: string,
-        contact_person: string | null,
-        email: string | null,
-        phone: string | null,
+        contact_person: string,
+        email: string,
+        phone: string,
         address: string | null,
     }
 }>();
@@ -41,13 +45,6 @@ function submit() {
                 <div class="container mx-auto p-6">
                     <h2 class="text-2xl font-semibold mb-6 text-gray-800 dark:text-gray-200">Sửa nhà cung cấp</h2>
 
-                    <!-- Hiển thị lỗi tổng quát nếu có -->
-                    <div v-if="Object.keys(form.errors).length" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                        <ul class="list-disc list-inside">
-                            <li v-for="(error, key) in form.errors" :key="key">{{ error }}</li>
-                        </ul>
-                    </div>
-
                     <form class="space-y-6" @submit.prevent="submit">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -56,17 +53,17 @@ function submit() {
                                 <InputError :message="form.errors.name" class="mt-1" />
                             </div>
                             <div>
-                                <label class="block mb-2 font-medium">Người liên hệ</label>
+                                <label class="block mb-2 font-medium">Người liên hệ <span class="text-red-500">*</span></label>
                                 <input v-model="form.contact_person" type="text" class="w-full rounded border px-3 py-2" placeholder="Nhập tên người liên hệ" />
                                 <InputError :message="form.errors.contact_person" class="mt-1" />
                             </div>
                             <div>
-                                <label class="block mb-2 font-medium">Email</label>
+                                <label class="block mb-2 font-medium">Email <span class="text-red-500">*</span></label>
                                 <input v-model="form.email" type="email" class="w-full rounded border px-3 py-2" placeholder="Nhập email" />
                                 <InputError :message="form.errors.email" class="mt-1" />
                             </div>
                             <div>
-                                <label class="block mb-2 font-medium">Số điện thoại</label>
+                                <label class="block mb-2 font-medium">Số điện thoại <span class="text-red-500">*</span></label>
                                 <input v-model="form.phone" type="text" class="w-full rounded border px-3 py-2" placeholder="Nhập số điện thoại" />
                                 <InputError :message="form.errors.phone" class="mt-1" />
                             </div>

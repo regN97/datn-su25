@@ -40,7 +40,7 @@ class SupplierController extends Controller
         return Inertia::render('admin/suppliers/Create', [
             'status' => 'success',
             'message' => 'Thêm nhà cung cấp thành công!'
-        ]);    
+        ]);
     }
 
     /**
@@ -54,18 +54,39 @@ class SupplierController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
-    {
-        //
-    }
+   public function edit(string $id)
+{
+    $supplier = Supplier::findOrFail($id);
+    return Inertia::render('admin/suppliers/Edit', [
+        'supplier' => $supplier,
+    ]);
+}
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+public function update(Request $request, string $id)
+{
+    $supplier = Supplier::findOrFail($id);
+
+    $data = $request->validate([
+        'name' => 'required|string|max:255',
+        'contact_person' => 'required|string|max:255',
+        'email' => ' required|email|max:255',
+        'phone' => ' required|string|max:20',
+        'address' => 'nullable|string|max:255',
+    ], [
+        'name.required' => 'Tên nhà cung cấp là bắt buộc.',
+        'contact_person.required' => 'Người liên hệ là bắt buộc.',
+        'email.required' => 'Email là bắt buộc.',
+        'phone.required' => 'Số điện thoại là bắt buộc.',
+        'email.email' => 'Email không đúng định dạng.',
+        'phone.string' => 'Số điện thoại không hợp lệ.',
+        'address.string' => 'Địa chỉ không hợp lệ.',
+    ]);
+
+    $supplier->update($data);
+
+    return redirect()->route('admin.suppliers.index')->with('success', 'Cập nhật nhà cung cấp thành công!');
+}
+
 
     /**
      * Remove the specified resource from storage.
@@ -84,12 +105,12 @@ class SupplierController extends Controller
     public function trashed()
     {
         $suppliers = Supplier::onlyTrashed()->get();
-    
+
         return Inertia::render('admin/suppliers/Trashed', [
             'suppliers' => $suppliers,
         ]);
     }
-    
+
 
     /**
      * Restore the specified trashed resource.
