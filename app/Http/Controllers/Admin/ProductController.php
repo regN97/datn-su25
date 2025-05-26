@@ -46,7 +46,7 @@ class ProductController extends Controller
      public function store(StoreProductRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $uploadedFilePath = null; 
+        $uploadedFilePath = null;
             if ($request->input('image_input_type') === 'file' && $request->hasFile('image_file')) {
                 $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
                 $data['image_url'] = Storage::url($uploadedFilePath);
@@ -54,12 +54,12 @@ class ProductController extends Controller
             } elseif ($request->input('image_input_type') === 'url' && !empty($data['image_url'])) {
                 unset($data['image_file']);
             } else {
-                $data['image_url'] = null; 
+                $data['image_url'] = null;
                 unset($data['image_file']);
             }
 
             $selectedSupplierIds = $data['selected_supplier_ids'];
-            unset($data['selected_supplier_ids']); 
+            unset($data['selected_supplier_ids']);
 
             $product = Product::create($data);
 
@@ -67,7 +67,7 @@ class ProductController extends Controller
             $product->suppliers()->sync($selectedSupplierIds);
 
             return redirect()->route('admin.products.index')->with('success', 'Sản phẩm đã được tạo thành công.');
-        
+
     }
 
 
@@ -82,56 +82,24 @@ class ProductController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-   
+
 public function edit(string $id)
 {
     // Dữ liệu mẫu sản phẩm
-    $product = [
-        'id' => $id,
-        'name' => 'Sữa tươi Vinamilk 1L',
-        'sku' => 'VINAMILK-1L',
-        'barcode' => '8938505974123',
-        'description' => 'Sữa tươi tiệt trùng Vinamilk 1L, bổ sung canxi và vitamin D.',
-        'category_id' => 2,
-        'unit_id' => 1,
-        'purchase_price' => 20000,
-        'selling_price' => 25000,
-        'min_stock_level' => 10,
-        'max_stock_level' => 100,
-        'is_active' => true,
-        'image_url' => 'https://vinamilk.com.vn/sua-tuoi-1l.jpg',
-    ];
-
-    // Danh mục mẫu
-    $categories = [
-        ['id' => 1, 'name' => 'Đồ uống'],
-        ['id' => 2, 'name' => 'Sữa'],
-        ['id' => 3, 'name' => 'Bánh kẹo'],
-    ];
-
-    // Đơn vị tính mẫu
-    $units = [
-        ['id' => 1, 'name' => 'Hộp'],
-        ['id' => 2, 'name' => 'Thùng'],
-        ['id' => 3, 'name' => 'Lốc'],
-    ];
-
-    // Nhà cung cấp mẫu
-    $suppliers = [
-        ['id' => 1, 'name' => 'Công ty TNHH Unilever Việt Nam'],
-        ['id' => 2, 'name' => 'Công ty Cổ phần Sữa Việt Nam (Vinamilk)'],
-        ['id' => 3, 'name' => 'Công ty CP Bánh kẹo Hải Hà'],
-    ];
-
-    // ID nhà cung cấp của sản phẩm này (giả sử chọn 2 nhà cung cấp)
-    $productSuppliers = [1, 2];
-
+    $product = Product::with('suppliers')->findOrFail($id);
+    $categories = Category::with('children')->whereNull('parent_id')->get(['id', 'name', 'parent_id']);
+    $units = ProductUnit::all(['id', 'name']);
+    $suppliers = Supplier::all(['id', 'name']);
+    $selectedSupplierIds = $product->suppliers->pluck('id')->toArray();
+    $imageUrl = $product->image_url ? Storage::url($product->image_url) : null;
     return Inertia::render('admin/products/Edit', [
         'product' => $product,
         'categories' => $categories,
         'units' => $units,
         'suppliers' => $suppliers,
-        'productSuppliers' => $productSuppliers,
+        'selectedSupplierIds' => $selectedSupplierIds,
+        'imageUrl' => $imageUrl,
+        'csrf_token' => csrf_token(),
     ]);
 }
 
@@ -139,10 +107,39 @@ public function edit(string $id)
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
-    {
-        //
+ public function update(Request $request, string $id)
+{
+    // Validate dữ liệu
+    $data = $request->validate([
+        'name' => 'required|string|max:255',
+        'sku' => 'nullable|string|max:255',
+        'barcode' => 'nullable|string|max:255',
+        'description' => 'nullable|string',
+        'category_id' => 'required|integer',
+        'unit_id' => 'required|integer',
+        'purchase_price' => 'nullable|numeric',
+        'selling_price' => 'nullable|numeric',
+        'min_stock_level' => 'nullable|integer',
+        'max_stock_level' => 'nullable|integer',
+        'is_active' => 'boolean',
+        'image_url' => 'nullable|string',
+        'selected_supplier_ids' => 'array',
+        'selected_supplier_ids.*' => 'integer',
+    ]);
+
+    // Lấy sản phẩm từ DB
+    $product = Product::findOrFail($id);
+
+    // Cập nhật thông tin sản phẩm
+    $product->update($data);
+
+    // Cập nhật nhà cung cấp liên kết
+    if (isset($data['selected_supplier_ids'])) {
+        $product->suppliers()->sync($data['selected_supplier_ids']);
     }
+
+    return redirect()->route('admin.products.index')->with('success', 'Cập nhật sản phẩm thành công!');
+}
 
     /**
      * Remove the specified resource from storage.

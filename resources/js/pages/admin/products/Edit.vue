@@ -42,8 +42,19 @@ const form = useForm({
     image_type: 'url', // hoặc props.product.image_type nếu có
 });
 
+// ...existing code...
+
 function submit() {
-    form.post('/admin/products', { forceFormData: true });
+    form.transform(data => ({
+        ...data,
+        selected_supplier_ids: data.suppliers,
+        _method: 'PUT', // Laravel expects PUT for update
+    })).post(`/admin/products/${props.product.id}`, {
+        forceFormData: true,
+        onSuccess: () => {
+            // Có thể thêm thông báo thành công ở đây nếu muốn
+        }
+    });
 }
 </script>
 

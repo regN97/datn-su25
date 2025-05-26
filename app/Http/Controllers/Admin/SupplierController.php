@@ -40,7 +40,7 @@ class SupplierController extends Controller
         return Inertia::render('admin/suppliers/Create', [
             'status' => 'success',
             'message' => 'Thêm nhà cung cấp thành công!'
-        ]);    
+        ]);
     }
 
     /**
@@ -54,18 +54,28 @@ class SupplierController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
-    {
-        //
-    }
+   public function edit(string $id)
+{
+    $supplier = Supplier::findOrFail($id);
+    return Inertia::render('admin/suppliers/Edit', [
+        'supplier' => $supplier,
+    ]);
+}
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+public function update(Request $request, string $id)
+{
+    $supplier = Supplier::findOrFail($id);
+    $data = $request->validate([
+        'name' => 'required|string|max:255',
+        'contact_person' => 'nullable|string|max:255',
+        'email' => 'nullable|email|max:255',
+        'phone' => 'nullable|string|max:20',
+        'address' => 'nullable|string|max:255',
+    ]);
+    $supplier->update($data);
+
+    return redirect()->route('admin.suppliers.index')->with('success', 'Cập nhật nhà cung cấp thành công!');
+}
 
     /**
      * Remove the specified resource from storage.
@@ -84,12 +94,12 @@ class SupplierController extends Controller
     public function trashed()
     {
         $suppliers = Supplier::onlyTrashed()->get();
-    
+
         return Inertia::render('admin/suppliers/Trashed', [
             'suppliers' => $suppliers,
         ]);
     }
-    
+
 
     /**
      * Restore the specified trashed resource.
