@@ -65,17 +65,28 @@ class SupplierController extends Controller
 public function update(Request $request, string $id)
 {
     $supplier = Supplier::findOrFail($id);
+
     $data = $request->validate([
         'name' => 'required|string|max:255',
-        'contact_person' => 'nullable|string|max:255',
-        'email' => 'nullable|email|max:255',
-        'phone' => 'nullable|string|max:20',
+        'contact_person' => 'required|string|max:255',
+        'email' => ' required|email|max:255',
+        'phone' => ' required|string|max:20',
         'address' => 'nullable|string|max:255',
+    ], [
+        'name.required' => 'Tên nhà cung cấp là bắt buộc.',
+        'contact_person.required' => 'Người liên hệ là bắt buộc.',
+        'email.required' => 'Email là bắt buộc.',
+        'phone.required' => 'Số điện thoại là bắt buộc.',
+        'email.email' => 'Email không đúng định dạng.',
+        'phone.string' => 'Số điện thoại không hợp lệ.',
+        'address.string' => 'Địa chỉ không hợp lệ.',
     ]);
+
     $supplier->update($data);
 
     return redirect()->route('admin.suppliers.index')->with('success', 'Cập nhật nhà cung cấp thành công!');
 }
+
 
     /**
      * Remove the specified resource from storage.
