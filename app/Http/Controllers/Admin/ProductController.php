@@ -83,7 +83,7 @@ class ProductController extends Controller
      * Show the form for editing the specified resource.
      */
 
-    public function edit(string $id)
+    public function edit($id)
     {
         // Dữ liệu mẫu sản phẩm
         $product = Product::with('suppliers')->findOrFail($id);
@@ -92,6 +92,7 @@ class ProductController extends Controller
         $suppliers = Supplier::all(['id', 'name']);
         $selectedSupplierIds = $product->suppliers->pluck('id')->toArray();
         $imageUrl = $product->image_url ? Storage::url($product->image_url) : null;
+        $productSuppliers = $product->suppliers()->pluck('suppliers.id')->toArray();
         return Inertia::render('admin/products/Edit', [
             'product' => $product,
             'categories' => $categories,
@@ -100,6 +101,7 @@ class ProductController extends Controller
             'selectedSupplierIds' => $selectedSupplierIds,
             'imageUrl' => $imageUrl,
             'csrf_token' => csrf_token(),
+             'productSuppliers' => $productSuppliers,
         ]);
     }
 
@@ -165,6 +167,7 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')->with('success', 'Cập nhật sản phẩm thành công!');
     }
+
 
     /**
      * Remove the specified resource from storage.

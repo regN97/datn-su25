@@ -1,91 +1,192 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, useForm, Link } from '@inertiajs/vue3';
+// import { ref } from 'vue';
 import { type BreadcrumbItem } from '@/types';
-import InputError from '@/components/InputError.vue';
 
+import { useForm, Head, Link } from '@inertiajs/vue3';
+import AppLayout from '@/layouts/AppLayout.vue';
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Quản lí nhà cung cấp', href: '/admin/suppliers' },
-    { title: 'Cập nhật nhà cung cấp', href: '/admin/suppliers/edit' },
-];
+    {
+        title: 'Quản lí sản phẩm',
+        href: '/admin/products',
 
+    },
+    {
+        title: 'cập nhập sản phẩm',
+        href: '/admin/products/edit',
+
+    },
+];
 const props = defineProps<{
-    supplier: {
-        id: number,
-        name: string,
-        contact_person: string | null,
-        email: string | null,
-        phone: string | null,
-        address: string | null,
-    }
+    product: any,
+    categories: { id: number; name: string }[],
+    units: { id: number; name: string }[],
+    suppliers: { id: number; name: string }[],
+    productSuppliers: number[]
 }>();
 
 const form = useForm({
-    name: props.supplier.name ?? '',
-    contact_person: props.supplier.contact_person ?? '',
-    email: props.supplier.email ?? '',
-    phone: props.supplier.phone ?? '',
-    address: props.supplier.address ?? '',
+    name: props.product.name ?? '',
+    sku: props.product.sku ?? '',
+    barcode: props.product.barcode ?? '',
+    description: props.product.description ?? '',
+    category_id: props.product.category_id ?? null,
+    unit_id: props.product.unit_id ?? null,
+    purchase_price: props.product.purchase_price ?? 0,
+    selling_price: props.product.selling_price ?? 0,
+    min_stock_level: props.product.min_stock_level ?? 0,
+    max_stock_level: props.product.max_stock_level ?? 0,
+    is_active: props.product.is_active ?? true,
+    suppliers: Array.isArray(props.productSuppliers) ? [...props.productSuppliers] : [],
+    image_url: props.product.image_url ?? '',
+    image_file: null as File | null,
+    image_type: 'url', // hoặc props.product.image_type nếu có
 });
 
 function submit() {
-    form.put(`/admin/suppliers/${props.supplier.id}`);
+    form.transform(data => ({
+        ...data,
+        selected_supplier_ids: data.suppliers,
+        is_active: data.is_active ? 1 : 0, // ép kiểu về số
+        _method: 'PUT', // Laravel nhận biết là update
+    })).post(`/admin/products/${props.product.id}`, {
+        forceFormData: true,
+    });
 }
+
 </script>
 
 <template>
-    <Head title="Sửa Nhà cung cấp" />
+
+    <Head title="Thêm sản phẩm" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-            <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
-                <div class="container mx-auto p-6">
-                    <h2 class="text-2xl font-semibold mb-6 text-gray-800 dark:text-gray-200">Sửa nhà cung cấp</h2>
 
-                    <!-- Hiển thị lỗi tổng quát nếu có -->
-                    <div v-if="Object.keys(form.errors).length" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                        <ul class="list-disc list-inside">
-                            <li v-for="(error, key) in form.errors" :key="key">{{ error }}</li>
-                        </ul>
-                    </div>
-
-                    <form class="space-y-6" @submit.prevent="submit">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block mb-2 font-medium">Tên nhà cung cấp <span class="text-red-500">*</span></label>
-                                <input v-model="form.name" type="text" class="w-full rounded border px-3 py-2" placeholder="Nhập tên nhà cung cấp" />
-                                <InputError :message="form.errors.name" class="mt-1" />
-                            </div>
-                            <div>
-                                <label class="block mb-2 font-medium">Người liên hệ</label>
-                                <input v-model="form.contact_person" type="text" class="w-full rounded border px-3 py-2" placeholder="Nhập tên người liên hệ" />
-                                <InputError :message="form.errors.contact_person" class="mt-1" />
-                            </div>
-                            <div>
-                                <label class="block mb-2 font-medium">Email</label>
-                                <input v-model="form.email" type="email" class="w-full rounded border px-3 py-2" placeholder="Nhập email" />
-                                <InputError :message="form.errors.email" class="mt-1" />
-                            </div>
-                            <div>
-                                <label class="block mb-2 font-medium">Số điện thoại</label>
-                                <input v-model="form.phone" type="text" class="w-full rounded border px-3 py-2" placeholder="Nhập số điện thoại" />
-                                <InputError :message="form.errors.phone" class="mt-1" />
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block mb-2 font-medium">Địa chỉ</label>
-                            <textarea v-model="form.address" class="w-full rounded border px-3 py-2" placeholder="Nhập địa chỉ nhà cung cấp"></textarea>
-                            <InputError :message="form.errors.address" class="mt-1" />
-                        </div>
-                        <div class="flex justify-end gap-2 mt-6">
-                            <Link href="/admin/suppliers" class="px-6 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 flex items-center gap-2">
-                                <span>🙏</span> Quay lại
-                            </Link>
-                            <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center gap-2">
-                                <span>💾</span> Lưu
-                            </button>
-                        </div>
-                    </form>
+        <div class="container mx-auto max-w-5xl mt-8">
+            <div class="bg-white rounded-xl shadow p-8">
+                <div class="mb-6 flex items-center justify-between">
+                    <h1 class="text-2xl font-bold">Cập nhập sản phẩm</h1>
+                    <Link href="/admin/products" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700">
+                    Quay lại</Link>
                 </div>
+                <form @submit.prevent="submit">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Cột trái -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="font-semibold block mb-1">Tên sản phẩm *</label>
+                                <input v-model="form.name" type="text" class="w-full border rounded px-3 py-2"
+                                    placeholder="Nhập tên sản phẩm" />
+                            </div>
+                            <div>
+                                <label class="font-semibold block mb-1">Mã SKU *</label>
+                                <input v-model="form.sku" type="text" class="w-full border rounded px-3 py-2"
+                                    placeholder="Nhập mã SKU" />
+                                <div class="text-xs text-gray-400 mt-1">Ví dụ: G7-MTHH-001</div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="flex-1">
+                                    <label class="font-semibold block mb-1">Giá nhập *</label>
+                                    <input v-model="form.purchase_price" type="number" min="0"
+                                        class="w-full border rounded px-3 py-2" />
+                                </div>
+                                <div class="flex-1">
+                                    <label class="font-semibold block mb-1">Giá bán *</label>
+                                    <input v-model="form.selling_price" type="number" min="0"
+                                        class="w-full border rounded px-3 py-2" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="font-semibold block mb-1">Danh mục</label>
+                                <select v-model="form.category_id" class="w-full border rounded px-3 py-2">
+                                    <option :value="null">Chọn danh mục</option>
+                                    <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">{{ cat.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="flex-1">
+                                    <label class="font-semibold block mb-1">Tồn kho tối thiểu</label>
+                                    <input v-model="form.min_stock_level" type="number" min="0"
+                                        class="w-full border rounded px-3 py-2" />
+                                </div>
+                                <div class="flex-1">
+                                    <label class="font-semibold block mb-1">Tồn kho tối đa</label>
+                                    <input v-model="form.max_stock_level" type="number" min="0"
+                                        class="w-full border rounded px-3 py-2" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="font-semibold block mb-1">Mô tả</label>
+                                <textarea v-model="form.description" class="w-full border rounded px-3 py-2" rows="3"
+                                    placeholder="Mô tả về sản phẩm"></textarea>
+                                <div class="text-xs text-gray-400 mt-1 text-right">{{ form.description.length }}/5000 ký
+                                    tự</div>
+                            </div>
+                        </div>
+                        <!-- Cột phải -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="font-semibold block mb-1">Ảnh</label>
+                                <div class="flex items-center gap-4 mb-2">
+                                    <label class="flex items-center gap-1">
+                                        <input type="radio" value="url" v-model="form.image_type" />
+                                        Đường dẫn ảnh
+                                    </label>
+                                    <label class="flex items-center gap-1">
+                                        <input type="radio" value="upload" v-model="form.image_type" />
+                                        Tải ảnh lên
+                                    </label>
+                                </div>
+                                <div v-if="form.image_type === 'url'">
+                                    <input v-model="form.image_url" type="text" class="w-full border rounded px-3 py-2"
+                                        placeholder="Nhập URL ảnh sản phẩm" />
+                                </div>
+                                <div v-else>
+                                    <input type="file" @change="e => form.image_file = e.target.files[0]"
+                                        class="w-full border rounded px-3 py-2" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="font-semibold block mb-1">Nhà cung cấp</label>
+                                <select v-model="form.suppliers" multiple class="w-full border rounded px-3 py-2">
+                                    <option v-for="sup in props.suppliers" :key="sup.id" :value="sup.id">{{ sup.name }}
+                                    </option>
+                                </select>
+                                <div class="text-xs text-gray-400 mt-1">Có thể chọn nhiều nhà cung cấp</div>
+                            </div>
+                            <div>
+                                <label class="font-semibold block mb-1">Trạng thái *</label>
+                                <select v-model="form.is_active" class="w-full border rounded px-3 py-2">
+                                    <option :value="1">Hiển thị</option>
+                                    <option :value="0">Ẩn</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="font-semibold block mb-1">Mã vạch</label>
+                                <div class="flex gap-2">
+                                    <input v-model="form.barcode" type="text" class="flex-1 border rounded px-3 py-2"
+                                        placeholder="Nhập hoặc tạo mã vạch" />
+                                    <button type="button"
+                                        class="bg-purple-500 text-white px-3 py-2 rounded hover:bg-purple-600 transition">Sửa
+                                        mã vạch</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="font-semibold block mb-1">Đơn vị tính</label>
+                                <select v-model="form.unit_id" class="w-full border rounded px-3 py-2">
+                                    <option :value="null">Chọn đơn vị tính</option>
+                                    <option v-for="unit in props.units" :key="unit.id" :value="unit.id">{{ unit.name }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 mt-8">
+                        <Link href="/admin/products"
+                            class="px-6 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700">Quay lại</Link>
+                        <button type="submit"
+                            class="px-8 py-2 rounded bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:from-purple-600 hover:to-pink-600 transition">Lưu</button>
+                    </div>
+                </form>
             </div>
         </div>
     </AppLayout>
