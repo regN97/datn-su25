@@ -1,9 +1,11 @@
 <script setup lang="ts">
 // import { ref } from 'vue';
 import { type BreadcrumbItem } from '@/types';
-
+import MultiSelectSearch from '@/components/MultiSelectSearch.vue';
 import { useForm, Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
+import InputError from '@/components/InputError.vue';
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Quản lí sản phẩm',
@@ -146,12 +148,15 @@ function submit() {
                                 </div>
                             </div>
                             <div>
-                                <label class="font-semibold block mb-1">Nhà cung cấp</label>
-                                <select v-model="form.suppliers" multiple class="w-full border rounded px-3 py-2">
-                                    <option v-for="sup in props.suppliers" :key="sup.id" :value="sup.id">{{ sup.name }}
-                                    </option>
-                                </select>
-                                <div class="text-xs text-gray-400 mt-1">Có thể chọn nhiều nhà cung cấp</div>
+                                <label class="block mb-2 font-medium text-gray-700 dark:text-gray-300">Nhà cung cấp
+                                    <span class="text-red-500">*</span></label>
+                                <MultiSelectSearch v-model="form.suppliers"
+                                    :options="props.suppliers.map(s => ({ label: s.name, value: s.id }))"
+                                    placeholder="Tìm kiếm nhà cung cấp"
+                                    no-results-text="Không tìm thấy nhà cung cấp nào."
+                                    no-options-text="Không có nhà cung cấp để lựa chọn." />
+                                <span class="text-gray-500 text-xs mt-1 block">Có thể chọn nhiều nhà cung cấp</span>
+                                <InputError :message="form.errors.selected_supplier_ids" />
                             </div>
                             <div>
                                 <label class="font-semibold block mb-1">Trạng thái *</label>
@@ -165,9 +170,7 @@ function submit() {
                                 <div class="flex gap-2">
                                     <input v-model="form.barcode" type="text" class="flex-1 border rounded px-3 py-2"
                                         placeholder="Nhập hoặc tạo mã vạch" />
-                                    <button type="button"
-                                        class="bg-purple-500 text-white px-3 py-2 rounded hover:bg-purple-600 transition">Sửa
-                                        mã vạch</button>
+
                                 </div>
                             </div>
                             <div>

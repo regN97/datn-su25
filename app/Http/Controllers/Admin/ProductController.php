@@ -101,7 +101,7 @@ class ProductController extends Controller
             'selectedSupplierIds' => $selectedSupplierIds,
             'imageUrl' => $imageUrl,
             'csrf_token' => csrf_token(),
-             'productSuppliers' => $productSuppliers,
+            'productSuppliers' => $productSuppliers,
         ]);
     }
 
@@ -125,8 +125,8 @@ class ProductController extends Controller
             'max_stock_level' => 'nullable|integer|min:0',
             'is_active' => 'boolean',
             'image_url' => 'nullable|string',
-            'selected_supplier_ids' => 'array',
-            'selected_supplier_ids.*' => 'integer',
+            'selected_supplier_ids' => 'required|array|min:1',
+            'selected_supplier_ids.*' => 'exists:suppliers,id',
         ], [
             'required' => 'Trường :attribute là bắt buộc.',
             'sku' => 'Trường :attribute phải là mã SKU hợp lệ.',
@@ -138,6 +138,7 @@ class ProductController extends Controller
             'min' => 'Trường :attribute phải lớn hơn hoặc bằng :min.',
             'max' => 'Trường :attribute không được vượt quá :max ký tự.',
             'array' => 'Trường :attribute phải là danh sách.',
+            'exists' => 'Nhà cung cấp được chọn không hợp lệ.',
         ], [
             'name' => 'tên sản phẩm',
             'sku' => 'mã SKU',
