@@ -83,7 +83,7 @@ class ProductController extends Controller
      * Show the form for editing the specified resource.
      */
 
-    public function edit(string $id)
+    public function edit($id)
     {
         // Dữ liệu mẫu sản phẩm
         $product = Product::with('suppliers')->findOrFail($id);
@@ -92,6 +92,7 @@ class ProductController extends Controller
         $suppliers = Supplier::all(['id', 'name']);
         $selectedSupplierIds = $product->suppliers->pluck('id')->toArray();
         $imageUrl = $product->image_url ? Storage::url($product->image_url) : null;
+        $productSuppliers = $product->suppliers()->pluck('suppliers.id')->toArray();
         return Inertia::render('admin/products/Edit', [
             'product' => $product,
             'categories' => $categories,
@@ -100,6 +101,7 @@ class ProductController extends Controller
             'selectedSupplierIds' => $selectedSupplierIds,
             'imageUrl' => $imageUrl,
             'csrf_token' => csrf_token(),
+            'productSuppliers' => $productSuppliers,
         ]);
     }
 
@@ -123,8 +125,8 @@ class ProductController extends Controller
             'max_stock_level' => 'nullable|integer|min:0',
             'is_active' => 'boolean',
             'image_url' => 'nullable|string',
-            'selected_supplier_ids' => 'array',
-            'selected_supplier_ids.*' => 'integer',
+            'selected_supplier_ids' => 'required|array|min:1',
+            'selected_supplier_ids.*' => 'exists:suppliers,id',
         ], [
             'required' => 'Trường :attribute là bắt buộc.',
             'sku' => 'Trường :attribute phải là mã SKU hợp lệ.',
@@ -136,6 +138,7 @@ class ProductController extends Controller
             'min' => 'Trường :attribute phải lớn hơn hoặc bằng :min.',
             'max' => 'Trường :attribute không được vượt quá :max ký tự.',
             'array' => 'Trường :attribute phải là danh sách.',
+            'exists' => 'Nhà cung cấp được chọn không hợp lệ.',
         ], [
             'name' => 'tên sản phẩm',
             'sku' => 'mã SKU',
@@ -165,6 +168,7 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')->with('success', 'Cập nhật sản phẩm thành công!');
     }
+
 
     /**
      * Remove the specified resource from storage.
