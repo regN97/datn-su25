@@ -102,6 +102,7 @@ function goToCreatePage() {
 function goToEditPage(id: number) {
     router.visit(`/admin/products/${id}/edit`);
 }
+
 </script>
 
 
@@ -139,7 +140,7 @@ function goToEditPage(id: number) {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(product, idx) in paginatedProducts" :key="product.id" class="border-t">
+                                <tr v-for="(product) in paginatedProducts" :key="product.id" class="border-t">
                                     <td class="p-3 text-sm">
                                         <img :src="product.image_url || 'https://img.pikbest.com/element_our/20230308/bg/033477b05cd97.png!sw800'"
                                             alt="Product Image" class="w-16 h-16 object-cover rounded"

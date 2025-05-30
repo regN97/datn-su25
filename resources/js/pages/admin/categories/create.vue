@@ -10,13 +10,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Quản lí danh mục',
         href: '/admin/categories',
-
-
     },
     {
         title: 'Thêm danh mục',
         href: '/admin/categories/create',
-
     },
 ];
 const form = useForm({
