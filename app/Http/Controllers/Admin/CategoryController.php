@@ -27,8 +27,10 @@ class CategoryController extends Controller
      */
     public function create()
     {
-
-        return Inertia::render('admin/categories/Create');
+        $categories = Category::all();
+        return Inertia::render('admin/categories/Create', [
+            'categories' => $categories,
+        ]);
     }
 
     /**
@@ -78,7 +80,17 @@ class CategoryController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        $category = Category::find($id);
+        $categories = Category::where('id', '!=', $id)->get();
+
+        if (!$category) {
+            return redirect()->route('admin.categories.index')->with('error', 'Danh mục không tồn tại.');
+        }
+
+        return Inertia::render('admin/categories/Edit', [
+            'category' => $category,
+            'categories' => $categories,
+        ]);
     }
 
     /**
@@ -86,7 +98,41 @@ class CategoryController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $category = Category::find($id);
+
+        if (!$category) {
+            return redirect()->route('admin.categories.index')->with('error', 'Danh mục không tồn tại.');
+        }
+
+        $rules = [
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'name')->ignore($id),
+            ],
+            'parent_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('categories', 'id')->where(function ($query) use ($id) {
+                    return $query->where('id', '!=', $id);
+                }),
+            ],
+            'description' => 'nullable|string|max:5000',
+        ];
+
+        $messages = [
+            'name.required' => 'Tên danh mục là bắt buộc.',
+            'name.unique' => 'Tên danh mục đã tồn tại.',
+            'parent_id.integer' => 'Danh mục cha không hợp lệ.',
+            'parent_id.exists' => 'Danh mục cha không tồn tại.',
+        ];
+
+        $validated = $request->validate($rules, $messages);
+
+        $category->update($validated);
+
+        return redirect()->route('admin.categories.index')->with('success', 'Cập nhật danh mục thành công!');
     }
 
     // Trang thùng rác
@@ -94,12 +140,12 @@ class CategoryController extends Controller
     // Xóa mềm danh mục
     public function destroy($id)
     {
-           $category = Category::find($id); // Tìm danh mục
-    if ($category) { // Đảm bảo danh mục tồn tại trước khi xóa
-        $category->delete(); // Thao tác này sẽ thực hiện xóa mềm do SoftDeletes
-        return redirect()->route('admin.categories.index')->with('success', 'Đã xóa thành công');
-    }
+        $category = Category::find($id); // Tìm danh mục
+        if ($category) { // Đảm bảo danh mục tồn tại trước khi xóa
+            $category->delete(); // Thao tác này sẽ thực hiện xóa mềm do SoftDeletes
+            return redirect()->route('admin.categories.index')->with('success', 'Đã xóa thành công');
+        }
 
-    return redirect()->route('admin.categories.index')->with('error', 'Không tìm thấy danh mục để xóa.');
+        return redirect()->route('admin.categories.index')->with('error', 'Không tìm thấy danh mục để xóa.');
     }
 }

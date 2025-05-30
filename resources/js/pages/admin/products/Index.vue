@@ -103,11 +103,6 @@ function goToEditPage(id: number) {
     router.visit(`/admin/products/${id}/edit`);
 }
 
-for (const product of paginatedProducts.value) {
-    
-    console.log(product.image_url)
-}
-
 </script>
 
 

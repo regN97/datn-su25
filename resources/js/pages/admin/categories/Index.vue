@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import InputError from '@/components/InputError.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, usePage, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Pencil, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -25,7 +27,7 @@ const categories = page.props.categories as Category[];
 
 const getParentName = (parent_id: number | null) => {
     if (!parent_id) return '—';
-    const parent = categories.find(cat => cat.id === parent_id);
+    const parent = categories.find((cat) => cat.id === parent_id);
     return parent ? parent.name : '—';
 };
 
@@ -65,7 +67,7 @@ function deleteCategory(id: number) {
         router.delete(`/admin/categories/${id}`, {
             onSuccess: () => {
                 // Xóa khỏi mảng categories phía client (nếu categories là ref/reactive)
-                const idx = categories.findIndex(cat => cat.id === id);
+                const idx = categories.findIndex((cat) => cat.id === id);
                 if (idx !== -1) categories.splice(idx, 1);
             },
             preserveState: true,
@@ -74,34 +76,45 @@ function deleteCategory(id: number) {
 }
 // --- Kết thúc Logic xóa danh mục ---
 function goToCreatePage() {
+    console.log('Navigating to create page');
     router.visit('/admin/categories/create');
+}
+function goToEditPage(id: number) {
+    router.visit(`/admin/categories/${id}/edit`);
 }
 </script>
 
 <template>
-
     <Head title="Categories" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-            <div
-                class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
+            <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
                     <div class="mb-4 flex items-center justify-between">
                         <h1 class="text-2xl font-bold">Danh sách danh mục</h1>
+                        <InputError v-if="typeof page.props.flash.error === 'string'" :message="page.props.flash.error" />
                         <div class="flex gap-3">
-                         <button @click="goToCreatePage"
-                            class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
-                            Thêm mới
-                        </button>
+                            <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">Thêm mới</button>
 
                             <Link
                                 href="/admin/categories/trashed"
-                                class="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                class="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
                                 title="Xem danh mục đã xóa"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                    class="h-5 w-5"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                                    />
                                 </svg>
                                 Thùng rác
                             </Link>
@@ -127,13 +140,12 @@ function goToCreatePage() {
                                     <td class="p-3 text-sm">{{ cat.description }}</td>
                                     <td class="p-3 text-sm">
                                         <div class="flex items-center space-x-2">
-                                            <Link :href="`/admin/categories/${cat.id}/edit`"
-                                                class="px-3 py-1 rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150">
-                                                Sửa
-                                            </Link>
-                                            <button @click="deleteCategory(cat.id)"
-                                                class="px-3 py-1 rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition ease-in-out duration-150 flex items-center gap-1">
-                                                ✂
+                                            <button @click="goToEditPage(cat.id)" class="cursor-pointer rounded-md text-green-500">
+                                                <Pencil class="h-5 w-5" />
+                                            </button>
+
+                                            <button @click="deleteCategory(cat.id)" class="cursor-pointer rounded-md text-red-500">
+                                                <Trash2 class="h-5 w-5" />
                                             </button>
                                         </div>
                                     </td>
@@ -154,19 +166,23 @@ function goToCreatePage() {
                             trên tổng <span class="font-semibold">{{ total }}</span>
                         </p>
                         <div class="flex items-center space-x-2">
-                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                                :disabled="currentPage === 1" @click="prevPage">
+                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700" :disabled="currentPage === 1" @click="prevPage">
                                 &larr; Trang trước
                             </button>
                             <template v-for="page in totalPages" :key="page">
-                                <button class="rounded px-3 py-1 text-sm"
+                                <button
+                                    class="rounded px-3 py-1 text-sm"
                                     :class="page === currentPage ? 'bg-gray-200 font-bold' : 'text-gray-500 hover:text-gray-700'"
-                                    @click="goToPage(page)">
+                                    @click="goToPage(page)"
+                                >
                                     {{ page }}
                                 </button>
                             </template>
-                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                                :disabled="currentPage === totalPages" @click="nextPage">
+                            <button
+                                class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+                                :disabled="currentPage === totalPages"
+                                @click="nextPage"
+                            >
                                 Trang sau &rarr;
                             </button>
                         </div>
