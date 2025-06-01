@@ -3,12 +3,16 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, usePage, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { EyeOff, Eye, Pencil, Delete,PackagePlus    } from 'lucide-vue-next';
+
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Quản lý sản phẩm',
         href: '/admin/products',
     },
 ];
+
 type Category = {
     id: number;
     name: string;
@@ -19,7 +23,10 @@ type ProductUnit = {
     name: string;
 };
 
-
+type Supplier = {
+    id: number;
+    name: string;
+};
 
 // Lấy tên category dựa trên category_id
 function getCategoryName(category_id: number) {
@@ -32,6 +39,7 @@ function getUnitName(unit_id: number) {
     const unit = units.find(u => u.id === unit_id);
     return unit ? unit.name : 'Không có';
 }
+
 type Product = {
     id: number;
     name: string;
@@ -48,6 +56,7 @@ type Product = {
     is_active: boolean;
     category?: Category;
     unit?: ProductUnit;
+    suppliers?: Supplier[];
 };
 
 const page = usePage<SharedData>();
@@ -59,6 +68,16 @@ const products = page.props.products as Product[];
 const perPageOptions = [5, 10, 25, 50];
 const perPage = ref(25);
 const currentPage = ref(1);
+
+const openProductDetailsId = ref<number | null>(null);
+
+function toggleDetails(productId: number) {
+    if (openProductDetailsId.value === productId) {
+        openProductDetailsId.value = null;
+    } else {
+        openProductDetailsId.value = productId;
+    }
+}
 
 // Tổng sản phẩm & tổng số trang
 const total = computed(() => products.length);
@@ -96,15 +115,15 @@ function changePerPage(event: Event) {
     perPage.value = value;
     currentPage.value = 1;
 }
+
 function goToCreatePage() {
     router.visit('/admin/products/create');
 }
+
 function goToEditPage(id: number) {
     router.visit(`/admin/products/${id}/edit`);
 }
-
 </script>
-
 
 <template>
 
@@ -115,16 +134,14 @@ function goToEditPage(id: number) {
             <div
                 class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
-                    <!-- Tiêu đề và nút Thêm mới -->
                     <div class="mb-4 flex items-center justify-between">
                         <h1 class="text-2xl font-bold">Danh mục sản phẩm</h1>
                         <button @click="goToCreatePage"
-                            class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
-                            Thêm mới
+                            class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
+                            <PackagePlus  /> 
                         </button>
                     </div>
 
-                    <!-- Bảng danh mục -->
                     <div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">
                         <table class="w-full text-left">
                             <thead>
@@ -132,60 +149,116 @@ function goToEditPage(id: number) {
                                     <th class="p-3 text-sm font-semibold">Hình ảnh</th>
                                     <th class="p-3 text-sm font-semibold">Tên sản phẩm</th>
                                     <th class="p-3 text-sm font-semibold">SKU</th>
-                                    <th class="p-3 text-sm font-semibold">Loại danh mục</th>
-                                    <th class="p-3 text-sm font-semibold">Đơn vị</th>
-                                    <th class="p-3 text-sm font-semibold">Giá bán</th>
                                     <th class="p-3 text-sm font-semibold">Trạng thái</th>
                                     <th class="p-3 text-sm font-semibold">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(product) in paginatedProducts" :key="product.id" class="border-t">
-                                    <td class="p-3 text-sm">
-                                        <img :src="product.image_url || 'https://img.pikbest.com/element_our/20230308/bg/033477b05cd97.png!sw800'"
-                                            alt="Product Image" class="w-16 h-16 object-cover rounded"
-                                            onerror="this.onerror=null;this.src='https://img.pikbest.com/element_our/20230308/bg/033477b05cd97.png!sw800';" />
-                                    </td>
+                                <template v-for="(product) in paginatedProducts" :key="product.id">
+                                    <tr class="border-t">
+                                        <td class="p-3 text-sm">
+                                            <img :src="product.image_url" alt="Product Image"
+                                                class="w-16 h-16 object-cover rounded"
+                                                onerror="this.onerror=null;this.src='https://img.pikbest.com/element_our/20230308/bg/033477b05cd97.png!sw800';" />
+                                        </td>
+                                        <td class="p-3 text-sm">{{ product.name || 'Không có' }}</td>
+                                        <td class="p-3 text-sm">{{ product.sku || 'Không có' }}</td>
+                                        <td class="p-3 text-sm">
+                                            <span
+                                                :class="product.is_active ? 'text-green-600 font-medium' : 'text-red-500 font-medium'">
+                                                {{ product.is_active ? 'Hiện' : 'Ẩn' }}
+                                            </span>
+                                        </td>
+                                        <td class="p-3 text-sm whitespace-nowrap">
+                                            <div class="flex items-center space-x-2">
+                                                <button @click="toggleDetails(product.id)"
+                                                    class="px-3 py-1 rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition ease-in-out duration-150 flex items-center gap-1">
+                                                    <component :is="openProductDetailsId === product.id ? EyeOff : Eye"
+                                                        class="w-4 h-4" />
+                                                    {{ openProductDetailsId === product.id ? '' : '' }}
+                                                </button>
+                                                <button
+                                                    class="px-3 py-1 rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150"
+                                                    @click="goToEditPage(product.id)">
+                                                    <Pencil class="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    class="px-3 py-1 rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition ease-in-out duration-150">
+                                                    <Delete  class="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="openProductDetailsId === product.id">
+                                        <td :colspan="Object.keys(product).length > 0 ? 8 : 1"
+                                            class="p-4 bg-gray-50 border-t border-b border-gray-200">
+                                            <div class="p-5 bg-white rounded-lg shadow-sm border border-gray-200">
+                                                <h4 class="text-xl font-bold text-gray-800 mb-4">📝 Thông tin chi tiết
+                                                    sản phẩm - {{ product.name || 'Không có' }}</h4>
+                                                <div
+                                                    class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-700">
 
-                                    <td class="p-3 text-sm">{{ product.name || 'Không có' }}</td>
-                                    <td class="p-3 text-sm">{{ product.sku || 'Không có' }}</td>
-                                    <td class="p-3 text-sm">{{ getCategoryName(product.category_id) }}</td>
-                                    <td class="p-3 text-sm">{{ getUnitName(product.unit_id) }}</td>
+                                                    <div class="space-y-3">
+                                                        <div><span class="font-semibold text-gray-900">📦 Mã
+                                                                vạch:</span> {{ product.barcode || 'Không có' }}</div>
+                                                        <div><span class="font-semibold text-gray-900">📁 Danh
+                                                                mục:</span> {{ getCategoryName(product.category_id) }}
+                                                        </div>
+                                                        <div><span class="font-semibold text-gray-900">📏 Đơn vị:</span>
+                                                            {{ getUnitName(product.unit_id) }}</div>
+                                                        <div><span class="font-semibold text-gray-900">🖋️ Mô tả:</span>
+                                                            {{ product.description || 'Không có' }}</div>
+                                                    </div>
 
+                                                    <div class="space-y-3">
+                                                        <div><span class="font-semibold text-gray-900">💰 Giá
+                                                                nhập:</span>
+                                                            {{ product.purchase_price ?
+                                                                product.purchase_price.toLocaleString('vi-VN') + '₫' :
+                                                                'Không có' }}
+                                                        </div>
+                                                        <div><span class="font-semibold text-gray-900">🛒 Giá
+                                                                bán:</span>
+                                                            {{ product.selling_price ?
+                                                                product.selling_price.toLocaleString('vi-VN') + '₫' :
+                                                                'Không có' }}
+                                                        </div>
+                                                        <div><span class="font-semibold text-gray-900">📉 Tồn kho tối
+                                                                thiểu:</span> {{ product.min_stock_level }}</div>
+                                                        <div><span class="font-semibold text-gray-900">📈 Tồn kho tối
+                                                                đa:</span> {{ product.max_stock_level }}</div>
+                                                    </div>
+                                                    <div>
+                                                        <span class="font-semibold text-gray-900">🗓️ Nhà cung
+                                                            cấp:</span>
+                                                        <span>
+                                                            <template
+                                                                v-if="product.suppliers && product.suppliers.length > 0">
+                                                                <span v-for="(supplier, index) in product.suppliers"
+                                                                    :key="supplier.id">
+                                                                    {{ supplier.name }}
+                                                                    <span v-if="index < product.suppliers.length - 1">,
+                                                                    </span>
+                                                                </span>
+                                                            </template>
+                                                            <template v-else>
+                                                                Không có
+                                                            </template>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
 
-                                    <td class="p-3 text-sm">{{ product.selling_price ? product.selling_price + '₫' :
-                                        'Không có' }}</td>
-
-                                    <td class="p-3 text-sm">
-                                        <span
-                                            :class="product.is_active ? 'text-green-600 font-medium' : 'text-red-500 font-medium'">
-                                            {{ product.is_active ? 'Hiện' : 'Ẩn' }}
-                                        </span>
-                                    </td>
-                                    <td class="p-3 text-sm whitespace-nowrap">
-                                        <div class="flex items-center space-x-2">
-                                            <button
-                                                class="px-3 py-1 rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150"
-                                                @click="goToEditPage(product.id)">
-                                                Sửa
-                                            </button>
-                                            <button
-                                                class="px-3 py-1 rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition ease-in-out duration-150">
-                                                Xóa
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-
+                                </template>
                                 <tr v-if="paginatedProducts.length === 0">
-                                    <td colspan="7" class="p-3 text-center text-sm">Không có dữ liệu</td>
+                                    <td colspan="8" class="p-3 text-center text-sm">Không có dữ liệu</td>
                                 </tr>
                             </tbody>
-
                         </table>
                     </div>
 
-                    <!-- Phân trang -->
                     <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <p class="text-sm">
                             Hiển thị kết quả từ
