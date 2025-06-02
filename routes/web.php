@@ -15,9 +15,9 @@ Route::get('/', function () {
 Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::prefix('admin')->name('admin.')->group(function () {
-
-    Route::resource('categories', CategoryController::class);
+    
     Route::get('categories/trash', [CategoryController::class, 'trash'])->name('categories.trash'); 
+    Route::resource('categories', CategoryController::class);
 
     Route::resource('products', ProductController::class);
 
