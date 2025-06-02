@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SupplierRequest;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class SupplierController extends Controller
@@ -33,9 +34,48 @@ class SupplierController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(SupplierRequest $request)
+    public function store(Request $request) // Change SupplierRequest to Request
     {
-        Supplier::create($request->validated());
+        // Define validation rules
+        $rules = [
+            'name' => ['required', 'string', 'max:255', Rule::unique('suppliers', 'name')],
+            'contact_person' => ['required', 'string', 'max:255', Rule::unique('suppliers', 'contact_person')],
+            'email' => ['required', 'email', 'max:255', Rule::unique('suppliers', 'email')],
+            'phone' => ['required', 'string', 'max:20', Rule::unique('suppliers', 'phone')],
+            'address' => ['required', 'string'],
+        ];
+
+        // Define custom error messages
+        $messages = [
+            'name.required' => 'Tên nhà cung cấp là bắt buộc.',
+            'name.string' => 'Tên nhà cung cấp phải là chuỗi ký tự.',
+            'name.max' => 'Tên nhà cung cấp không được vượt quá :max ký tự.',
+            'name.unique' => 'Tên nhà cung cấp này đã tồn tại.',
+
+            'contact_person.required' => 'Người liên hệ là bắt buộc.',
+            'contact_person.string' => 'Người liên hệ phải là chuỗi ký tự.',
+            'contact_person.max' => 'Người liên hệ không được vượt quá :max ký tự.',
+            'contact_person.unique' => 'Người liên hệ này đã tồn tại.',
+
+            'email.required' => 'Email là bắt buộc.',
+            'email.email' => 'Email phải là định dạng email hợp lệ.',
+            'email.max' => 'Email không được vượt quá :max ký tự.',
+            'email.unique' => 'Email này đã tồn tại.',
+
+            'phone.required' => 'Số điện thoại là bắt buộc.',
+            'phone.string' => 'Số điện thoại phải là chuỗi ký tự.',
+            'phone.max' => 'Số điện thoại không được vượt quá :max ký tự.',
+            'phone.unique' => 'Số điện thoại này đã tồn tại.',
+            
+            'address.required' => 'Địa chỉ là bắt buộc.',
+            'address.string' => 'Địa chỉ phải là chuỗi ký tự.',
+        ];
+
+        // Validate the request
+        $validatedData = $request->validate($rules, $messages);
+
+        // Create the supplier using the validated data
+        Supplier::create($validatedData);
 
         return Inertia::render('admin/suppliers/Create', [
             'status' => 'success',
