@@ -81,7 +81,7 @@ const submitForm = () => {
                     <h2 class="text-2xl font-semibold mb-6 text-gray-800 dark:text-gray-200">Thêm nhà cung cấp</h2>
 
                     <div v-if="Object.keys(page.props.errors).length > 0" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
-                        <strong class="font-bold">Lỗi nhập liệu!</strong>
+                        <strong class="font-bold">Lỗi nhập liệu! </strong>
                         <span class="block sm:inline">Vui lòng kiểm tra lại các trường dưới đây.</span>
                     </div>
 
@@ -133,7 +133,7 @@ const submitForm = () => {
 
                             <div class="md:col-span-2">
                                 <label for="address" class="block mb-2 font-medium text-gray-700 dark:text-gray-300">
-                                    Địa chỉ
+                                    Địa chỉ <span class="text-red-500">*</span>
                                 </label>
                                 <textarea id="address" v-model="form.address"
                                     class="w-full rounded-md border-gray-300 shadow-sm p-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
