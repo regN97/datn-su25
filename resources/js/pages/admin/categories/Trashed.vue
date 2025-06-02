@@ -53,6 +53,9 @@ function forceDeleteCategory(id: number) {
         });
     }
 }
+function comback() {
+    router.visit('/admin/categories');
+}
 </script>
 
 
@@ -92,6 +95,11 @@ function forceDeleteCategory(id: number) {
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            <div class="flex justify-end">
+                <button @click="comback()" class="px-6 py-2 rounded bg-gray-200 hover:bg-gray-300 text-primary-700">
+                    Quay lại
+                </button>
             </div>
         </div>
     </AppLayout>
