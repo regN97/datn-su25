@@ -136,7 +136,10 @@ class CategoryController extends Controller
     }
 
     // Trang thùng rác
-
+    public function trashed() {
+        $categories = Category::onlyTrashed()->get();
+        return Inertia::render('admin/categories/Trashed')->with(['categories' => $categories] );
+    }
     // Xóa mềm danh mục
     public function destroy($id)
     {
@@ -147,5 +150,26 @@ class CategoryController extends Controller
         }
 
         return redirect()->route('admin.categories.index')->with('error', 'Không tìm thấy danh mục để xóa.');
+    }
+     /**
+     * Restore the specified trashed resource.
+     */
+    public function restore(string $id)
+    {
+        $supplier = Category::onlyTrashed()->findOrFail($id);
+        $supplier->restore();
+
+        return redirect()->back()->with('success', 'Danh mục đã được khôi phục!');
+    }
+
+    /**
+     * Permanently remove the specified resource from storage.
+     */
+    public function forceDelete(string $id)
+    {
+        $supplier = Category::onlyTrashed()->findOrFail($id);
+        $supplier->forceDelete();
+
+        return redirect()->back()->with('success', 'Danh mục đã được xóa vĩnh viễn!');
     }
 }
