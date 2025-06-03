@@ -13,7 +13,7 @@ class PurchaseOrderSeeder extends Seeder
      */
     public function run(): void
     {
-$orders = [
+        $purchase_orders = [
             [
                 'po_number' => 'PO-20240601-001',
                 'supplier_id' => 2,
@@ -379,8 +379,8 @@ $orders = [
             ],
         ];
 
-        foreach ($orders as $order) {
-            $order['balance_due'] = $order['total_amount'] - $order['amount_paid'];
-            PurchaseOrder::create($order);
+        foreach ($purchase_orders as $purchase_order) {
+            $purchase_order['balance_due'] = $purchase_order['total_amount'] - $purchase_order['amount_paid'];
+            PurchaseOrder::create($purchase_order);
         }
     }    }
