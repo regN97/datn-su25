@@ -15,8 +15,10 @@ Route::get('/', function () {
 Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::prefix('admin')->name('admin.')->group(function () {
-    
-    Route::get('categories/trash', [CategoryController::class, 'trash'])->name('categories.trash'); 
+
+    Route::get('categories/trashed', [CategoryController::class, 'trashed'])->name('categories.trashed'); 
+    Route::post('categories/{cat}/restore', [CategoryController::class, 'restore'])->name('categories.restore');
+    Route::delete('categories/{cat}/force-delete', [CategoryController::class, 'forceDelete'])->name('categories.forceDelete');
     Route::resource('categories', CategoryController::class);
 
     Route::resource('products', ProductController::class);

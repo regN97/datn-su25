@@ -51,8 +51,6 @@ function submit() {
             <div class="bg-white rounded-xl shadow p-8">
                 <div class="mb-6 flex items-center justify-between">
                     <h1 class="text-2xl font-bold">Thêm danh mục</h1>
-                    <Link href="/admin/categories"
-                        class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700">Quay lại</Link>
                 </div>
                 <form @submit.prevent="submit">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
