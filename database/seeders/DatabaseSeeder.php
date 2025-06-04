@@ -27,6 +27,8 @@ class DatabaseSeeder extends Seeder
             PurchaseOrderItemSeeder::class,
             PurchaseReceiptSeeder::class,
             PurchaseReceiptItemSeeder::class,
+            PurchaseReturnSeeder::class,
+            PurchaseReturnItemSeeder::class
         ]);
     }
 }
