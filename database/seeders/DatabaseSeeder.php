@@ -17,18 +17,19 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            UserSeeder::class,
-            SupplierSeeder::class,
-            CategorySeeder::class,
-            ProductUnitSeeder::class,
-            ProductSeeder::class,
-            ProductSupplierSeeder::class,
-            PurchaseOrderSeeder::class,
-            PurchaseOrderItemSeeder::class,
-            PurchaseReceiptSeeder::class,
-            PurchaseReceiptItemSeeder::class,
-            PurchaseReturnSeeder::class,
-            PurchaseReturnItemSeeder::class
+            // UserSeeder::class,
+            // SupplierSeeder::class,
+            // CategorySeeder::class,
+            // ProductUnitSeeder::class,
+            // ProductSeeder::class,
+            // ProductSupplierSeeder::class,
+            // PurchaseOrderSeeder::class,
+            // PurchaseOrderItemSeeder::class,
+            // PurchaseReceiptSeeder::class,
+            // PurchaseReceiptItemSeeder::class,
+            // PurchaseReturnSeeder::class,
+            // PurchaseReturnItemSeeder::class,
+            ProductBatchSeeder::class,
         ]);
     }
 }
