@@ -88,49 +88,49 @@ class PurchaseReceiptSeeder extends Seeder
             ],
             [
                 'receipt_number' => 'PNK-20250607-007',
-                'purchase_order_id' => 8, // PO-20240607-008: Chưa nhận hàng
-                'total_items_received' => 0,
-                'total_value_received' => 0,
+                'purchase_order_id' => 8, // PO-20240607-008: Nước cam ép 330ml (product_id: 3), đặt 50 cái
+                'total_items_received' => 50, // Đã nhận đủ 50 cái
+                'total_value_received' => 350000, // 50 * 7000 = 350000
                 'is_partial' => 'false',
-                'receipt_date' => '2025-06-19', // Gán ngày cụ thể, không còn Carbon::now()
-                'received_by' => 1,
-                'notes' => 'Đơn hàng chưa có phiếu nhập kho.',
+                'receipt_date' => '2025-06-19',
+                'received_by' => 1, // Đã có người nhận
+                'notes' => 'Phiếu nhập kho đầy đủ cho Nước cam ép từ PO-20240607-008.',
                 'created_at' => '2025-06-19 08:00:00',
                 'updated_at' => '2025-06-19 08:00:00',
             ],
             [
                 'receipt_number' => 'PNK-20250608-008',
-                'purchase_order_id' => 13, // PO-20240612-013: Chưa nhận hàng
-                'total_items_received' => 0,
-                'total_value_received' => 0,
+                'purchase_order_id' => 13, // PO-20240612-013: Cà phê lon đen đá 240ml (product_id: 4), đặt 40 cái
+                'total_items_received' => 40, // Đã nhận đủ 40 cái
+                'total_value_received' => 360000, // 40 * 9000 = 360000
                 'is_partial' => 'false',
-                'receipt_date' => '2025-06-20', // Gán ngày cụ thể
-                'received_by' => 1,
-                'notes' => 'Đơn hàng đã duyệt nhưng chưa nhận hàng.',
+                'receipt_date' => '2025-06-20',
+                'received_by' => 1, // Đã có người nhận
+                'notes' => 'Phiếu nhập kho đầy đủ cho Cà phê lon từ PO-20240612-013.',
                 'created_at' => '2025-06-20 09:00:00',
                 'updated_at' => '2025-06-20 09:00:00',
             ],
             [
                 'receipt_number' => 'PNK-20250609-009',
-                'purchase_order_id' => 14, // PO-20240613-014: Chưa nhận hàng
-                'total_items_received' => 0,
-                'total_value_received' => 0,
+                'purchase_order_id' => 14, // PO-20240613-014: Máy xay sinh tố mini (product_id: 6), đặt 8 cái
+                'total_items_received' => 8, // Đã nhận đủ 8 cái
+                'total_value_received' => 1760000, // 8 * 220000 = 1760000
                 'is_partial' => 'false',
-                'receipt_date' => '2025-06-21', // Gán ngày cụ thể
+                'receipt_date' => '2025-06-21',
                 'received_by' => 1,
-                'notes' => 'Đơn hàng đã gửi nhưng chưa có phiếu nhập kho.',
+                'notes' => 'Phiếu nhập kho đầy đủ cho Máy xay sinh tố từ PO-20240613-014.',
                 'created_at' => '2025-06-21 10:00:00',
                 'updated_at' => '2025-06-21 10:00:00',
             ],
             [
                 'receipt_number' => 'PNK-20250610-010',
-                'purchase_order_id' => 15, // PO-20240614-015: Chưa nhận hàng
-                'total_items_received' => 0,
-                'total_value_received' => 0,
+                'purchase_order_id' => 15, // PO-20240614-015: Kem đánh răng dược liệu 150g (product_id: 8), đặt 30 cái
+                'total_items_received' => 30, // Đã nhận đủ 30 cái
+                'total_value_received' => 600000, // 30 * 20000 = 600000
                 'is_partial' => 'false',
-                'receipt_date' => '2025-06-22', // Gán ngày cụ thể
+                'receipt_date' => '2025-06-22',
                 'received_by' => 1,
-                'notes' => 'Đơn hàng chờ duyệt, chưa có phiếu nhập kho.',
+                'notes' => 'Phiếu nhập kho đầy đủ cho Kem đánh răng từ PO-20240614-015.',
                 'created_at' => '2025-06-22 11:00:00',
                 'updated_at' => '2025-06-22 11:00:00',
             ],
