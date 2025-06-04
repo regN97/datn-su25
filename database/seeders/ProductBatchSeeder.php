@@ -14,7 +14,6 @@ class ProductBatchSeeder extends Seeder
     public function run(): void
     {
         $product_batches = [
-            // Dữ liệu từ Purchase Receipt Item 1 (Bình đun siêu tốc - PRN-20250601-001)
             [
                 'product_id' => 5, // Bình đun siêu tốc 1.8L
                 'batch_number' => 'BDST-202505-001',
@@ -91,7 +90,7 @@ class ProductBatchSeeder extends Seeder
                 'purchase_price' => 5000,
                 'initial_quantity' => 18,
                 'current_quantity' => 18,
-                'status' => 'active', // Hoặc 'low_stock' nếu số lượng thấp
+                'status' => 'active',
                 'supplier_id' => 6, // Supplier của PO-20240606-007
                 'received_date' => '2025-06-15',
                 'invoice_number' => 'PNK-20250604-004',
@@ -166,6 +165,40 @@ class ProductBatchSeeder extends Seeder
                 'notes' => 'Lô hàng cà phê sắp hết.',
                 'created_at' => '2025-05-20 10:00:00',
                 'updated_at' => '2025-06-01 10:00:00',
+            ],
+            // Thêm bản ghi cho sản phẩm còn thiếu: Máy xay sinh tố mini (product_id: 6)
+            [
+                'product_id' => 6, // Máy xay sinh tố mini
+                'batch_number' => 'MXST-202505-001',
+                'manufacturing_date' => '2025-05-10',
+                'expiry_date' => null,
+                'purchase_price' => 220000,
+                'initial_quantity' => 12,
+                'current_quantity' => 12,
+                'status' => 'active',
+                'supplier_id' => 8, // Giả định supplier_id 8 (FPT Synnex)
+                'received_date' => '2025-06-05',
+                'invoice_number' => 'PNK-20250605-005', // Hoặc một invoice_number mới
+                'notes' => 'Lô hàng nhập cho Máy xay sinh tố mini.',
+                'created_at' => '2025-06-05 09:00:00',
+                'updated_at' => '2025-06-05 09:00:00',
+            ],
+            // Thêm bản ghi cho sản phẩm còn thiếu: Chổi lau nhà 360 độ (product_id: 9)
+            [
+                'product_id' => 9, // Chổi lau nhà 360 độ
+                'batch_number' => 'CLN-202505-001',
+                'manufacturing_date' => '2025-05-15',
+                'expiry_date' => null,
+                'purchase_price' => 100000,
+                'initial_quantity' => 25,
+                'current_quantity' => 25,
+                'status' => 'active',
+                'supplier_id' => 9, // Giả định supplier_id 9 (Sài Gòn Co.op)
+                'received_date' => '2025-06-05',
+                'invoice_number' => 'PNK-20250605-005', // Hoặc một invoice_number mới
+                'notes' => 'Lô hàng nhập cho Chổi lau nhà 360 độ.',
+                'created_at' => '2025-06-05 09:00:00',
+                'updated_at' => '2025-06-05 09:00:00',
             ],
         ];
         foreach ($product_batches as $product_batch) {
