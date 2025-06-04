@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
+import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Pencil, Trash2 } from 'lucide-vue-next';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { PackagePlus, Pencil, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -32,7 +32,7 @@ const getParentName = (parent_id: number | null) => {
 };
 
 const perPageOptions = [5, 10, 25, 50];
-const perPage = ref(20);
+const perPage = ref(5);
 const currentPage = ref(1);
 
 const total = computed(() => categories.length);
@@ -61,20 +61,6 @@ function changePerPage(event: Event) {
     currentPage.value = 1;
 }
 
-// --- Logic xóa danh mục sử dụng confirm() mặc định ---
-function deleteCategory(id: number) {
-    if (confirm('Bạn có chắc chắn muốn xóa danh mục này không?')) {
-        router.delete(`/admin/categories/${id}`, {
-            onSuccess: () => {
-                // Xóa khỏi mảng categories phía client (nếu categories là ref/reactive)
-                const idx = categories.findIndex((cat) => cat.id === id);
-                if (idx !== -1) categories.splice(idx, 1);
-            },
-            preserveState: true,
-        });
-    }
-}
-// --- Kết thúc Logic xóa danh mục ---
 function goToCreatePage() {
     console.log('Navigating to create page');
     router.visit('/admin/categories/create');
@@ -82,8 +68,35 @@ function goToCreatePage() {
 function goToEditPage(id: number) {
     router.visit(`/admin/categories/${id}/edit`);
 }
-function goToTrashedPage()  {
+function goToTrashedPage() {
     router.visit('/admin/categories/trashed');
+}
+
+const showDeleteModal = ref(false);
+const categoryToDelete = ref<number | null>(null);
+
+function confirmDelete(id: number) {
+    categoryToDelete.value = id;
+    showDeleteModal.value = true;
+}
+
+function handleDeleteCategory() {
+    if (!categoryToDelete.value) return;
+
+    router.delete(`/admin/categories/${categoryToDelete.value}`, {
+        onSuccess: () => {
+            const idx = categories.findIndex((cat) => cat.id === categoryToDelete.value);
+            if (idx !== -1) categories.splice(idx, 1);
+            showDeleteModal.value = false;
+            categoryToDelete.value = null;
+        },
+        preserveState: true,
+    });
+}
+
+function cancelDelete() {
+    showDeleteModal.value = false;
+    categoryToDelete.value = null;
 }
 </script>
 
@@ -96,38 +109,45 @@ function goToTrashedPage()  {
                 <div class="container mx-auto p-6">
                     <div class="mb-4 flex items-center justify-between">
                         <h1 class="text-2xl font-bold">Danh sách danh mục</h1>
-                        <InputError v-if="typeof page.props.flash.error === 'string'" :message="page.props.flash.error" />
-                        <div class="flex gap-3">
-                            <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">Thêm mới</button>
+                        <div class="flex gap-2">
+                            <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
+                                <PackagePlus />
+                            </button>
                             <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng rác</button>
                         </div>
                     </div>
 
                     <div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">
-                        <table class="w-full text-left">
+                        <table class="w-full">
                             <thead>
                                 <tr class="bg-gray-200">
-                                    <th class="p-3 text-sm font-semibold">STT</th>
-                                    <th class="p-3 text-sm font-semibold">Tên danh mục</th>
-                                    <th class="p-3 text-sm font-semibold">Danh mục cha</th>
-                                    <th class="p-3 text-sm font-semibold">Mô tả</th>
-                                    <th class="p-3 text-sm font-semibold">Thao tác</th>
+                                    <th class="w-[10%] p-3 text-center text-sm font-semibold">STT</th>
+                                    <th class="w-[25%] p-3 text-left text-sm font-semibold">Tên danh mục</th>
+                                    <th class="w-[25%] p-3 text-left text-sm font-semibold">Danh mục cha</th>
+                                    <th class="w-[25%] p-3 text-left text-sm font-semibold">Mô tả</th>
+                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="(cat, idx) in paginatedCategories" :key="cat.id" class="border-t">
-                                    <td class="p-3 text-sm">{{ (currentPage - 1) * perPage + idx + 1 }}</td>
-                                    <td class="p-3 text-sm">{{ cat.name }}</td>
-                                    <td class="p-3 text-sm">{{ getParentName(cat.parent_id) }}</td>
-                                    <td class="p-3 text-sm">{{ cat.description }}</td>
-                                    <td class="p-3 text-sm">
-                                        <div class="flex items-center space-x-2">
-                                            <button @click="goToEditPage(cat.id)" class="cursor-pointer rounded-md text-green-500">
-                                                <Pencil class="h-5 w-5" />
+                                    <td class="w-[10%] p-3 text-center text-sm">{{ (currentPage - 1) * perPage + idx + 1 }}</td>
+                                    <td class="w-[25%] p-3 text-left text-sm">{{ cat.name }}</td>
+                                    <td class="w-[25%] p-3 text-left text-sm">{{ getParentName(cat.parent_id) }}</td>
+                                    <td class="w-[25%] p-3 text-left text-sm">{{ cat.description }}</td>
+                                    <td class="w-[15%] p-3 text-center text-sm">
+                                        <div class="flex items-center justify-center space-x-2">
+                                            <button
+                                                @click="goToEditPage(cat.id)"
+                                                class="rounded-md bg-blue-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+                                            >
+                                                <Pencil class="h-4 w-4" />
                                             </button>
 
-                                            <button @click="deleteCategory(cat.id)" class="cursor-pointer rounded-md text-red-500">
-                                                <Trash2 class="h-5 w-5" />
+                                            <button
+                                                @click="confirmDelete(cat.id)"
+                                                class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+                                            >
+                                                <Trash2 class="h-4 w-4" />
                                             </button>
                                         </div>
                                     </td>
@@ -179,6 +199,15 @@ function goToTrashedPage()  {
                 </div>
             </div>
         </div>
+
+        <DeleteModal
+            :is-open="showDeleteModal"
+            title="Xóa danh mục"
+            message="Bạn có chắc chắn muốn xóa danh mục này?"
+            @confirm="handleDeleteCategory"
+            @cancel="cancelDelete"
+        />
+        
     </AppLayout>
 </template>
 
