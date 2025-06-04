@@ -15,10 +15,10 @@ return new class extends Migration
             $table->unsignedInteger('unit_price')->nullable()->comment('Giá tiền 1 đơn vị ở thời điểm thực hiện giao dịch');
             $table->unsignedInteger('total_value')->nullable()->comment('quantity_change * unit_price');
             $table->timestamp('transaction_date')->useCurrent();
-            $table->foreignId('related_bill_id')->nullable()->constrained('bills');
-            $table->foreignId('related_purchase_receipt_id')->nullable()->constrained('purchase_receipts');
-            $table->foreignId('related_purchase_return_id')->nullable()->constrained('purchase_returns');
-            $table->foreignId('related_batch_id')->nullable()->constrained('product_batches');
+            $table->foreignId('related_bill_id')->nullable()->constrained('bills')->onDelete('set null');
+            $table->foreignId('related_purchase_receipt_id')->nullable()->constrained('purchase_receipts')->onDelete('set null');
+            $table->foreignId('related_purchase_return_id')->nullable()->constrained('purchase_returns')->onDelete('set null');
+            $table->foreignId('related_batch_id')->nullable()->constrained('product_batches')->onDelete('restrict');
             $table->foreignId('user_id')->comment('Người thực hiện')->constrained('users');
             $table->timestamps();
             $table->softDeletes();

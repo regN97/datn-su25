@@ -20,14 +20,14 @@ return new class extends Migration
             $table->string('payment_method', 50)->nullable();
             $table->foreignId('payment_status_id')->constrained('order_payment_statuses');
             $table->text('notes')->nullable();
-            $table->foreignId('user_id')->constrained('users')->onDelete('restrict');
+            $table->foreignId('cashier_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
 
             $table->index('bill_number');
             $table->index('payment_status_id', 'idx_bill_status');
             $table->index('customer_id', 'idx_bill_cust');
-            $table->index('user_id');
+            $table->index('cashier_id');
         });
     }
 
