@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { CheckCircle, XCircle, X } from 'lucide-vue-next';
 
 const page = usePage();
 const show = ref(false);
@@ -17,7 +18,7 @@ const displayMessage = (msg, msgType) => {
         show.value = false;
         message.value = '';
         type.value = '';
-    }, 3000); // Ẩn sau 3 giây
+    }, 4000); // Ẩn sau 3 giây
 };
 
 // Theo dõi sự thay đổi của flash messages từ page props
@@ -40,32 +41,33 @@ onMounted(() => {
 </script>
 
 <template>
-    <Transition
-        enter-active-class="transition ease-out duration-300"
-        enter-from-class="opacity-0 translate-x-full"
-        enter-to-class="opacity-100 translate-x-0"
-        leave-active-class="transition ease-in duration-300"
-        leave-from-class="opacity-100 translate-x-0"
-        leave-to-class="opacity-0 translate-x-full"
-    >
-        <div
-            v-if="show"
+    <Transition enter-active-class="transition ease-out duration-300"
+        enter-from-class="opacity-0 translate-y-2 scale-95" enter-to-class="opacity-100 translate-y-0 scale-100"
+        leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100 translate-y-0 scale-100"
+        leave-to-class="opacity-0 translate-y-2 scale-95">
+        <div v-if="show"
+            class="fixed top-6 right-6 z-50 w-[360px] max-w-full px-4 py-3 rounded-xl bg-white/90 dark:bg-gray-900/90 shadow-2xl border-l-4 flex items-start gap-3 backdrop-blur-sm"
             :class="{
-                'bg-green-500': type === 'success',
-                'bg-red-500': type === 'error',
-            }"
-            class="fixed top-4 right-4 z-50 p-4 text-white rounded-lg shadow-lg flex items-center space-x-2"
-        >
-            <svg v-if="type === 'success'" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-            </svg>
-            <svg v-else-if="type === 'error'" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-            </svg>
-            <span>{{ message }}</span>
-            <button @click="show = false" class="ml-auto focus:outline-none">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                'border-green-500 text-green-800 dark:text-green-300': type === 'success',
+                'border-red-500 text-red-800 dark:text-red-300': type === 'error',
+            }">
+            <!-- Icon -->
+            <div class="mt-0.5">
+                <CheckCircle v-if="type === 'success'" class="w-6 h-6 text-green-500" />
+                <XCircle v-else-if="type === 'error'" class="w-6 h-6 text-red-500" />
+            </div>
+
+            <!-- Message -->
+            <div class="flex-1 text-sm font-medium">
+                {{ message }}
+            </div>
+
+            <!-- Close -->
+            <button @click="show = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-100 transition">
+                <X class="w-4 h-4" />
             </button>
         </div>
     </Transition>
+
+
 </template>

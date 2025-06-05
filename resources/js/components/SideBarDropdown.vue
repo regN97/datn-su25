@@ -9,7 +9,8 @@ defineProps<{
   label: string,
   items: Array<{
     label: string,
-    href: string
+    href: string,
+    icon?: any,
   }>
 }>()
 </script>
@@ -19,14 +20,18 @@ defineProps<{
     <DropdownMenu>
       <DropdownMenuTrigger as-child>
         <SidebarMenuButton>
-          <PackageSearch class="mr-2" />
+          <component :is="icon" class="mr-2 w-4 h-4" />
           {{ label }}
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <DropdownMenuItem v-for="item in items" :key="item.href" as-child>
-          <Link :href="item.href">{{ item.label }}</Link>
+          <Link :href="item.href" class="flex items-center gap-2">
+          <component v-if="item.icon" :is="item.icon" class="w-4 h-4 text-muted-foreground" />
+          {{ item.label }}
+          </Link>
         </DropdownMenuItem>
+
       </DropdownMenuContent>
     </DropdownMenu>
   </SidebarMenuItem>
@@ -36,6 +41,7 @@ defineProps<{
 li {
   list-style: none;
 }
+
 li::marker {
   content: '';
 }

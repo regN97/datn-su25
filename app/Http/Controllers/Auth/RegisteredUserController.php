@@ -46,6 +46,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return to_route('dashboard');
+        return to_route('dashboard')->with('success', 'Đăng kí thành công và chuyển đến giao diện tương ứng!');
     }
 }

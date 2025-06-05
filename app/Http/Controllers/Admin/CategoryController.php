@@ -28,7 +28,7 @@ class CategoryController extends Controller
     public function create()
     {
         $categories = Category::all();
-        return Inertia::render('admin/categories/Create', [
+        return Inertia::render('admin/categories/create', [
             'categories' => $categories,
         ]);
     }

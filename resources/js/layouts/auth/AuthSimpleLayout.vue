@@ -7,25 +7,36 @@ defineProps<{
     description?: string;
 }>();
 </script>
-
 <template>
-    <div class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-        <div class="w-full max-w-sm">
-            <div class="flex flex-col gap-8">
-                <div class="flex flex-col items-center gap-4">
-                    <Link :href="route('home')" class="flex flex-col items-center gap-2 font-medium">
-                        <div class="mb-1 flex h-9 w-9 items-center justify-center rounded-md">
-                            <AppLogoIcon class="size-9 fill-current text-[var(--foreground)] dark:text-white" />
-                        </div>
-                        <span class="sr-only">{{ title }}</span>
-                    </Link>
-                    <div class="space-y-2 text-center">
-                        <h1 class="text-xl font-medium">{{ title }}</h1>
-                        <p class="text-center text-sm text-muted-foreground">{{ description }}</p>
-                    </div>
-                </div>
-                <slot />
+  <div class="flex min-h-[80vh] flex-col items-center justify-start pt-12 bg-background p-4 md:p-6">
+    <div class="w-full max-w-md sm:max-w-lg"> 
+      <div class="flex flex-col gap-6">
+
+        <!-- Logo bên trái, tiêu đề bên phải -->
+        <div class="flex items-center gap-4">
+          <!-- Logo -->
+          <Link :href="route('home')" class="flex-shrink-0">
+            <div
+              class="h-28 w-28 flex items-center justify-center rounded-xl bg-white shadow dark:bg-gray-800 dark:shadow-lg transition-transform duration-200 hover:scale-105"
+              title="Website quản lý cửa hàng bán lẻ G7 Mart"
+            >
+              <AppLogoIcon imageUrl="/storage/piclumen-1747750187180.png" class="h-24 w-24 object-contain" />
             </div>
+          </Link>
+
+          <!-- Tiêu đề và mô tả -->
+          <div class="flex flex-col text-left">
+            <h1 class="text-lg font-semibold text-orange-600">{{ title }}</h1>
+            <br>
+            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{{ description }}</p>
+          </div>
         </div>
+
+        <!-- Slot content -->
+        <slot />
+        
+      </div>
     </div>
+  </div>
 </template>
+
