@@ -20,4 +20,8 @@ class PurchaseReturnItem extends Model
         'subtotal',
         'reason',
     ];
+    public function product()
+{
+    return $this->belongsTo(Product::class);
+}
 }
