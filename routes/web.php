@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Admin\PurchaseOrderController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ProductBatchController;
 use App\Http\Controllers\Admin\ProductSupplierController;
 use App\Http\Controllers\Admin\PurchaseReturnController;
 
@@ -23,7 +25,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('categories', CategoryController::class);
 
     Route::resource('products', ProductController::class);
-
+    
     Route::get('suppliers/trashed', [SupplierController::class, 'trashed'])->name('suppliers.trashed');
     Route::post('suppliers/{supplier}/restore', [SupplierController::class, 'restore'])->name('suppliers.restore');
     Route::delete('suppliers/{supplier}/force-delete', [SupplierController::class, 'forceDelete'])->name('suppliers.forceDelete');
@@ -31,6 +33,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::resource('purchaseReturn', PurchaseReturnController::class);
     
+    Route::resource('product-batches', ProductBatchController::class);
+    
+    Route::resource('purchase-orders', PurchaseOrderController::class);
 })->middleware(['auth', 'verified']);
 
 

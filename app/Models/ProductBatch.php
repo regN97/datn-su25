@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Product;
+use App\Models\Supplier;
 use Illuminate\Database\Eloquent\Model;
 
 class ProductBatch extends Model
@@ -20,4 +22,12 @@ class ProductBatch extends Model
         'invoice_number',
         'notes',
     ];
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
 }

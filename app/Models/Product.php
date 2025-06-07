@@ -5,9 +5,10 @@ namespace App\Models;
 use App\Models\Category;
 use App\Models\Supplier;
 use App\Models\ProductUnit;
+use App\Models\ProductBatch;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Product extends Model
 {
@@ -39,5 +40,9 @@ class Product extends Model
     public function suppliers()
     {
         return $this->belongsToMany(Supplier::class, 'product_suppliers', 'product_id', 'supplier_id')->withTimestamps();
+    }
+    public function productBatches()
+    {
+        return $this->hasMany(ProductBatch::class);
     }
 }
