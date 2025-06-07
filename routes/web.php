@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ProductBatchController;
 use App\Http\Controllers\Admin\ProductSupplierController;
 
 Route::get('/', function () {
@@ -27,6 +28,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('suppliers/{supplier}/restore', [SupplierController::class, 'restore'])->name('suppliers.restore');
     Route::delete('suppliers/{supplier}/force-delete', [SupplierController::class, 'forceDelete'])->name('suppliers.forceDelete');
     Route::resource('suppliers', SupplierController::class);
+
+
+    
+    Route::resource('product-batches', ProductBatchController::class);
     
 })->middleware(['auth', 'verified']);
 
