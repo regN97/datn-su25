@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\PurchaseOrderController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ProductController;
@@ -22,12 +23,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('categories', CategoryController::class);
 
     Route::resource('products', ProductController::class);
-
+    
     Route::get('suppliers/trashed', [SupplierController::class, 'trashed'])->name('suppliers.trashed');
     Route::post('suppliers/{supplier}/restore', [SupplierController::class, 'restore'])->name('suppliers.restore');
     Route::delete('suppliers/{supplier}/force-delete', [SupplierController::class, 'forceDelete'])->name('suppliers.forceDelete');
     Route::resource('suppliers', SupplierController::class);
     
+    Route::resource('purchase-orders', PurchaseOrderController::class);
 })->middleware(['auth', 'verified']);
 
 
