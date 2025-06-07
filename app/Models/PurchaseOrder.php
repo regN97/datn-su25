@@ -25,11 +25,28 @@ class PurchaseOrder extends Model
         'payment_due_date',
         'amount_paid',
         'received_status',
-        'user_id',
+        'created_by',
+        'approved_by',
         'approved_by',
         'approved_at',
         'notes',
     ];
 
+    public function supplier(){
+        return $this->belongsTo(Supplier::class);
+    }
 
+    public function status(){
+        return $this->belongsTo(POStatus::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
 }
