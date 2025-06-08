@@ -75,6 +75,17 @@ function confirmDelete(id: number) {
     showDeleteModal.value = true;
 }
 
+function getStatusDisplayName(status: string) {
+    switch (status) {
+        case 'true':
+            return 'Hoàn tất';
+        case 'false':
+            return 'Nhận một phàn';
+        default:
+            return status;
+    }
+}
+
 </script>
 
 <template>
@@ -107,7 +118,7 @@ function confirmDelete(id: number) {
                                     <th class="w-[25%] p-3 text-center text-sm font-semibold">Số lượng đã nhận</th>
                                     <th class="w-[25%] p-3 text-left text-sm font-semibold">Tổng tiền</th>
                                     <th class="w-[25%] p-3 text-left text-sm font-semibold">Ngày nhận đơn</th>
-                                    <th class="w-[25%] p-3 text-left text-sm font-semibold">Trạng thái</th>
+                                    <th class="w-[25%] p-3 text-center text-sm font-semibold">Trạng thái</th>
                                     <th class="w-[15%] p-3 text-center text-sm font-semibold">Thao tác</th>
                                 </tr>
                             </thead>
@@ -117,7 +128,7 @@ function confirmDelete(id: number) {
                                     <td class="w-[10%] p-3 text-center text-sm">{{ (currentPage - 1) * perPage + idx + 1
                                         }}</td>
                                     <td class="w-[25%] p-3 text-left text-sm">{{ purchase_receipt.receipt_number }}</td>
-                                    <td class="w-[25%] p-3 text-center text-sm">{{ purchase_receipt.purchase_order_id }}
+                                    <td class="w-[25%] p-3 text-center text-sm">{{ purchase_receipt.po_number }}
                                     </td>
                                     <td class="w-[25] p-3 text-center text-sm">{{ purchase_receipt.total_items_received
                                     }}</td>
@@ -129,8 +140,14 @@ function confirmDelete(id: number) {
 
                                     <td class="w-[25%] p-3 text-left text-sm">{{ purchase_receipt.receipt_date
                                     }}</td>
-                                    <td class="w-[25%] p-3 text-left text-sm">{{ purchase_receipt.is_partial
-                                    }}</td>
+                                     <td class="w-[15%] p-4 text-center text-sm">
+                                        <span :class="{
+                                            'bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold shadow-sm': purchase_receipt.is_partial === 'true',
+                                            'bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold shadow-sm': purchase_receipt.is_partial === 'false',
+                                        }">
+                                            {{ getStatusDisplayName(purchase_receipt.is_partial) }}
+                                        </span>
+                                    </td>
                                     <td class="w-[15%] p-3 text-center text-sm">
                                         <div class="flex items-center justify-center space-x-2">
                                             <button

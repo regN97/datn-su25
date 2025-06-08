@@ -28,7 +28,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Router Products
     Route::resource('products', ProductController::class);
 
-    // Router Suppliers
+    // Router Suppliers   
     Route::get('suppliers/trashed', [SupplierController::class, 'trashed'])->name('suppliers.trashed');
     Route::post('suppliers/{supplier}/restore', [SupplierController::class, 'restore'])->name('suppliers.restore');
     Route::delete('suppliers/{supplier}/force-delete', [SupplierController::class, 'forceDelete'])->name('suppliers.forceDelete');
