@@ -3,7 +3,7 @@ import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Eye, EyeOff, PackagePlus, Pencil, Trash2 } from 'lucide-vue-next';
+import { Eye, EyeOff, PackagePlus, Pencil, Trash2} from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
