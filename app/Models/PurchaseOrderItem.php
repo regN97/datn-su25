@@ -21,4 +21,9 @@ class PurchaseOrderItem extends Model
         'notes',
     ];
 
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
 }

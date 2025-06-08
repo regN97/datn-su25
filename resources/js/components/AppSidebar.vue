@@ -67,7 +67,7 @@ const mainNavItems: NavItem[] = [
             <SidebarDropdown :icon="Warehouse" label="Quản lý Kho hàng" :items="[
                 { label: 'Quản lý đơn đặt hàng', href: route('admin.purchase-orders.index'), icon: Truck },
                 { label: 'Quản lý phiếu nhập kho', href: route('admin.purchase_receipts.index'), icon: FilePlus2 },
-                { label: 'Quản lý phiếu trả hàng', href: '#', icon: RotateCw },
+                { label: 'Quản lý phiếu trả hàng', href: route('admin.purchaseReturn.index'), icon: RotateCw },
                 { label: 'Quản lý lô hàng', href: route('admin.product-batches.index'), icon: Boxes },
                 { label: 'Quản lý tồn kho', href: '#', icon: Layers3 }
             ]" class="mt-2" />

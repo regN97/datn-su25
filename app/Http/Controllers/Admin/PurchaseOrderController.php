@@ -21,4 +21,23 @@ class PurchaseOrderController extends Controller
             'purchaseOrders' => $purchaseOrders,
         ]);
     }
+    public function show($id)
+    {
+        // Lấy PurchaseOrder theo ID và load các mối quan hệ cần thiết
+        $purchaseOrder = PurchaseOrder::with([
+            'supplier:id,name',
+            'status:id,name',
+            'creator:id,name',
+            'approver:id,name',
+            'items' => function ($query) {
+                // Load sản phẩm chi tiết cho mỗi purchase order item
+                $query->with('product:id,name,sku');
+            }
+        ])->findOrFail($id); // Tìm đơn hàng theo ID hoặc báo lỗi 404 nếu không tìm thấy
+
+        // Truyền trực tiếp đối tượng purchaseOrder đã load cho Inertia
+        return Inertia::render('admin/purchase-orders/Show', [
+            'purchaseOrder' => $purchaseOrder,
+        ]);
+    }
 }
