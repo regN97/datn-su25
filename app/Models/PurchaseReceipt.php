@@ -16,4 +16,9 @@ class PurchaseReceipt extends Model
         'received_by',
         'notes',
     ];
+
+     public function purchaseOrder()
+    {
+        return $this->belongsTo(PurchaseOrder::class);
+    }
 }
