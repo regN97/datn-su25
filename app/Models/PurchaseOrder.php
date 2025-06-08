@@ -48,16 +48,14 @@ class PurchaseOrder extends Model
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
-<<<<<<< HEAD
 
     public function items()
     {
         return $this->hasMany(PurchaseOrderItem::class);
-=======
+    }
     
     public function purchaseReceipts()
     {
         return $this->hasMany(PurchaseReceipt::class);
->>>>>>> 86c3ddb (edit:purchase_receipt)
     }
 }
