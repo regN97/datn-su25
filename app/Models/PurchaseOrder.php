@@ -27,7 +27,6 @@ class PurchaseOrder extends Model
         'received_status',
         'created_by',
         'approved_by',
-        'approved_by',
         'approved_at',
         'notes',
     ];
@@ -48,5 +47,10 @@ class PurchaseOrder extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
     }
 }

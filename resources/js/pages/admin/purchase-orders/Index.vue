@@ -111,7 +111,7 @@ const receivedStatusOptions = [
 
 // --- Cấu hình phân trang ---
 const perPageOptions = [5, 10, 25, 50];
-const perPage = ref(10);
+const perPage = ref(5);
 const currentPage = ref(1);
 
 // --- Computed cho danh sách đơn hàng đã lọc và phân trang ---
