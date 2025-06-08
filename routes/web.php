@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\PurchaseOrderController;
 use Inertia\Inertia;
+use App\Http\Controllers\Admin\PurchaseReceiptController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
@@ -18,21 +19,25 @@ Route::get('/', function () {
 Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::prefix('admin')->name('admin.')->group(function () {
-
+    // Router Categories
     Route::get('categories/trashed', [CategoryController::class, 'trashed'])->name('categories.trashed'); 
     Route::post('categories/{cat}/restore', [CategoryController::class, 'restore'])->name('categories.restore');
     Route::delete('categories/{cat}/force-delete', [CategoryController::class, 'forceDelete'])->name('categories.forceDelete');
     Route::resource('categories', CategoryController::class);
 
+    // Router Products
     Route::resource('products', ProductController::class);
-    
+
+    // Router Suppliers
     Route::get('suppliers/trashed', [SupplierController::class, 'trashed'])->name('suppliers.trashed');
     Route::post('suppliers/{supplier}/restore', [SupplierController::class, 'restore'])->name('suppliers.restore');
     Route::delete('suppliers/{supplier}/force-delete', [SupplierController::class, 'forceDelete'])->name('suppliers.forceDelete');
     Route::resource('suppliers', SupplierController::class);
 
     Route::resource('purchaseReturn', PurchaseReturnController::class);
-    
+    // Router Purchase_receips
+    Route::resource('purchase_receipts', PurchaseReceiptController::class);
+
     Route::resource('product-batches', ProductBatchController::class);
     
     Route::resource('purchase-orders', PurchaseOrderController::class);
