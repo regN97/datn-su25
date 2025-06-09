@@ -3,31 +3,31 @@
 namespace App\Models;
 
 use App\Models\Product;
-use App\Models\Supplier;
 use Illuminate\Database\Eloquent\Model;
 
 class ProductBatch extends Model
 {
     protected $fillable = [
         'product_id',
-        'batch_number',
-        'manufacturing_date',
-        'expiry_date',
+        'batch_id',
         'purchase_price',
         'initial_quantity',
-        'current_quantity',
-        'status', // Enum: 'active', 'low_stock', 'out_of_stock', 'expired'
-        'supplier_id',
-        'received_date',
-        'invoice_number',
-        'notes',
+        'current_quantity'
     ];
-    public function supplier()
-    {
-        return $this->belongsTo(Supplier::class);
-    }
+
+    protected $casts = [
+        'purchase_price' => 'integer',
+        'initial_quantity' => 'integer',
+        'current_quantity' => 'integer'
+    ];
+
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class);
     }
 }
