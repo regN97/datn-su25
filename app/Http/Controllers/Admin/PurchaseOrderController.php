@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
 use Inertia\Inertia;
+use App\Models\PurchaseOrderItem;
+use App\Models\PurchaseReceipt;
 
 class PurchaseOrderController extends Controller
 {
-   public function index()
+    public function index()
     {
         $purchaseOrders = PurchaseOrder::with([
             'supplier', // Tải thông tin nhà cung cấp
@@ -21,23 +23,58 @@ class PurchaseOrderController extends Controller
             'purchaseOrders' => $purchaseOrders,
         ]);
     }
-    public function show($id)
-    {
-        // Lấy PurchaseOrder theo ID và load các mối quan hệ cần thiết
-        $purchaseOrder = PurchaseOrder::with([
-            'supplier:id,name',
-            'status:id,name',
-            'creator:id,name',
-            'approver:id,name',
-            'items' => function ($query) {
-                // Load sản phẩm chi tiết cho mỗi purchase order item
-                $query->with('product:id,name,sku');
-            }
-        ])->findOrFail($id); // Tìm đơn hàng theo ID hoặc báo lỗi 404 nếu không tìm thấy
 
-        // Truyền trực tiếp đối tượng purchaseOrder đã load cho Inertia
-        return Inertia::render('admin/purchase-orders/Show', [
-            'purchaseOrder' => $purchaseOrder,
+    public function show() {}
+    public function destroy(string $id)
+    {
+        $order = PurchaseOrder::findOrFail($id);
+        $order->delete();
+        PurchaseOrderItem::where('purchase_order_id', $id)->delete();
+        return redirect()->back()->with('success', 'Đơn đặt hàng và các sản phẩm liên quan đã được xóa mềm!');
+    }
+
+    /**
+     * Display a listing of trashed resources.
+     */ public function trashed()
+    {
+        $purchaseOrders = PurchaseOrder::onlyTrashed()
+            ->with(['supplier', 'status'])
+            ->get()
+            ->map(function ($order) {
+                return [
+                    'id' => $order->id,
+                    'po_number' => $order->po_number,
+                    'supplier' => $order->supplier, // Truyền cả object
+                    'order_date' => $order->order_date,
+                    'expected_delivery_date' => $order->expected_delivery_date,
+                    'payment_status' => $order->payment_status,
+                    'received_status' => $order->received_status,
+                    'status' => $order->status, // Truyền cả object
+                    'total_amount' => $order->total_amount,
+                    'deleted_at' => $order->deleted_at,
+                ];
+            });
+
+        return Inertia::render('admin/purchase-orders/Trashed', [
+            'purchaseOrders' => $purchaseOrders,
         ]);
+    }
+    public function restore(string $id)
+    {
+        $purchaseOrder = PurchaseOrder::onlyTrashed()->findOrFail($id);
+        $purchaseOrder->restore();
+
+        return redirect()->back()->with('success', 'Nhà cung cấp đã được khôi phục!');
+    }
+
+    /**
+     * Permanently remove the specified resource from storage.
+     */
+    public function forceDelete(string $id)
+    {
+        $purchaseOrder = PurchaseOrder::onlyTrashed()->findOrFail($id);
+        $purchaseOrder->forceDelete();
+
+        return redirect()->back()->with('success', 'Nhà cung cấp đã được xóa vĩnh viễn!');
     }
 }
