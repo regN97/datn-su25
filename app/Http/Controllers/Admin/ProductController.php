@@ -24,10 +24,10 @@ class ProductController extends Controller
      */
     public function index()
     {
-         $products = Product::with(['category', 'unit', 'suppliers'])->get();
+        $products = Product::with(['category', 'unit', 'suppliers'])->get();
         $categories = Category::all();
         $units = ProductUnit::all();
-         $suppliers = ProductSupplier::all();
+        $suppliers = ProductSupplier::all();
         return Inertia::render('admin/products/Index')->with([
             'products' => $products,
             'categories' => $categories,
@@ -98,7 +98,7 @@ class ProductController extends Controller
 
             'selected_supplier_ids.min' => 'Cần chọn ít nhất :min nhà cung cấp.',
             'image_file.max' => 'Kích thước ảnh không được vượt quá :max KB (2MB).',
-            'image_url.max' => 'Đường dẫn ảnh không được vượt quá :max ký tự.', 
+            'image_url.max' => 'Đường dẫn ảnh không được vượt quá :max ký tự.',
         ], [
             'name' => 'tên sản phẩm',
             'sku' => 'mã SKU',
@@ -176,6 +176,7 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
+
     public function update(Request $request, string $id)
     {
         // Validate dữ liệu với thông báo lỗi tiếng Việt
@@ -192,38 +193,46 @@ class ProductController extends Controller
             'max_stock_level' => 'nullable|integer|min:0',
             'is_active' => 'boolean',
             'image_url' => 'nullable|string',
+            'image_file' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
+            'image_type' => 'required|in:url,upload',
             'selected_supplier_ids' => 'required|array|min:1',
             'selected_supplier_ids.*' => 'exists:suppliers,id',
         ], [
-            'required' => 'Trường :attribute là bắt buộc.',
-            'sku' => 'Trường :attribute phải là mã SKU hợp lệ.',
-            'string' => 'Trường :attribute phải là chuỗi.',
-            'purchase_price' => 'Trường :attribute phải là giá nhập hợp lệ.',
-            'selling_price' => 'Trường :attribute phải là giá bán hợp lệ.',
-            'numeric' => 'Trường :attribute phải là số.',
-            'integer' => 'Trường :attribute phải là số nguyên.',
-            'min' => 'Trường :attribute phải lớn hơn hoặc bằng :min.',
-            'max' => 'Trường :attribute không được vượt quá :max ký tự.',
-            'array' => 'Trường :attribute phải là danh sách.',
-            'exists' => 'Nhà cung cấp được chọn không hợp lệ.',
+            // ... các thông báo lỗi ...
         ], [
-            'name' => 'tên sản phẩm',
-            'sku' => 'mã SKU',
-            'barcode' => 'mã vạch',
-            'description' => 'mô tả',
-            'category_id' => 'danh mục',
-            'unit_id' => 'đơn vị tính',
-            'purchase_price' => 'giá nhập',
-            'selling_price' => 'giá bán',
-            'min_stock_level' => 'tồn kho tối thiểu',
-            'max_stock_level' => 'tồn kho tối đa',
-            'is_active' => 'trạng thái',
-            'image_url' => 'đường dẫn ảnh',
-            'selected_supplier_ids' => 'nhà cung cấp',
+            // ... các tên trường ...
         ]);
 
         // Lấy sản phẩm từ DB
         $product = Product::findOrFail($id);
+
+        // Xử lý ảnh
+        if ($data['image_type'] === 'upload' && $request->hasFile('image_file')) {
+            // Xóa ảnh cũ nếu là file local
+            if ($product->image_url && str_starts_with($product->image_url, '/storage/')) {
+                $oldPath = str_replace('/storage/', '', $product->image_url);
+                if (Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+            // Lưu ảnh mới
+            $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
+            $data['image_url'] = Storage::url($uploadedFilePath);
+        } elseif ($data['image_type'] === 'url' && !empty($data['image_url'])) {
+            // Nếu là url, xóa file cũ nếu là file local
+            if ($product->image_url && str_starts_with($product->image_url, '/storage/')) {
+                $oldPath = str_replace('/storage/', '', $product->image_url);
+                if (Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+            // Giữ nguyên image_url đã validate
+        } else {
+            // Không có ảnh mới, giữ nguyên ảnh cũ
+            $data['image_url'] = $product->image_url;
+        }
+
+        unset($data['image_file'], $data['image_type']);
 
         // Cập nhật thông tin sản phẩm
         $product->update($data);

@@ -3,7 +3,7 @@ import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { PackagePlus, Pencil, Trash2, Eye, EyeOff, MoveRight,  } from 'lucide-vue-next'; // Thêm Eye, EyeOff
+import { PackagePlus, Pencil, Trash2, Eye, EyeOff, MoveRight, } from 'lucide-vue-next'; // Thêm Eye, EyeOff
 
 import { computed, ref, watch } from 'vue';
 
@@ -332,50 +332,54 @@ function formatDate(dateString: string | null): string {
 }
 
 function truncateText(text: string, maxLength: number): string {
-  if (!text) return '';
-  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    if (!text) return '';
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 }
-
+function goToTrashedPage() {
+    router.visit('/admin/purchase-orders/trashed');
+}
 </script>
 
 <template>
+
     <Head title="Purchase Orders" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-            <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
+            <div
+                class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
-                    <div class="mb-4 flex items-center justify-between">
+                    <div class="mb-4 flex items-center gap-4">
                         <h1 class="text-2xl font-bold">Quản lý đơn đặt hàng</h1>
-                        <button @click="goToCreatePage"
+                        <div class="ml-auto flex gap-4">
+                            <button @click="goToCreatePage"
                                 class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
-                            <PackagePlus class="h-5 w-5" />
-                            <span class="ml-2 hidden md:inline">Tạo Đơn Hàng Mới</span>
-                        </button>
+                                <PackagePlus class="h-5 w-5" />
+                                <span class="ml-2 hidden md:inline">Tạo Đơn Hàng Mới</span>
+                            </button>
+                            <button @click="goToTrashedPage"
+                                class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"> Thùng rác
+                            </button>
+                        </div>
                     </div>
 
                     <div class="mb-6 flex flex-wrap items-center gap-4">
                         <div class="relative flex-1 min-w-[250px]">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                 <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                                    <path fill-rule="evenodd"
+                                        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                        clip-rule="evenodd"></path>
                                 </svg>
                             </div>
-                            <input
-                                type="text"
-                                v-model="searchTerm"
-                                placeholder="Tìm kiếm mã PO, NCC, ghi chú..."
-                                class="w-full rounded-md border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            />
+                            <input type="text" v-model="searchTerm" placeholder="Tìm kiếm mã PO, NCC, ghi chú..."
+                                class="w-full rounded-md border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
 
                         <div class="min-w-[150px]">
                             <label for="po-status-filter" class="sr-only">Lọc theo trạng thái PO</label>
-                            <select
-                                id="po-status-filter"
-                                v-model="selectedOrderStatus"
-                                class="w-full rounded-md border-gray-300 py-2 pl-3 pr-8 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            >
+                            <select id="po-status-filter" v-model="selectedOrderStatus"
+                                class="w-full rounded-md border-gray-300 py-2 pl-3 pr-8 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="">Tất cả trạng thái PO</option>
                                 <option v-for="option in poStatusOptions" :key="option.code" :value="option.code">
                                     {{ option.name }}
@@ -385,11 +389,8 @@ function truncateText(text: string, maxLength: number): string {
 
                         <div class="min-w-[150px]">
                             <label for="payment-status-filter" class="sr-only">Lọc theo trạng thái TT</label>
-                            <select
-                                id="payment-status-filter"
-                                v-model="selectedPaymentStatus"
-                                class="w-full rounded-md border-gray-300 py-2 pl-3 pr-8 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            >
+                            <select id="payment-status-filter" v-model="selectedPaymentStatus"
+                                class="w-full rounded-md border-gray-300 py-2 pl-3 pr-8 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="">Tất cả trạng thái TT</option>
                                 <option v-for="option in paymentStatusOptions" :key="option.code" :value="option.code">
                                     {{ option.name }}
@@ -399,11 +400,8 @@ function truncateText(text: string, maxLength: number): string {
 
                         <div class="min-w-[150px]">
                             <label for="received-status-filter" class="sr-only">Lọc theo trạng thái nhận</label>
-                            <select
-                                id="received-status-filter"
-                                v-model="selectedReceivedStatus"
-                                class="w-full rounded-md border-gray-300 py-2 pl-3 pr-8 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            >
+                            <select id="received-status-filter" v-model="selectedReceivedStatus"
+                                class="w-full rounded-md border-gray-300 py-2 pl-3 pr-8 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="">Tất cả trạng thái nhận</option>
                                 <option v-for="option in receivedStatusOptions" :key="option.code" :value="option.code">
                                     {{ option.name }}
@@ -426,10 +424,11 @@ function truncateText(text: string, maxLength: number): string {
                                     <th class="w-[5%] p-3 text-center text-sm font-semibold">Thao tác</th>
                                 </tr>
                             </thead>
-                                <tbody>
+                            <tbody>
                                 <template v-for="order in paginatedPurchaseOrders" :key="order.id">
                                     <tr class="border-t">
-                                        <td class="w-[10%] p-3 text-left text-sm font-medium text-gray-900 truncate-column">
+                                        <td
+                                            class="w-[10%] p-3 text-left text-sm font-medium text-gray-900 truncate-column">
                                             {{ order.po_number }}
                                         </td>
                                         <td class="w-[15%] p-3 text-left text-sm text-gray-500 supplier-column">
@@ -443,103 +442,115 @@ function truncateText(text: string, maxLength: number): string {
                                         </td>
                                         <td class="w-[10%] p-3 text-left text-sm">
                                             <span
-                                                :class="['px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full', getPaymentStatusClass(order.payment_status)]"
-                                            >
+                                                :class="['px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full', getPaymentStatusClass(order.payment_status)]">
                                                 {{ translatePaymentStatus(order.payment_status) }}
                                             </span>
                                         </td>
                                         <td class="w-[10%] p-3 text-left text-sm">
                                             <span
-                                                :class="['px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full', getReceivedStatusClass(order.received_status)]"
-                                                >
+                                                :class="['px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full', getReceivedStatusClass(order.received_status)]">
                                                 {{ translateReceivedStatus(order.received_status) }}
                                             </span>
                                         </td>
                                         <td class="w-[10%] p-3 text-left text-sm">
                                             <span
-                                                :class="['px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full', getOrderStatusClass(order.status?.code)]"
-                                            >
+                                                :class="['px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full', getOrderStatusClass(order.status?.code)]">
                                                 {{ order.status ? order.status.name : 'N/A' }}
                                             </span>
                                         </td>
                                         <td class="w-[5%] p-3 text-center text-sm">
                                             <div class="flex items-center justify-center space-x-2 text-center">
-                                                <button
-                                                    @click="toggleDetails(order.id)"
-                                                    class="flex items-center gap-1 rounded-md bg-gray-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
-                                                >
-                                                    <component :is="openPurchaseOrderDetailsId === order.id ? EyeOff : Eye" class="h-4 w-4" />
+                                                <button @click="toggleDetails(order.id)"
+                                                    class="flex items-center gap-1 rounded-md bg-gray-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none">
+                                                    <component
+                                                        :is="openPurchaseOrderDetailsId === order.id ? EyeOff : Eye"
+                                                        class="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     class="rounded-md bg-blue-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-                                                    @click="goToEditPage(order.id)"
-                                                >
+                                                    @click="goToEditPage(order.id)">
                                                     <Pencil class="h-4 w-4" />
                                                 </button>
-                                                <button
-                                                    @click="confirmDelete(order.id)"
-                                                    class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
-                                                >
+                                                <button @click="confirmDelete(order.id)"
+                                                    class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none">
                                                     <Trash2 class="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
-                                <tr v-if="openPurchaseOrderDetailsId === order.id">
+                                    <tr v-if="openPurchaseOrderDetailsId === order.id">
                                         <td :colspan="9" class="border-t border-b border-gray-200 bg-gray-50 p-4">
                                             <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
                                                 <h4 class="mb-4 text-xl font-bold text-gray-800">
-                                                    <p class="cursor-pointer inline-block text-gray-800 hover:text-indigo-600 transition-colors duration-300" @click="goToShowPage(order.id)">
+                                                    <p class="cursor-pointer inline-block text-gray-800 hover:text-indigo-600 transition-colors duration-300"
+                                                        @click="goToShowPage(order.id)">
                                                         📝 Thông tin đơn hàng - {{ order.po_number || 'Không có' }}
                                                     </p>
                                                 </h4>
-                                                <div class="grid grid-cols-1 gap-6 text-sm text-gray-700 md:grid-cols-2">
+                                                <div
+                                                    class="grid grid-cols-1 gap-6 text-sm text-gray-700 md:grid-cols-2">
                                                     <div class="space-y-3">
                                                         <div>
-                                                            <span class="font-semibold text-gray-900">Ngày giao thực tế:</span>
+                                                            <span class="font-semibold text-gray-900">Ngày giao thực
+                                                                tế:</span>
                                                             {{ formatDate(order.actual_delivery_date) || 'Chưa giao' }}
                                                         </div>
                                                         <div>
                                                             <span class="font-semibold text-gray-900">Tổng phụ:</span>
-                                                            {{ order.subtotal_amount ? order.subtotal_amount.toLocaleString('vi-VN') + '₫' : '0₫' }}
+                                                            {{ order.subtotal_amount ?
+                                                                order.subtotal_amount.toLocaleString('vi-VN') + '₫' : '0₫'
+                                                            }}
                                                         </div>
                                                         <div>
                                                             <span class="font-semibold text-gray-900">Thuế:</span>
-                                                            {{ order.tax_amount ? order.tax_amount.toLocaleString('vi-VN') + '₫' : '0₫' }}
+                                                            {{ order.tax_amount ?
+                                                                order.tax_amount.toLocaleString('vi-VN') + '₫' : '0₫' }}
                                                         </div>
                                                         <div>
                                                             <span class="font-semibold text-gray-900">Chiết khấu:</span>
-                                                            {{ order.discount_amount ? order.discount_amount.toLocaleString('vi-VN') + '₫' : '0₫' }}
+                                                            {{ order.discount_amount ?
+                                                                order.discount_amount.toLocaleString('vi-VN') + '₫' : '0₫'
+                                                            }}
                                                         </div>
                                                         <div>
-                                                            <span class="font-semibold text-gray-900">Chi phí vận chuyển:</span>
-                                                            {{ order.shipping_cost ? order.shipping_cost.toLocaleString('vi-VN') + '₫' : '0₫' }}
+                                                            <span class="font-semibold text-gray-900">Chi phí vận
+                                                                chuyển:</span>
+                                                            {{ order.shipping_cost ?
+                                                                order.shipping_cost.toLocaleString('vi-VN') + '₫' : '0₫' }}
                                                         </div>
                                                         <div>
                                                             <span class="font-semibold text-gray-900">Tổng tiền:</span>
-                                                            {{ order.total_amount ? order.total_amount.toLocaleString('vi-VN') + '₫' : '0₫' }}
+                                                            {{ order.total_amount ?
+                                                                order.total_amount.toLocaleString('vi-VN') + '₫' : '0₫' }}
                                                         </div>
                                                         <div>
-                                                            <span class="font-semibold text-gray-900">Số tiền đã trả:</span>
-                                                            {{ order.amount_paid ? order.amount_paid.toLocaleString('vi-VN') + '₫' : '0₫' }}
+                                                            <span class="font-semibold text-gray-900">Số tiền đã
+                                                                trả:</span>
+                                                            {{ order.amount_paid ?
+                                                                order.amount_paid.toLocaleString('vi-VN') + '₫' : '0₫' }}
                                                         </div>
                                                         <div>
-                                                            <span class="font-semibold text-gray-900">Số tiền còn lại:</span>
-                                                            {{ order.balance_due ? order.balance_due.toLocaleString('vi-VN') + '₫' : '0₫' }}
+                                                            <span class="font-semibold text-gray-900">Số tiền còn
+                                                                lại:</span>
+                                                            {{ order.balance_due ?
+                                                                order.balance_due.toLocaleString('vi-VN') + '₫' : '0₫' }}
                                                         </div>
                                                     </div>
 
                                                     <div class="space-y-3">
                                                         <div>
-                                                            <span class="font-semibold text-gray-900">Điều khoản thanh toán:</span>
+                                                            <span class="font-semibold text-gray-900">Điều khoản thanh
+                                                                toán:</span>
                                                             {{ order.payment_terms || 'Không có' }}
                                                         </div>
                                                         <div>
-                                                            <span class="font-semibold text-gray-900">Phương thức thanh toán:</span>
+                                                            <span class="font-semibold text-gray-900">Phương thức thanh
+                                                                toán:</span>
                                                             {{ translatePaymentMethod(order.payment_method) }}
                                                         </div>
                                                         <div>
-                                                            <span class="font-semibold text-gray-900">Ngày đáo hạn thanh toán:</span>
+                                                            <span class="font-semibold text-gray-900">Ngày đáo hạn thanh
+                                                                toán:</span>
                                                             {{ formatDate(order.payment_due_date) || 'N/A' }}
                                                         </div>
                                                         <div>
@@ -547,11 +558,13 @@ function truncateText(text: string, maxLength: number): string {
                                                             {{ order.creator ? order.creator.name : 'N/A' }}
                                                         </div>
                                                         <div>
-                                                            <span class="font-semibold text-gray-900">Người duyệt:</span>
+                                                            <span class="font-semibold text-gray-900">Người
+                                                                duyệt:</span>
                                                             {{ order.approver ? order.approver.name : 'Chưa duyệt' }}
                                                         </div>
                                                         <div>
-                                                            <span class="font-semibold text-gray-900">Thời gian duyệt:</span>
+                                                            <span class="font-semibold text-gray-900">Thời gian
+                                                                duyệt:</span>
                                                             {{ formatDate(order.approved_at) || 'Chưa duyệt' }}
                                                         </div>
                                                         <div>
@@ -562,13 +575,16 @@ function truncateText(text: string, maxLength: number): string {
                                                 </div>
                                             </div>
                                         </td>
-                                    </tr>                                </template>
+                                    </tr>
+                                </template>
                                 <tr v-if="paginatedPurchaseOrders.length === 0">
-                                    <td colspan="11" class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                                    <td colspan="11"
+                                        class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
                                         Không có đơn hàng nào được tìm thấy.
                                     </td>
                                 </tr>
-                            </tbody>                        </table>
+                            </tbody>
+                        </table>
                     </div>
 
                     <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -580,23 +596,19 @@ function truncateText(text: string, maxLength: number): string {
                             trên tổng <span class="font-semibold">{{ total }}</span>
                         </p>
                         <div class="flex items-center space-x-2">
-                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700" :disabled="currentPage === 1" @click="prevPage">
+                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+                                :disabled="currentPage === 1" @click="prevPage">
                                 &larr; Trang trước
                             </button>
                             <template v-for="pageNumber in totalPages" :key="pageNumber">
-                                <button
-                                    class="rounded px-3 py-1 text-sm"
+                                <button class="rounded px-3 py-1 text-sm"
                                     :class="pageNumber === currentPage ? 'bg-gray-200 font-bold' : 'text-gray-500 hover:text-gray-700'"
-                                    @click="goToPage(pageNumber)"
-                                >
+                                    @click="goToPage(pageNumber)">
                                     {{ pageNumber }}
                                 </button>
                             </template>
-                            <button
-                                class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                                :disabled="currentPage === totalPages"
-                                @click="nextPage"
-                            >
+                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+                                :disabled="currentPage === totalPages" @click="nextPage">
                                 Trang sau &rarr;
                             </button>
                         </div>
@@ -612,20 +624,22 @@ function truncateText(text: string, maxLength: number): string {
             </div>
         </div>
 
-        <!-- <DeleteModal :show="showDeleteModal"
-                     title="Xóa đơn đặt hàng"
-                     message="Bạn có chắc chắn muốn xóa đơn đặt hàng này? Hành động này không thể hoàn tác."
-                     @confirm="handleDeletePurchaseOrder"
-                     @close="cancelDelete" /> -->
+        <!-- <DeleteModal :show="showDeleteModal" title="Xóa đơn đặt hàng"
+            message="Bạn có chắc chắn muốn xóa đơn đặt hàng này? Hành động này không thể hoàn tác."
+            @confirm="handleDeletePurchaseOrder" @close="cancelDelete" /> -->
 
     </AppLayout>
 </template>
 
 <style lang="css" scoped>
 /* Định nghĩa chiều rộng cột rõ ràng để tránh tràn */
-table th, table td {
-    white-space: nowrap; /* Ngăn chặn chữ bị xuống dòng trong ô */
-    overflow: hidden;    /* Ẩn nội dung tràn ra ngoài */
-    text-overflow: ellipsis; /* Hiển thị dấu ba chấm cho nội dung tràn */
+table th,
+table td {
+    white-space: nowrap;
+    /* Ngăn chặn chữ bị xuống dòng trong ô */
+    overflow: hidden;
+    /* Ẩn nội dung tràn ra ngoài */
+    text-overflow: ellipsis;
+    /* Hiển thị dấu ba chấm cho nội dung tràn */
 }
 </style>

@@ -44,16 +44,27 @@ const form = useForm({
     image_type: 'url', // hoặc props.product.image_type nếu có
 });
 
+
 function submit() {
-    form.transform(data => ({
-        ...data,
-        selected_supplier_ids: data.suppliers,
-        is_active: data.is_active ? 1 : 0, // ép kiểu về số
-        _method: 'PUT', // Laravel nhận biết là update
-    })).post(`/admin/products/${props.product.id}`, {
+    form.transform(data => {
+        const payload: any = {
+            ...data,
+            selected_supplier_ids: data.suppliers,
+            is_active: data.is_active ? 1 : 0,
+            _method: 'PUT',
+        };
+        // Nếu chọn upload thì bỏ image_url, nếu chọn url thì bỏ image_file
+        if (data.image_type === 'upload') {
+            delete payload.image_url;
+        } else {
+            delete payload.image_file;
+        }
+        return payload;
+    }).post(`/admin/products/${props.product.id}`, {
         forceFormData: true,
     });
 }
+
 
 </script>
 

@@ -20,7 +20,7 @@ Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['aut
 
 Route::prefix('admin')->name('admin.')->group(function () {
     // Router Categories
-    Route::get('categories/trashed', [CategoryController::class, 'trashed'])->name('categories.trashed'); 
+    Route::get('categories/trashed', [CategoryController::class, 'trashed'])->name('categories.trashed');
     Route::post('categories/{cat}/restore', [CategoryController::class, 'restore'])->name('categories.restore');
     Route::delete('categories/{cat}/force-delete', [CategoryController::class, 'forceDelete'])->name('categories.forceDelete');
     Route::resource('categories', CategoryController::class);
@@ -39,10 +39,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('purchase_receipts', PurchaseReceiptController::class);
 
     Route::resource('product-batches', ProductBatchController::class);
-    
+
+    Route::get('purchase-orders/trashed', [PurchaseOrderController::class, 'trashed'])->name('purchase-orders.trashed');
+    Route::post('purchase-orders/{supplier}/restore', [PurchaseOrderController::class, 'restore'])->name('purchase-orders.restore');
+    Route::delete('purchase-orders/{supplier}/force-delete', [PurchaseOrderController::class, 'forceDelete'])->name('purchase-orders.forceDelete');
     Route::resource('purchase-orders', PurchaseOrderController::class);
 })->middleware(['auth', 'verified']);
 
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
+
