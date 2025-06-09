@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('barcode', 100)->unique()->nullable();
             $table->text('description')->nullable();
             $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('set null');
-            $table->foreignId('unit_id')->nullable()->constrained('product_units')->onDelete('set null');
+            $table->foreignId('unit_id')->constrained('product_units')->onDelete('restrict');
             $table->unsignedInteger('purchase_price')->default(0);
             $table->unsignedInteger('selling_price');
             $table->string('image_url', 512)->nullable();
