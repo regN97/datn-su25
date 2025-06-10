@@ -317,41 +317,47 @@ const submitForm = () => {
                                 <InputError :message="form.errors.unit_id" />
                             </div>
 
-                            <div>
-                                <label for="min_stock_level" class="block text-sm font-semibold text-gray-700 mb-1">Tồn
-                                    kho tối thiểu
-                                    <span class="text-red-500">*</span></label>
-                                <input type="number" id="min_stock_level" name="min_stock_level"
-                                    v-model.number="form.min_stock_level" min="0"
-                                    class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                    :class="{ 'border-red-500': form.errors.min_stock_level }" placeholder="30" />
-                                <InputError :message="form.errors.min_stock_level" />
-                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                                <div>
+                                    <label for="min_stock_level"
+                                        class="block text-sm font-semibold text-gray-700 mb-1">Tồn
+                                        kho tối thiểu
+                                        <span class="text-red-500">*</span></label>
+                                    <input type="number" id="min_stock_level" name="min_stock_level"
+                                        v-model.number="form.min_stock_level" min="0"
+                                        class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                        :class="{ 'border-red-500': form.errors.min_stock_level }" placeholder="30" />
+                                    <InputError :message="form.errors.min_stock_level" />
+                                </div>
 
+                                <div>
+                                    <label for="max_stock_level"
+                                        class="block text-sm font-semibold text-gray-700 mb-1">Tồn
+                                        kho tối đa <span class="text-red-500">*</span></label>
+                                    <input type="number" id="max_stock_level" name="max_stock_level"
+                                        v-model.number="form.max_stock_level" min="0"
+                                        class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                        :class="{ 'border-red-500': form.errors.max_stock_level }" placeholder="0" />
+                                    <InputError :message="form.errors.max_stock_level" />
+                                </div>
+                            </div>
                             <div>
-                                <label for="max_stock_level" class="block text-sm font-semibold text-gray-700 mb-1">Tồn
-                                    kho tối đa <span class="text-red-500">*</span></label>
-                                <input type="number" id="max_stock_level" name="max_stock_level"
-                                    v-model.number="form.max_stock_level" min="0"
-                                    class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                    :class="{ 'border-red-500': form.errors.max_stock_level }" placeholder="0" />
-                                <InputError :message="form.errors.max_stock_level" />
+                                <label for="description"
+                                    class="block mb-2 font-medium text-gray-700 dark:text-gray-300">Mô
+                                    tả</label>
+                                <textarea id="description" name="description" v-model="form.description"
+                                    class="w-full rounded-md border-gray-300 shadow-sm p-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                                    :class="{ 'border-red-500': form.errors.description }" rows="3"
+                                    placeholder="Mô tả về sản phẩm" maxlength="5000"></textarea>
+                                <span class="text-gray-500 text-sm mt-1 block text-right">
+                                    {{ descriptionCharCount }}/5000 ký tự
+                                </span>
+                                <InputError :message="form.errors.description" />
                             </div>
                         </div>
 
 
-                        <div class="col-span-full">
-                            <label for="description" class="block mb-2 font-medium text-gray-700 dark:text-gray-300">Mô
-                                tả</label>
-                            <textarea id="description" name="description" v-model="form.description"
-                                class="w-full rounded-md border-gray-300 shadow-sm p-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                                :class="{ 'border-red-500': form.errors.description }" rows="3"
-                                placeholder="Mô tả về sản phẩm" maxlength="5000"></textarea>
-                            <span class="text-gray-500 text-sm mt-1 block text-right">
-                                {{ descriptionCharCount }}/5000 ký tự
-                            </span>
-                            <InputError :message="form.errors.description" />
-                        </div>
+
 
                         <div class="flex justify-end space-x-4 mt-8">
                             <button type="button" @click="goBack"
