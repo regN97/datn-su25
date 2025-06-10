@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Models\Category;
 use App\Models\Supplier;
 use App\Models\ProductUnit;
-use App\Models\ProductBatch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -37,12 +36,37 @@ class Product extends Model
         'is_active' => 'boolean'
     ];
 
+    public function batchItems()
+    {
+        return $this->hasMany(BatchItem::class);
+    }
+
+    /**
+     * Get all batches containing this product
+     */
     public function batches()
     {
-        return $this->belongsToMany(Batch::class, 'product_batches', 'product_id', 'batch_id')
-            ->withPivot('purchase_price', 'initial_quantity', 'current_quantity')
-            ->withTimestamps();
+        return $this->hasManyThrough(
+            Batch::class,
+            BatchItem::class,
+            'product_id', // Foreign key on batch_items table
+            'id', // Local key on batches table
+            'id', // Local key on products table
+            'batch_id' // Foreign key on batch_items table
+        );
     }
+
+    /**
+     * Get current stock quantity of the product
+     */
+    public function getCurrentStock()
+    {
+        return $this->batchItems()
+            ->where('inventory_status', 'active')
+            ->sum('current_quantity');
+    }
+
+
 
     public function category()
     {
@@ -56,9 +80,5 @@ class Product extends Model
     public function suppliers()
     {
         return $this->belongsToMany(Supplier::class, 'product_suppliers', 'product_id', 'supplier_id')->withTimestamps();
-    }
-    public function productBatches()
-    {
-        return $this->hasMany(ProductBatch::class);
     }
 }

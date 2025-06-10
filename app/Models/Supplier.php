@@ -18,9 +18,12 @@ class Supplier extends Model
         'phone',
         'address'
     ];
-     public function products(): BelongsToMany
+    public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'product_suppliers', 'supplier_id', 'product_id');
     }
-    
+    public function batches()
+    {
+        return $this->hasMany(Batch::class);
+    }
 }

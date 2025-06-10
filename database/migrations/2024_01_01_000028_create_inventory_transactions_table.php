@@ -16,18 +16,16 @@ return new class extends Migration
             $table->unsignedInteger('total_value')->nullable()->comment('quantity_change * unit_price');
             $table->timestamp('transaction_date')->useCurrent();
             $table->foreignId('related_bill_id')->nullable()->constrained('bills')->onDelete('set null');
-            $table->foreignId('related_purchase_receipt_id')->nullable()->constrained('purchase_receipts')->onDelete('set null');
             $table->foreignId('related_purchase_return_id')->nullable()->constrained('purchase_returns')->onDelete('set null');
-            $table->foreignId('related_product_batch_id')->nullable()->constrained('product_batches')->onDelete('set null');
+            $table->foreignId('related_batch_id')->nullable()->constrained('batches')->onDelete('set null');
             $table->foreignId('user_id')->comment('Người thực hiện')->constrained('users');
             $table->timestamps();
             $table->softDeletes();
 
             $table->index('transaction_date', 'idx_inv_trans_date');
             $table->index('related_bill_id');
-            $table->index('related_purchase_receipt_id');
             $table->index('related_purchase_return_id');
-            $table->index('related_product_batch_id');
+            $table->index('related_batch_id');
             $table->index('user_id');
         });
     }

@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\PurchaseOrder;
+use App\Models\Supplier;
 use Inertia\Inertia;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseReceipt;
+use Illuminate\Http\Request;
 
 class PurchaseOrderController extends Controller
 {
@@ -19,8 +22,40 @@ class PurchaseOrderController extends Controller
             'approver'  // Tải thông tin người duyệt (nếu có)
         ])->get(); // Lấy tất cả các đơn hàng sau khi đã tải các mối quan hệ
 
-        return Inertia::render('admin/purchase-orders/Index')->with([
+        return Inertia::render('admin/purchase_orders/Index')->with([
             'purchaseOrders' => $purchaseOrders,
+        ]);
+    }
+
+    public function create(Request $request)
+    {
+        $query = Product::query();
+
+        // Get suppliers with search if provided
+        $suppliersQuery = Supplier::query();
+        if ($request->filled('supplier_search')) {
+            $suppliersQuery->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->supplier_search . '%')
+                    ->orWhere('email', 'like', '%' . $request->supplier_search . '%')
+                    ->orWhere('phone', 'like', '%' . $request->supplier_search . '%');
+            });
+        }
+        $suppliers = $suppliersQuery->get();
+
+        // Existing product search logic
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                    ->orWhere('sku', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $products = $query->paginate($request->get('per_page', 6))
+            ->withQueryString();
+
+        return Inertia::render('admin/purchase_orders/Create', [
+            'products' => $products,
+            'suppliers' => $suppliers,
         ]);
     }
 
@@ -55,7 +90,7 @@ class PurchaseOrderController extends Controller
                 ];
             });
 
-        return Inertia::render('admin/purchase-orders/Trashed', [
+        return Inertia::render('admin/purchase_orders/Trashed', [
             'purchaseOrders' => $purchaseOrders,
         ]);
     }

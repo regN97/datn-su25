@@ -13,23 +13,43 @@ class ProductUnitSeeder extends Seeder
         $unitsData = [
             [
                 'name' => 'Chai',
-                'description' => 'Dùng cho sản phẩm nước uống, dầu ăn...',
+                'description' => 'Đơn vị cho nước giải khát, dầu ăn, nước mắm...',
             ],
             [
                 'name' => 'Gói',
-                'description' => 'Dùng cho mì tôm, bánh kẹo...',
+                'description' => 'Đơn vị cho mì gói, bánh kẹo, snack...',
             ],
             [
                 'name' => 'Hộp',
-                'description' => 'Dùng cho sữa, thực phẩm đóng hộp...',
+                'description' => 'Đơn vị cho sữa, thực phẩm đóng hộp, TPCN...',
             ],
             [
                 'name' => 'Kg',
-                'description' => 'Dùng cho thực phẩm tươi sống, gạo...',
+                'description' => 'Đơn vị cho gạo, đường, bột...',
             ],
             [
                 'name' => 'Lốc',
-                'description' => 'Dùng cho nước ngọt dạng lốc 6 chai...',
+                'description' => 'Đơn vị cho combo nhiều chai/lon (6 chai)...',
+            ],
+            [
+                'name' => 'Thùng',
+                'description' => 'Đơn vị cho số lượng lớn (24 chai/lon)...',
+            ],
+            [
+                'name' => 'Lon',
+                'description' => 'Đơn vị cho nước giải khát, sữa đóng lon...',
+            ],
+            [
+                'name' => 'Túi',
+                'description' => 'Đơn vị cho bánh snack, đồ khô...',
+            ],
+            [
+                'name' => 'Cái',
+                'description' => 'Đơn vị cho thiết bị, dụng cụ...',
+            ],
+            [
+                'name' => 'Gram',
+                'description' => 'Đơn vị cho gia vị, thực phẩm định lượng nhỏ...',
             ],
         ];
 

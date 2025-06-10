@@ -15,7 +15,7 @@ class ProductBatchController extends Controller
 {
     public function index()
     {
-        $batches = Batch::with('supplier')->get();
+        $batches = ProductBatch::with('product', 'batch')->get();
 
         return Inertia::render('admin/batches/Index', [
             'batches' => $batches,

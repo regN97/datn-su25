@@ -20,10 +20,10 @@ class ProductSupplierSeeder extends Seeder
             ['product_id' => 8, 'supplier_id' => 8],
             ['product_id' => 9, 'supplier_id' => 9],
             ['product_id' => 10, 'supplier_id' => 10],
-            ['product_id' => 1, 'supplier_id' => 11],
-            ['product_id' => 2, 'supplier_id' => 12],
-            ['product_id' => 3, 'supplier_id' => 13],
-            ['product_id' => 4, 'supplier_id' => 14],
+            ['product_id' => 1, 'supplier_id' => 7],
+            ['product_id' => 2, 'supplier_id' => 8],
+            ['product_id' => 3, 'supplier_id' => 9],
+            ['product_id' => 4, 'supplier_id' => 10],
         ];
 
         foreach ($data as $item) {
