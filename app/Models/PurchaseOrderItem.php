@@ -26,4 +26,21 @@ class PurchaseOrderItem extends Model
         return $this->belongsTo(Product::class);
     }
 
+    // Thêm relationship với BatchItem
+    public function batchItems()
+    {
+        return $this->hasMany(BatchItem::class);
+    }
+
+    // Thêm method tính số lượng đã nhập
+    public function getReceivedQuantity()
+    {
+        return $this->batchItems()->sum('received_quantity');
+    }
+
+    // Thêm method tính số lượng còn phải nhập
+    public function getRemainingQuantity()
+    {
+        return $this->quantity - $this->getReceivedQuantity();
+    }
 }

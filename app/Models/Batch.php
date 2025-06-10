@@ -12,35 +12,58 @@ class Batch extends Model
 
     protected $fillable = [
         'batch_number',
-        'manufacturing_date',
-        'expiry_date',
-        'status',
+        'purchase_order_id',
         'supplier_id',
         'received_date',
         'invoice_number',
-        'notes'
+        'total_amount',
+        'payment_status',
+        'paid_amount',
+        'receipt_status',
+        'is_partial_receipt',
+        'notes',
+        'created_by',
+        'updated_by'
     ];
 
     // Type casting cho các trường dữ liệu
     protected $casts = [
-        'manufacturing_date' => 'date',
-        'expiry_date' => 'date',
+        'is_partial_receipt' => 'boolean',
         'received_date' => 'date',
-        'status' => 'string', // enum field
+        'total_amount' => 'integer',
+        'paid_amount' => 'integer'
     ];
 
-    // Định nghĩa các mối quan hệ
-    public function supplier()
+    public function batchItems()
     {
-        return $this->belongsTo(Supplier::class); // Assuming you have a Supplier model
+        return $this->hasMany(BatchItem::class);
     }
 
-    public function products()
+    public function purchaseOrder()
     {
-        // This defines a many-to-many relationship with the 'product_batches' pivot table
-        // withPivot specifies the extra columns from the pivot table you want to access
-        return $this->belongsToMany(Product::class, 'product_batches', 'batch_id', 'product_id')
-                    ->withPivot('purchase_price', 'initial_quantity', 'current_quantity')
-                    ->withTimestamps(); // If you have created_at and updated_at on your pivot table
+        return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    // Helper methods
+    public function updateReceiptStatus()
+    {
+        $poFullyReceived = $this->purchaseOrder->isFullyReceived();
+        $this->receipt_status = $poFullyReceived ? 'completed' : 'partially_received';
+        $this->save();
     }
 }

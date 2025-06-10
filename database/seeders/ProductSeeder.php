@@ -10,148 +10,178 @@ class ProductSeeder extends Seeder
     public function run()
     {
         $products = [
+            // Mì & Phở ăn liền (category_id: 14)
             [
-                'name' => 'Mì ly hảo hạng 65g',
-                'sku' => 'G7-MLH-011',
-                'barcode' => '8934567890111',
-                'description' => 'Mì ly ăn liền, hương vị bò cay hấp dẫn.',
-                'category_id' => 1,
-                'unit_id' => 1,
-                'purchase_price' => 5000,
-                'selling_price' => 8000,
-                'image_url' => 'https://g7mart.com/images/products/mi_ly_65g.jpg',
+                'name' => 'Mì Hảo Hảo Tôm Chua Cay 75g',
+                'sku' => 'MHH-001',
+                'barcode' => '8934563138165',
+                'description' => 'Mì ăn liền Hảo Hảo hương vị tôm chua cay đặc trưng',
+                'category_id' => 14,
+                'unit_id' => 2, // Gói
+                'purchase_price' => 3500,
+                'selling_price' => 4000,
+                'min_stock_level' => 100,
+                'max_stock_level' => 1000,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+            [
+                'name' => 'Phở Gà Vifon Bowl 120g',
+                'sku' => 'PVF-001',
+                'barcode' => '8934563212458',
+                'description' => 'Phở ăn liền hương vị gà, kèm gói gia vị và rau thơm',
+                'category_id' => 14,
+                'unit_id' => 3, // Hộp
+                'purchase_price' => 12000,
+                'selling_price' => 15000,
+                'min_stock_level' => 50,
+                'max_stock_level' => 500,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+
+            // Nước giải khát (category_id: 11)
+            [
+                'name' => 'Coca Cola Original 330ml',
+                'sku' => 'CCL-001',
+                'barcode' => '8935001234567',
+                'description' => 'Nước giải khát có ga Coca Cola lon 330ml',
+                'category_id' => 11,
+                'unit_id' => 7, // Lon
+                'purchase_price' => 7000,
+                'selling_price' => 10000,
+                'min_stock_level' => 100,
+                'max_stock_level' => 1000,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+            [
+                'name' => 'Pepsi Black Lime 330ml',
+                'sku' => 'PBL-001',
+                'barcode' => '8935002345678',
+                'description' => 'Nước giải khát có ga Pepsi không đường hương chanh lon 330ml',
+                'category_id' => 11,
+                'unit_id' => 7, // Lon
+                'purchase_price' => 7000,
+                'selling_price' => 10000,
+                'min_stock_level' => 100,
+                'max_stock_level' => 1000,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+
+            // Sữa bột & Dinh dưỡng (category_id: 17)
+            [
+                'name' => 'Sữa Ensure Gold 850g',
+                'sku' => 'EG-001',
+                'barcode' => '8935003456789',
+                'description' => 'Sữa bột dinh dưỡng Ensure Gold dành cho người lớn tuổi',
+                'category_id' => 17,
+                'unit_id' => 3, // Hộp
+                'purchase_price' => 620000,
+                'selling_price' => 675000,
+                'min_stock_level' => 10,
+                'max_stock_level' => 100,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+
+            // Vitamin & TPCN (category_id: 20)
+            [
+                'name' => 'Centrum Adults 30 viên',
+                'sku' => 'CTA-001',
+                'barcode' => '8935004567890',
+                'description' => 'Vitamin tổng hợp cho người trưởng thành',
+                'category_id' => 20,
+                'unit_id' => 3, // Hộp
+                'purchase_price' => 180000,
+                'selling_price' => 220000,
+                'min_stock_level' => 20,
+                'max_stock_level' => 200,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+
+            // Gạo & Ngũ cốc (category_id: 16)
+            [
+                'name' => 'Gạo ST25 5kg',
+                'sku' => 'ST25-001',
+                'barcode' => '8935005678901',
+                'description' => 'Gạo ST25 - Gạo ngon nhất thế giới năm 2019',
+                'category_id' => 16,
+                'unit_id' => 4, // Kg
+                'purchase_price' => 150000,
+                'selling_price' => 180000,
+                'min_stock_level' => 20,
+                'max_stock_level' => 200,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+
+            // Đồ hộp & Chế biến (category_id: 15)
+            [
+                'name' => 'Cá hộp 3 Cô Gái 180g',
+                'sku' => '3CG-001',
+                'barcode' => '8935006789012',
+                'description' => 'Cá thu sốt cà chua đóng hộp',
+                'category_id' => 15,
+                'unit_id' => 3, // Hộp
+                'purchase_price' => 25000,
+                'selling_price' => 32000,
+                'min_stock_level' => 50,
+                'max_stock_level' => 300,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+
+            // Tã & Khăn ướt (category_id: 18)
+            [
+                'name' => 'Tã Bobby Fresh L54',
+                'sku' => 'BBF-001',
+                'barcode' => '8935007890123',
+                'description' => 'Tã quần Bobby Fresh size L 54 miếng',
+                'category_id' => 18,
+                'unit_id' => 3, // Hộp
+                'purchase_price' => 240000,
+                'selling_price' => 280000,
+                'min_stock_level' => 20,
+                'max_stock_level' => 200,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+
+            // Nước suối & Nước khoáng (category_id: 12)
+            [
+                'name' => 'Nước khoáng LaVie 500ml',
+                'sku' => 'LV-001',
+                'barcode' => '8935008901234',
+                'description' => 'Nước khoáng thiên nhiên LaVie',
+                'category_id' => 12,
+                'unit_id' => 1, // Chai
+                'purchase_price' => 4000,
+                'selling_price' => 5000,
+                'min_stock_level' => 200,
+                'max_stock_level' => 2000,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+
+            // Cà phê & Trà (category_id: 13)
+            [
+                'name' => 'Cà phê Trung Nguyên Sáng tạo 2',
+                'sku' => 'TNST2-001',
+                'barcode' => '8935009012345',
+                'description' => 'Cà phê bột Trung Nguyên Sáng tạo 2 340g',
+                'category_id' => 13,
+                'unit_id' => 3, // Hộp
+                'purchase_price' => 55000,
+                'selling_price' => 65000,
                 'min_stock_level' => 30,
                 'max_stock_level' => 300,
                 'is_active' => true,
-            ],
-            [
-                'name' => 'Bánh quy bơ hộp 200g',
-                'sku' => 'G7-BQB-012',
-                'barcode' => '8934567890128',
-                'description' => 'Bánh quy bơ thơm ngon, giòn rụm.',
-                'category_id' => 1,
-                'unit_id' => 1,
-                'purchase_price' => 20000,
-                'selling_price' => 28000,
-                'image_url' => 'https://g7mart.com/images/products/banh_quy_bo.jpg',
-                'min_stock_level' => 20,
-                'max_stock_level' => 150,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Nước cam ép 330ml',
-                'sku' => 'G7-NCE-013',
-                'barcode' => '8934567890135',
-                'description' => 'Nước cam nguyên chất, giàu vitamin C.',
-                'category_id' => 2,
-                'unit_id' => 2,
-                'purchase_price' => 7000,
-                'selling_price' => 11000,
-                'image_url' => 'https://g7mart.com/images/products/nuoc_cam_330ml.jpg',
-                'min_stock_level' => 25,
-                'max_stock_level' => 200,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Cà phê lon đen đá 240ml',
-                'sku' => 'G7-CFL-014',
-                'barcode' => '8934567890142',
-                'description' => 'Cà phê lon đậm đà, sảng khoái.',
-                'category_id' => 2,
-                'unit_id' => 2,
-                'purchase_price' => 9000,
-                'selling_price' => 13000,
-                'image_url' => 'https://g7mart.com/images/products/ca_phe_lon.jpg',
-                'min_stock_level' => 20,
-                'max_stock_level' => 150,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Bình đun siêu tốc 1.8L',
-                'sku' => 'G7-BDST-015',
-                'barcode' => '8934567890159',
-                'description' => 'Bình đun siêu tốc inox, dung tích 1.8L.',
-                'category_id' => 3,
-                'unit_id' => 3,
-                'purchase_price' => 180000,
-                'selling_price' => 250000,
-                'image_url' => 'https://g7mart.com/images/products/binh_dun_sieu_toc.jpg',
-                'min_stock_level' => 10,
-                'max_stock_level' => 50,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Máy xay sinh tố mini',
-                'sku' => 'G7-MXST-016',
-                'barcode' => '8934567890166',
-                'description' => 'Máy xay nhỏ gọn, tiện mang đi.',
-                'category_id' => 3,
-                'unit_id' => 3,
-                'purchase_price' => 220000,
-                'selling_price' => 320000,
-                'image_url' => 'https://g7mart.com/images/products/may_xay_mini.jpg',
-                'min_stock_level' => 5,
-                'max_stock_level' => 30,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Sữa tắm hương hoa 800ml',
-                'sku' => 'G7-STHH-017',
-                'barcode' => '8934567890173',
-                'description' => 'Sữa tắm dưỡng ẩm, thơm ngát hương hoa.',
-                'category_id' => 4,
-                'unit_id' => 4,
-                'purchase_price' => 45000,
-                'selling_price' => 60000,
-                'image_url' => 'https://g7mart.com/images/products/sua_tam_hoa.jpg',
-                'min_stock_level' => 15,
-                'max_stock_level' => 100,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Kem đánh răng dược liệu 150g',
-                'sku' => 'G7-KDTRL-018',
-                'barcode' => '8934567890180',
-                'description' => 'Kem đánh răng ngừa sâu răng, trắng răng tự nhiên.',
-                'category_id' => 4,
-                'unit_id' => 4,
-                'purchase_price' => 20000,
-                'selling_price' => 30000,
-                'image_url' => 'https://g7mart.com/images/products/kem_danh_rang.jpg',
-                'min_stock_level' => 20,
-                'max_stock_level' => 150,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Chổi lau nhà 360 độ',
-                'sku' => 'G7-CLN-019',
-                'barcode' => '8934567890197',
-                'description' => 'Chổi lau nhà xoay 360 độ, dễ vắt khô.',
-                'category_id' => 5,
-                'unit_id' => 5,
-                'purchase_price' => 100000,
-                'selling_price' => 150000,
-                'image_url' => 'https://g7mart.com/images/products/choi_lau_nha.jpg',
-                'min_stock_level' => 10,
-                'max_stock_level' => 80,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Giẻ lau đa năng 3 cái/gói',
-                'sku' => 'G7-GLDN-020',
-                'barcode' => '8934567890203',
-                'description' => 'Giẻ lau mềm mịn, thấm hút tốt.',
-                'category_id' => 5,
-                'unit_id' => 5,
-                'purchase_price' => 25000,
-                'selling_price' => 35000,
-                'image_url' => 'https://g7mart.com/images/products/gie_lau.jpg',
-                'min_stock_level' => 20,
-                'max_stock_level' => 100,
-                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
             ],
         ];
-
 
         foreach ($products as $product) {
             Product::create($product);

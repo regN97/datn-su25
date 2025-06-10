@@ -3,9 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Supplier;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class SupplierSeeder extends Seeder
 {
@@ -15,113 +13,95 @@ class SupplierSeeder extends Seeder
     public function run()
     {
         $suppliersData = [
-            // 1. Nhà sản xuất/Nhà phân phối chính thức (FMCG, Điện tử,...)
+            // Tập đoàn FMCG lớn
             [
-                'name'           => 'Công ty TNHH Unilever Việt Nam',
+                'name' => 'Công ty TNHH Unilever Việt Nam',
                 'contact_person' => 'Nguyễn Thị Hoa',
-                'email'          => 'info.unilever@unilever.com.vn',
-                'phone'          => '+842838290000',
-                'address'        => 'Lô A2-A3, KCN Hiệp Phước, Xã Hiệp Phước, Huyện Nhà Bè, TP. Hồ Chí Minh',
+                'email' => 'business.contact@unilever.com.vn',
+                'phone' => '02838290000',
+                'address' => 'Lô A2-A3, KCN Hiệp Phước, Xã Hiệp Phước, Huyện Nhà Bè, TP. Hồ Chí Minh',
             ],
             [
-                'name'           => 'Công ty Cổ phần Sữa Việt Nam (Vinamilk)',
+                'name' => 'Công ty Cổ phần Sữa Việt Nam (Vinamilk)',
                 'contact_person' => 'Lê Văn Hùng',
-                'email'          => 'contact@vinamilk.com.vn',
-                'phone'          => '+842854155555',
-                'address'        => 'Số 10, Đường Thống Nhất, P.11, Q.Gò Vấp, TP. Hồ Chí Minh',
-            ],
-            [
-                'name'           => 'Tập đoàn Hòa Phát (Gia dụng, Nội thất)',
-                'contact_person' => 'Trần Thị Thủy',
-                'email'          => 'info@hoaphat.com.vn',
-                'phone'          => '+842462810000',
-                'address'        => 'KCN Phố Nối A, Xã Giai Phạm, Huyện Yên Mỹ, Hưng Yên',
-            ],
-            [
-                'name'           => 'Công ty TNHH Samsung Vina Electronics',
-                'contact_person' => 'Phạm Quang Minh',
-                'email'          => 'contact.vn@samsung.com',
-                'phone'          => '+842838211211',
-                'address'        => 'Tòa nhà Samsung, 2 Nguyễn Cơ Thạch, KĐT Sala, P.An Lợi Đông, Q.2, TP. Hồ Chí Minh',
-            ],
-            [
-                'name'           => 'Công ty Cổ phần Diana Unicharm',
-                'contact_person' => 'Đỗ Thị Lan',
-                'email'          => 'cskh@unicharm.com.vn',
-                'phone'          => '+842438686666',
-                'address'        => 'KCN Phố Nối A, Xã Giai Phạm, Huyện Yên Mỹ, Hưng Yên',
+                'email' => 'wholesale@vinamilk.com.vn',
+                'phone' => '02854155555',
+                'address' => 'Số 10, Đường Thống Nhất, P.11, Q.Gò Vấp, TP. Hồ Chí Minh',
             ],
 
-            // 2. Tổng đại lý/Nhà phân phối lớn (Đa dạng ngành hàng)
+            // Nhà phân phối thực phẩm & đồ uống
             [
-                'name'           => 'Tổng Công ty Thương mại Sài Gòn (SATRA)',
-                'contact_person' => 'Nguyễn Văn Nam',
-                'email'          => 'satra@satra.com.vn',
-                'phone'          => '+842838213333',
-                'address'        => '275B Phạm Ngũ Lão, P.Phạm Ngũ Lão, Q.1, TP. Hồ Chí Minh',
+                'name' => 'Công ty CP Thực phẩm PepsiCo Việt Nam',
+                'contact_person' => 'Trần Minh Đức',
+                'email' => 'sales.vn@pepsico.com',
+                'phone' => '02838242222',
+                'address' => 'Tầng 5, Sheraton Plaza, 175 Hai Bà Trưng, P.6, Q.3, TP. Hồ Chí Minh',
             ],
             [
-                'name'           => 'Công ty Cổ phần Thế Giới Di Động (Phân phối phụ kiện, đồ gia dụng)',
-                'contact_person' => 'Trần Hải Đăng',
-                'email'          => 'info@thegioididong.com',
-                'phone'          => '+842838125960',
-                'address'        => '128 Trần Quang Khải, P.Tân Định, Q.1, TP. Hồ Chí Minh',
-            ],
-            [
-                'name'           => 'Công ty Cổ phần Dịch vụ Phân phối Tổng hợp Miền Nam (FPT Synnex)',
-                'contact_person' => 'Phan Thị Mai',
-                'email'          => 'contact@synnexfpt.com.vn',
-                'phone'          => '+842873007300',
-                'address'        => 'Lô 37-39-41, Đường số 2A, KCN Tân Tạo, Q.Bình Tân, TP. Hồ Chí Minh',
-            ],
-            [
-                'name'           => 'Công ty Cổ phần Sài Gòn Co.op (Phân phối hàng nhãn riêng, thu mua)',
-                'contact_person' => 'Lý Quốc An',
-                'email'          => 'info@saigonco-op.vn',
-                'phone'          => '+842838360146',
-                'address'        => '199-205 Nguyễn Thái Học, P.Phạm Ngũ Lão, Q.1, TP. Hồ Chí Minh',
+                'name' => 'Công ty TNHH Nestlé Việt Nam',
+                'contact_person' => 'Phạm Thu Trang',
+                'email' => 'wholesale.vn@nestle.com',
+                'phone' => '02837999333',
+                'address' => 'Tầng 10, Toà nhà Lazada One, 3/2, P.11, Q.10, TP. Hồ Chí Minh',
             ],
 
-            // 3. Nhà cung cấp sỉ (Wholesalers - ví dụ chuyên biệt)
+            // Nhà cung cấp đồ gia dụng
             [
-                'name'           => 'Kho Sỉ Đồ Gia Dụng Giá Rẻ Thành Đạt',
-                'contact_person' => 'Phạm Văn Hùng',
-                'email'          => 'giadungthanhdat@example.com',
-                'phone'          => '+84901234567',
-                'address'        => 'Cụm công nghiệp Vĩnh Lộc, Huyện Bình Chánh, TP. Hồ Chí Minh',
+                'name' => 'Công ty CP Điện Gia Dụng Sunhouse',
+                'contact_person' => 'Lê Hoàng Nam',
+                'email' => 'business@sunhouse.com.vn',
+                'phone' => '02437921111',
+                'address' => '139 Quang Trung, P.Quang Trung, Q.Hà Đông, Hà Nội',
             ],
+
+            // Nhà phân phối sản phẩm chăm sóc cá nhân
             [
-                'name'           => 'Công ty TNHH Thực Phẩm Nhất Hương (nguyên liệu làm bánh)',
-                'contact_person' => 'Lê Thị Mai',
-                'email'          => 'info@nhatuong.vn',
-                'phone'          => '+842862903711',
-                'address'        => '147 Công Chúa Ngọc Hân, P.12, Q.11, TP. Hồ Chí Minh',
+                'name' => 'Công ty TNHH P&G Việt Nam',
+                'contact_person' => 'Nguyễn Thị Mai Anh',
+                'email' => 'wholesale.vn@pg.com',
+                'phone' => '02838240500',
+                'address' => 'Tầng 12, Tòa nhà Metropolitan, 235 Đồng Khởi, P.Bến Nghé, Q.1, TP. Hồ Chí Minh',
             ],
+
+            // Nhà cung cấp thực phẩm đông lạnh
             [
-                'name'           => 'Nhà Cung Cấp Văn Phòng Phẩm Minh Khai',
-                'contact_person' => 'Đinh Công Tráng',
-                'email'          => 'vppminhkhais@example.com',
-                'phone'          => '+84912345678',
-                'address'        => 'Số 216 Trần Duy Hưng, P.Trung Hòa, Q.Cầu Giấy, Hà Nội',
+                'name' => 'Công ty CP Việt Nam Food Industries',
+                'contact_person' => 'Trần Văn Khoa',
+                'email' => 'sales@vnfood.com.vn',
+                'phone' => '02838333666',
+                'address' => 'KCN Tân Tạo, P.Tân Tạo A, Q.Bình Tân, TP. Hồ Chí Minh',
             ],
+
+            // Nhà phân phối thực phẩm chức năng
             [
-                'name'           => 'Sỉ Nông Sản Sạch Bốn Mùa (từ các trang trại liên kết)',
-                'contact_person' => 'Nguyễn Thị Dung',
-                'email'          => 'nongsansach@example.com',
-                'phone'          => '+84977889900',
-                'address'        => 'Chợ Đầu Mối Nông Sản Thủ Đức, Q.Thủ Đức, TP. Hồ Chí Minh',
+                'name' => 'Công ty TNHH Dược phẩm Mega Lifesciences',
+                'contact_person' => 'Đỗ Thị Hương',
+                'email' => 'contact.vn@megalife.com',
+                'phone' => '02838224555',
+                'address' => '6F Mê Linh Point, 2 Ngô Đức Kế, P.Bến Nghé, Q.1, TP. Hồ Chí Minh',
             ],
+
+            // Nhà cung cấp sản phẩm cho mẹ và bé
             [
-                'name'           => 'Cửa hàng Đồ Chơi Sỉ Giá Kho',
-                'contact_person' => 'Trần Văn Tùng',
-                'email'          => 'dochoisigialo@example.com',
-                'phone'          => '+84987654321',
-                'address'        => 'Chợ Lớn, Q.5, TP. Hồ Chí Minh',
+                'name' => 'Công ty TNHH Mead Johnson Nutrition Việt Nam',
+                'contact_person' => 'Nguyễn Thị Ngọc',
+                'email' => 'wholesale.vn@meadjohnson.com',
+                'phone' => '02838277999',
+                'address' => 'Tầng 16, Tòa nhà Sunwah, 115 Nguyễn Huệ, P.Bến Nghé, Q.1, TP. Hồ Chí Minh',
+            ],
+
+            // Nhà phân phối gia vị và phụ gia thực phẩm
+            [
+                'name' => 'Công ty CP Masan Consumer',
+                'contact_person' => 'Lê Thị Thu Hà',
+                'email' => 'wholesale@masan.com.vn',
+                'phone' => '02854163999',
+                'address' => 'Tầng 12, Tòa nhà MPlaza Saigon, 39 Lê Duẩn, P.Bến Nghé, Q.1, TP. Hồ Chí Minh',
             ],
         ];
 
-        foreach ($suppliersData as $data) {
-            Supplier::create($data);
+        foreach ($suppliersData as $supplier) {
+            Supplier::create($supplier);
         }
     }
 }

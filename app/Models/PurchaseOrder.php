@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+
 class PurchaseOrder extends Model
 {
- use SoftDeletes;
+    use SoftDeletes;
 
     protected $fillable = [
         'po_number',
@@ -32,11 +33,13 @@ class PurchaseOrder extends Model
         'notes',
     ];
 
-    public function supplier(){
+    public function supplier()
+    {
         return $this->belongsTo(Supplier::class);
     }
 
-    public function status(){
+    public function status()
+    {
         return $this->belongsTo(POStatus::class);
     }
 
@@ -54,9 +57,41 @@ class PurchaseOrder extends Model
     {
         return $this->hasMany(PurchaseOrderItem::class);
     }
-    
+
     public function purchaseReceipts()
     {
         return $this->hasMany(PurchaseReceipt::class);
+    }
+
+    // Thêm relationship với Batch
+    public function batches()
+    {
+        return $this->hasMany(Batch::class);
+    }
+
+    // Thêm method kiểm tra trạng thái nhập hàng
+    public function getReceiptStatus()
+    {
+        $totalReceived = $this->batches()
+            ->whereIn('receipt_status', ['completed', 'partially_received'])
+            ->count();
+
+        if ($totalReceived === 0) return 'pending';
+        if ($this->isFullyReceived()) return 'completed';
+        return 'partially_received';
+    }
+
+    // Thêm method kiểm tra đã nhập đủ hàng chưa
+    public function isFullyReceived()
+    {
+        foreach ($this->items as $item) {
+            $receivedQty = BatchItem::where('purchase_order_item_id', $item->id)
+                ->sum('received_quantity');
+
+            if ($receivedQty < $item->quantity) {
+                return false;
+            }
+        }
+        return true;
     }
 }
