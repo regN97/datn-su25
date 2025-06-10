@@ -3,7 +3,7 @@ import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { PackagePlus, Pencil, Trash2, ArrowUpNarrowWide, ArrowDownWideNarrow, Search, FileDown } from 'lucide-vue-next'; // Added FileDown icon
+import { PackagePlus, Eye, Trash2, ArrowUpNarrowWide, ArrowDownWideNarrow, Search, FileDown } from 'lucide-vue-next'; // Added FileDown icon
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -19,12 +19,8 @@ type Supplier = {
 type Batch = {
     id: number;
     batch_number: string;
-    product_id: number;
     manufacturing_date: string | null;
     expiry_date: string | null;
-    purchase_price: number;
-    initial_quantity: number;
-    current_quantity: number;
     status: 'active' | 'low_stock' | 'out_of_stock' | 'expired';
     supplier_id: number | null;
     supplier?: Supplier | null;
@@ -275,7 +271,7 @@ function formatDateTime(dateStr: string | null): string {
                                         <button
                                             class="inline-flex items-center justify-center rounded-md bg-blue-600 p-2 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none shadow-sm"
                                             @click="goToBatchDetails(batch.id)" title="Xem chi tiết">
-                                            Chi tiết
+                                            <Eye class="h-5 w-5" />
                                         </button>
 
                                     </td>

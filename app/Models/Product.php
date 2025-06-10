@@ -39,8 +39,8 @@ class Product extends Model
 
     public function batches()
     {
-        return $this->belongsToMany(Batch::class, 'product_batches')
-            ->withPivot(['purchase_price', 'initial_quantity', 'current_quantity'])
+        return $this->belongsToMany(Batch::class, 'product_batches', 'product_id', 'batch_id')
+            ->withPivot('purchase_price', 'initial_quantity', 'current_quantity')
             ->withTimestamps();
     }
 

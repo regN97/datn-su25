@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+
 class Batch extends Model
 {
     use HasFactory, SoftDeletes;
@@ -31,11 +32,15 @@ class Batch extends Model
     // Định nghĩa các mối quan hệ
     public function supplier()
     {
-        return $this->belongsTo(Supplier::class); // One to Many (inverse)
+        return $this->belongsTo(Supplier::class); // Assuming you have a Supplier model
     }
 
-    public function productBatches()
+    public function products()
     {
-        return $this->hasMany(ProductBatch::class); // One to Many
+        // This defines a many-to-many relationship with the 'product_batches' pivot table
+        // withPivot specifies the extra columns from the pivot table you want to access
+        return $this->belongsToMany(Product::class, 'product_batches', 'batch_id', 'product_id')
+                    ->withPivot('purchase_price', 'initial_quantity', 'current_quantity')
+                    ->withTimestamps(); // If you have created_at and updated_at on your pivot table
     }
 }

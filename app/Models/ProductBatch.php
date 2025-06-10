@@ -2,26 +2,32 @@
 
 namespace App\Models;
 
+use App\Models\Batch;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProductBatch extends Model
+class ProductBatch extends Pivot
 {
     protected $fillable = [
-        'product_id',
-        'batch_id',
-        'purchase_price',
-        'initial_quantity',
-        'current_quantity'
+        'batch_number',
+        'manufacturing_date',
+        'expiry_date',
+        'status',
+        'supplier_id',
+        'received_date',
+        'invoice_number',
+        'notes'
     ];
 
     protected $casts = [
-        'purchase_price' => 'integer',
-        'initial_quantity' => 'integer',
-        'current_quantity' => 'integer'
+        'manufacturing_date' => 'date',
+        'expiry_date' => 'date',
+        'received_date' => 'date',
     ];
 
-    public function product()
+     public function product()
     {
         return $this->belongsTo(Product::class);
     }
