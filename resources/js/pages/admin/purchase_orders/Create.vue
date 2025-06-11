@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronDown, ChevronLeft, ChevronUp, CreditCard, Minus, Search, X } from 'lucide-vue-next';
+import { ChevronDown, ChevronLeft, ChevronUp, Minus, Search, X } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 // Types
@@ -274,11 +274,11 @@ onUnmounted(() => {
                     <h1 class="text-3xl font-bold text-gray-900">Tạo đơn hàng nhập</h1>
                 </div>
 
-                <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <!-- Left Section - Order Details -->
-                    <div class="lg:col-span-2">
+                    <div class="flex flex-col gap-6 lg:col-span-2">
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-                            <div class="border-b border-gray-200 p-6">
+                            <div class="border-b border-gray-200 p-4">
                                 <h2 class="text-lg font-semibold">Chi tiết đơn hàng</h2>
                             </div>
                             <div class="space-y-6 p-6">
@@ -461,56 +461,34 @@ onUnmounted(() => {
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Notes Section -->
-                                <div>
-                                    <label class="mb-2 block text-sm font-medium text-gray-700">Ghi chú</label>
-                                    <textarea
-                                        placeholder="Thêm ghi chú..."
-                                        class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                    ></textarea>
+                            </div>
+                        </div>
+                        <!-- Pricing Section chuyển xuống dưới -->
+                        <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+                            <div class="border-b border-gray-200 p-4">
+                                <h2 class="text-lg font-semibold">Thanh toán</h2>
+                            </div>
+                            <div class="space-y-3 p-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700">Tạm tính</span>
+                                    <span class="font-medium">{{ formattedSubtotal }}</span>
                                 </div>
 
-                                <!-- Pricing Section -->
-                                <div class="space-y-4">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-gray-700">Tạm tính</span>
-                                        <span class="font-medium">{{ formattedSubtotal }}</span>
-                                    </div>
-
-                                    <div class="space-y-2">
-                                        <button class="flex items-center text-sm text-blue-600 hover:text-blue-700">
-                                            <Minus class="mr-1 h-4 w-4" />
-                                            Thêm khuyến mãi
-                                        </button>
-                                        <button class="flex items-center text-sm text-blue-600 hover:text-blue-700">
-                                            <Minus class="mr-1 h-4 w-4" />
-                                            Thêm phương thức vận chuyển
-                                        </button>
-                                    </div>
-
-                                    <div class="border-t pt-4">
-                                        <div class="flex items-center justify-between text-lg font-semibold">
-                                            <span>Tổng cộng</span>
-                                            <span>{{ formattedSubtotal }}</span>
-                                        </div>
-                                    </div>
+                                <div class="space-y-2">
+                                    <button class="flex items-center text-sm text-blue-600 hover:text-blue-700">
+                                        <Minus class="mr-1 h-4 w-4" />
+                                        Thêm khuyến mãi
+                                    </button>
+                                    <button class="flex items-center text-sm text-blue-600 hover:text-blue-700">
+                                        <Minus class="mr-1 h-4 w-4" />
+                                        Thêm phương thức vận chuyển
+                                    </button>
                                 </div>
 
-                                <!-- Payment Section -->
-                                <div class="border-t pt-6">
-                                    <div class="mb-4 flex items-center">
-                                        <CreditCard class="mr-2 h-5 w-5 text-blue-600" />
-                                        <span class="font-medium">Xác nhận thanh toán</span>
-                                    </div>
-
-                                    <div class="flex gap-3">
-                                        <button class="h-10 flex-1 rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50">
-                                            Đã thanh toán
-                                        </button>
-                                        <button class="h-10 flex-1 rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50">
-                                            Thanh toán sau
-                                        </button>
+                                <div class="border-t pt-4">
+                                    <div class="flex items-center justify-between text-lg font-semibold">
+                                        <span>Tổng cộng</span>
+                                        <span>{{ formattedSubtotal }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -521,10 +499,10 @@ onUnmounted(() => {
                     <div class="space-y-6">
                         <!-- Suppliers Search -->
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-                            <div class="border-b border-gray-200 p-6">
+                            <div class="border-b border-gray-200 p-4">
                                 <h2 class="text-lg font-semibold">Tìm kiếm hay thêm mới nhà cung cấp</h2>
                             </div>
-                            <div class="p-6">
+                            <div class="p-4">
                                 <!-- Show search input only when no supplier is selected -->
                                 <div v-if="!selectedSupplier" class="relative" ref="supplierDropdownRef">
                                     <div class="relative">
@@ -589,12 +567,24 @@ onUnmounted(() => {
                                         </button>
                                     </div>
                                     <div class="space-y-1 text-sm">
-                                        <h3 class="font-bold text-black-900">Thông tin nhà cung cấp</h3>
+                                        <h3 class="text-black-900 font-bold">Thông tin nhà cung cấp</h3>
                                         <p v-if="selectedSupplier.email" class="text-black-400">{{ selectedSupplier.email }}</p>
                                         <p v-if="selectedSupplier.phone" class="text-black-400">{{ selectedSupplier.phone }}</p>
                                         <p v-if="selectedSupplier.address" class="text-black-400">{{ selectedSupplier.address }}</p>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+                            <div class="border-b border-gray-200 p-4">
+                                <h2 class="text-lg font-semibold">Ghi chú</h2>
+                            </div>
+                            <div class="p-4">
+                                <textarea
+                                    placeholder="Thêm ghi chú..."
+                                    class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                ></textarea>
                             </div>
                         </div>
 
