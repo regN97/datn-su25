@@ -20,6 +20,7 @@ interface Product {
     min_stock_level: number;
     max_stock_level: number;
     is_active: boolean;
+    suppliers: Supplier[];
 }
 
 interface Supplier {
@@ -28,6 +29,14 @@ interface Supplier {
     email?: string;
     phone?: string;
     address?: string;
+    pivot: {
+        purchase_price: number;
+    };
+}
+
+interface User {
+    id: number;
+    name: string;
 }
 
 interface SelectedProduct extends Product {
@@ -37,9 +46,6 @@ interface SelectedProduct extends Product {
 
 interface ProductsResponse {
     data: Product[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
     total: number;
 }
 
@@ -47,17 +53,16 @@ interface ProductsResponse {
 interface Props {
     products?: ProductsResponse;
     suppliers?: Supplier[];
+    users?: User[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
     products: () => ({
         data: [],
-        current_page: 1,
-        last_page: 1,
-        per_page: 6,
         total: 0,
     }),
     suppliers: () => [], // Add default value for suppliers
+    users: () => [], // Add default value for users
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -85,9 +90,6 @@ const filteredProducts = computed(() => {
     );
 });
 
-const currentPage = computed(() => props.products.current_page);
-const totalPages = computed(() => props.products.last_page);
-
 const subtotal = computed(() => {
     return selectedProducts.value.reduce((sum, product) => sum + product.total, 0);
 });
@@ -112,15 +114,14 @@ function formatPrice(price: number): string {
 }
 
 // Function to fetch products via Inertia
-function fetchProducts(page: number = 1, search: string = '') {
+function fetchProducts(search: string = '') {
     isLoading.value = true;
 
     router.get(
         route('admin.purchase-orders.create'),
         {
-            page: page,
             search: search,
-            per_page: 6,
+            per_page: 100, // hoặc số lớn để lấy hết sản phẩm
         },
         {
             preserveState: true,
@@ -136,7 +137,7 @@ function fetchProducts(page: number = 1, search: string = '') {
 function openDropdown() {
     isDropdownOpen.value = true;
     if (props.products.data.length === 0) {
-        fetchProducts(1, searchQuery.value);
+        fetchProducts(searchQuery.value);
     }
 }
 
@@ -153,15 +154,15 @@ function selectProduct(product: Product) {
     } else {
         selectedProducts.value.push({
             ...product,
+            purchase_price: 0, // Đơn giá mặc định là 0
             quantity: 1,
-            total: product.purchase_price,
+            total: 0,
         });
     }
 
     searchQuery.value = '';
     closeDropdown();
 
-    // Xóa query parameter search khỏi URL
     router.get(
         route('admin.purchase-orders.create'),
         {},
@@ -185,16 +186,29 @@ function updateQuantity(productId: number, quantity: number) {
     }
 }
 
-function nextPage() {
-    if (currentPage.value < totalPages.value) {
-        fetchProducts(currentPage.value + 1, searchQuery.value);
-    }
+const isUserDropdownOpen = ref(false);
+const selectedUser = ref<User | null>(null);
+const userDropdownRef = ref<HTMLElement>();
+
+const filteredUsers = computed(() => {
+    return props.users.filter((user) => user.name.toLowerCase());
+})
+
+function openUserDropdown() {
+    isUserDropdownOpen.value = true;
 }
 
-function prevPage() {
-    if (currentPage.value > 1) {
-        fetchProducts(currentPage.value - 1, searchQuery.value);
-    }
+function closeUserDropdown() {
+    isUserDropdownOpen.value = false;
+}
+
+function selectUser(user: User) {
+    selectedUser.value = user;
+    closeSupplierDropdown();
+}
+
+function unselectUser() {
+    selectedSupplier.value = null;
 }
 
 // Add these reactive refs after existing refs
@@ -241,12 +255,39 @@ function handleClickOutside(event: MouseEvent) {
     if (supplierDropdownRef.value && !supplierDropdownRef.value.contains(event.target as Node)) {
         closeSupplierDropdown();
     }
+    if (userDropdownRef.value && !userDropdownRef.value.contains(event.target as Node)) {
+        closeUserDropdown();
+    }
+}
+
+const isPriceModalOpen = ref(false);
+const editingProductId = ref<number | null>(null);
+const editingPrice = ref(0);
+
+function openPriceModal(product: SelectedProduct) {
+    editingProductId.value = product.id;
+    editingPrice.value = product.purchase_price;
+    isPriceModalOpen.value = true;
+}
+
+function closePriceModal() {
+    isPriceModalOpen.value = false;
+    editingProductId.value = null;
+}
+
+function savePrice() {
+    const product = selectedProducts.value.find((p) => p.id === editingProductId.value);
+    if (product) {
+        product.purchase_price = editingPrice.value;
+        product.total = product.quantity * product.purchase_price;
+    }
+    closePriceModal();
 }
 
 // Watch for search query changes
 watch(searchQuery, (newQuery) => {
     if (isDropdownOpen.value) {
-        fetchProducts(1, newQuery);
+        fetchProducts(newQuery);
     }
 });
 
@@ -343,7 +384,13 @@ onUnmounted(() => {
                                                     />
                                                 </td>
                                                 <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                                    {{ formatPrice(product.purchase_price) }}
+                                                    <button
+                                                        class="text-blue-600 underline hover:text-blue-800"
+                                                        @click="openPriceModal(product)"
+                                                        type="button"
+                                                    >
+                                                        {{ formatPrice(product.purchase_price) }}
+                                                    </button>
                                                 </td>
                                                 <td class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">
                                                     {{ formatPrice(product.total) }}
@@ -421,37 +468,13 @@ onUnmounted(() => {
                                                                 </div>
                                                                 <div class="text-right">
                                                                     <p class="font-semibold text-blue-600">
-                                                                        {{ formatPrice(product.purchase_price) }}
+                                                                        {{ formatPrice(0) }}
                                                                     </p>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </button>
-
-                                                <!-- Pagination -->
-                                                <div
-                                                    v-if="totalPages > 1"
-                                                    class="flex items-center justify-between border-t border-gray-200 px-4 py-3"
-                                                >
-                                                    <div class="text-sm text-gray-500">Trang {{ currentPage }} / {{ totalPages }}</div>
-                                                    <div class="flex space-x-2">
-                                                        <button
-                                                            @click="prevPage"
-                                                            :disabled="currentPage === 1"
-                                                            class="rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                                        >
-                                                            Trước
-                                                        </button>
-                                                        <button
-                                                            @click="nextPage"
-                                                            :disabled="currentPage === totalPages"
-                                                            class="rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                                        >
-                                                            Sau
-                                                        </button>
-                                                    </div>
-                                                </div>
                                             </div>
 
                                             <!-- No results -->
@@ -470,7 +493,7 @@ onUnmounted(() => {
                             </div>
                             <div class="space-y-3 p-3">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-gray-700">Tạm tính</span>
+                                    <span class="text-gray-700">Tổng tiền</span>
                                     <span class="font-medium">{{ formattedSubtotal }}</span>
                                 </div>
 
@@ -487,7 +510,7 @@ onUnmounted(() => {
 
                                 <div class="border-t pt-4">
                                     <div class="flex items-center justify-between text-lg font-semibold">
-                                        <span>Tổng cộng</span>
+                                        <span>Tiền cần trả NCC</span>
                                         <span>{{ formattedSubtotal }}</span>
                                     </div>
                                 </div>
@@ -578,6 +601,84 @@ onUnmounted(() => {
 
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
+                                <h2 class="text-lg font-semibold">Thông tin bổ sung</h2>
+                            </div>
+                            <div class="p-4">
+                                <!-- Show search input only when no user is selected -->
+                                <div v-if="!selectedUser" class="relative" ref="userDropdownRef">
+                                    <div class="relative">
+                                        <span>Nhân viên phụ trách</span>
+                                        <Search class="absolute top-11 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Tìm kiếm"
+                                            @focus="openUserDropdown"
+                                            @keydown.escape="closeUserDropdown"
+                                            class="h-10 w-full rounded-md border border-gray-300 pr-4 pl-10 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <button
+                                            v-if="isSupplierDropdownOpen"
+                                            @click="closeSupplierDropdown"
+                                            class="absolute top-11 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+                                        >
+                                            <ChevronUp class="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            v-else
+                                            @click="openSupplierDropdown"
+                                            class="absolute top-11 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+                                        >
+                                            <ChevronDown class="h-4 w-4" />
+                                        </button>
+                                    </div>
+
+                                    <!-- Supplier Dropdown -->
+                                    <div
+                                        v-if="isSupplierDropdownOpen"
+                                        class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg"
+                                    >
+                                        <div class="max-h-80 overflow-y-auto">
+                                            <div v-if="filteredSuppliers.length > 0">
+                                                <button
+                                                    v-for="supplier in filteredSuppliers"
+                                                    :key="supplier.id"
+                                                    @click="selectSupplier(supplier)"
+                                                    class="w-full border-b border-gray-100 p-4 text-left last:border-b-0 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                                                >
+                                                    <div class="flex flex-col">
+                                                        <span class="font-medium text-gray-900">{{ supplier.name }}</span>
+                                                        <span v-if="supplier.email" class="text-sm text-gray-500">{{ supplier.email }}</span>
+                                                        <span v-if="supplier.phone" class="text-sm text-gray-500">{{ supplier.phone }}</span>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                            <div v-else class="p-4 text-center text-gray-500">
+                                                <p class="text-sm">Không tìm thấy nhà cung cấp nào</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Show supplier info when selected -->
+                                <div v-if="selectedSupplier" class="rounded-md border border-gray-200 bg-gray-50 p-4">
+                                    <div class="mb-2 flex items-center justify-between">
+                                        <h3 class="font-medium text-gray-900">{{ selectedSupplier.name }}</h3>
+                                        <button @click="unselectSupplier" class="text-gray-400 hover:text-gray-600">
+                                            <X class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <div class="space-y-1 text-sm">
+                                        <h3 class="text-black-900 font-bold">Thông tin nhà cung cấp</h3>
+                                        <p v-if="selectedSupplier.email" class="text-black-400">{{ selectedSupplier.email }}</p>
+                                        <p v-if="selectedSupplier.phone" class="text-black-400">{{ selectedSupplier.phone }}</p>
+                                        <p v-if="selectedSupplier.address" class="text-black-400">{{ selectedSupplier.address }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+                            <div class="border-b border-gray-200 p-4">
                                 <h2 class="text-lg font-semibold">Ghi chú</h2>
                             </div>
                             <div class="p-4">
@@ -590,6 +691,22 @@ onUnmounted(() => {
 
                         <!-- Save Draft Button -->
                         <button class="h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600">Lưu đơn hàng nháp</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="isPriceModalOpen" class="fixed inset-0 z-50">
+            <!-- Overlay -->
+            <div class="fixed inset-0 bg-gray-500/75 transition-opacity"></div>
+            <!-- Modal content -->
+            <div class="fixed inset-0 flex items-center justify-center p-4">
+                <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+                    <h3 class="mb-4 text-lg font-semibold">Chỉnh sửa đơn giá</h3>
+                    <input type="number" min="0" v-model.number="editingPrice" class="mb-4 w-full rounded border border-gray-300 px-3 py-2" />
+                    <div class="flex justify-end space-x-2">
+                        <button @click="closePriceModal" class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
+                        <button @click="savePrice" class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Lưu</button>
                     </div>
                 </div>
             </div>

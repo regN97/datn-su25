@@ -50,8 +50,9 @@ class PurchaseOrderController extends Controller
             });
         }
 
-        $products = $query->paginate($request->get('per_page', 6))
-            ->withQueryString();
+        $query->with('suppliers');
+
+        $products = ['data' => $query->get()];
 
         return Inertia::render('admin/purchase_orders/Create', [
             'products' => $products,
