@@ -18,7 +18,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Mì ăn liền Hảo Hảo hương vị tôm chua cay đặc trưng',
                 'category_id' => 14,
                 'unit_id' => 2, // Gói
-                'purchase_price' => 3500,
                 'selling_price' => 4000,
                 'min_stock_level' => 100,
                 'max_stock_level' => 1000,
@@ -32,7 +31,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Phở ăn liền hương vị gà, kèm gói gia vị và rau thơm',
                 'category_id' => 14,
                 'unit_id' => 3, // Hộp
-                'purchase_price' => 12000,
                 'selling_price' => 15000,
                 'min_stock_level' => 50,
                 'max_stock_level' => 500,
@@ -48,7 +46,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Nước giải khát có ga Coca Cola lon 330ml',
                 'category_id' => 11,
                 'unit_id' => 7, // Lon
-                'purchase_price' => 7000,
                 'selling_price' => 10000,
                 'min_stock_level' => 100,
                 'max_stock_level' => 1000,
@@ -62,7 +59,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Nước giải khát có ga Pepsi không đường hương chanh lon 330ml',
                 'category_id' => 11,
                 'unit_id' => 7, // Lon
-                'purchase_price' => 7000,
                 'selling_price' => 10000,
                 'min_stock_level' => 100,
                 'max_stock_level' => 1000,
@@ -78,7 +74,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Sữa bột dinh dưỡng Ensure Gold dành cho người lớn tuổi',
                 'category_id' => 17,
                 'unit_id' => 3, // Hộp
-                'purchase_price' => 620000,
                 'selling_price' => 675000,
                 'min_stock_level' => 10,
                 'max_stock_level' => 100,
@@ -94,7 +89,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Vitamin tổng hợp cho người trưởng thành',
                 'category_id' => 20,
                 'unit_id' => 3, // Hộp
-                'purchase_price' => 180000,
                 'selling_price' => 220000,
                 'min_stock_level' => 20,
                 'max_stock_level' => 200,
@@ -110,7 +104,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Gạo ST25 - Gạo ngon nhất thế giới năm 2019',
                 'category_id' => 16,
                 'unit_id' => 4, // Kg
-                'purchase_price' => 150000,
                 'selling_price' => 180000,
                 'min_stock_level' => 20,
                 'max_stock_level' => 200,
@@ -126,7 +119,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Cá thu sốt cà chua đóng hộp',
                 'category_id' => 15,
                 'unit_id' => 3, // Hộp
-                'purchase_price' => 25000,
                 'selling_price' => 32000,
                 'min_stock_level' => 50,
                 'max_stock_level' => 300,
@@ -142,7 +134,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Tã quần Bobby Fresh size L 54 miếng',
                 'category_id' => 18,
                 'unit_id' => 3, // Hộp
-                'purchase_price' => 240000,
                 'selling_price' => 280000,
                 'min_stock_level' => 20,
                 'max_stock_level' => 200,
@@ -158,7 +149,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Nước khoáng thiên nhiên LaVie',
                 'category_id' => 12,
                 'unit_id' => 1, // Chai
-                'purchase_price' => 4000,
                 'selling_price' => 5000,
                 'min_stock_level' => 200,
                 'max_stock_level' => 2000,
@@ -174,7 +164,6 @@ class ProductSeeder extends Seeder
                 'description' => 'Cà phê bột Trung Nguyên Sáng tạo 2 340g',
                 'category_id' => 13,
                 'unit_id' => 3, // Hộp
-                'purchase_price' => 55000,
                 'selling_price' => 65000,
                 'min_stock_level' => 30,
                 'max_stock_level' => 300,

@@ -16,7 +16,6 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('set null');
             $table->foreignId('unit_id')->constrained('product_units')->onDelete('restrict');
-            $table->unsignedInteger('purchase_price')->default(0);
             $table->unsignedInteger('selling_price');
             $table->string('image_url', 512)->nullable();
             $table->unsignedInteger('min_stock_level')->default(0);
