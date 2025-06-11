@@ -14,8 +14,8 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained('products')->onDelete('restrict');
             $table->string('product_name', 100);
             $table->string('product_sku', 100);
-            $table->unsignedInteger('quantity_ordered');
-            $table->unsignedInteger('quantity_received')->default(0);
+            $table->unsignedInteger('ordered_quantity');
+            $table->unsignedInteger('received_quantity')->default(0);
             $table->unsignedInteger('quantity_returned')->default(0); // Thêm số lượng trả lại
             $table->unsignedInteger('unit_cost'); // Đổi thành unsignedInteger để thống nhất với bảng purchases
             $table->unsignedInteger('subtotal');  // Đổi thành unsignedInteger để thống nhất với bảng purchases

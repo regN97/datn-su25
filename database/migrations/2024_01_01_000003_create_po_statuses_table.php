@@ -18,10 +18,9 @@ return new class extends Migration
         // Thêm các trạng thái đơn đặt hàng mặc định
         DB::table('po_statuses')->insert([
             ['name' => 'Nháp', 'code' => 'DRAFT'],
-            ['name' => 'Chờ duyệt', 'code' => 'PENDING'],
-            ['name' => 'Đã duyệt', 'code' => 'APPROVED'],
-            ['name' => 'Đã gửi', 'code' => 'SENT'],
-            ['name' => 'Đã nhận hàng', 'code' => 'RECEIVED'],
+            ['name' => 'Chờ nhập', 'code' => 'PENDING'],
+            ['name' => 'Nhập một phần', 'code' => 'PARTIAL RECEIVED'],
+            ['name' => 'Nhập toàn bộ', 'code' => 'FULLY RECEIVED'],
             ['name' => 'Đã hủy', 'code' => 'CANCELLED'],
         ]);
     }
