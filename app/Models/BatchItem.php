@@ -2,14 +2,19 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\User;
+use App\Models\Batch;
+use App\Models\Product;
+use App\Models\PurchaseOrderItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class BatchItem extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'batch_items';
     protected $fillable = [
         'batch_id',
         'product_id',
@@ -69,5 +74,16 @@ class BatchItem extends Model
             $this->inventory_status = 'active';
         }
         $this->save();
+    }
+    // Mối quan hệ với người dùng tạo batch item
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // Mối quan hệ với người dùng cập nhật batch item
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }

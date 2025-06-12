@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\User;
+use App\Models\Product;
+use App\Models\BatchItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Batch extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'batches';
     protected $fillable = [
         'batch_number',
         'purchase_order_id',
@@ -65,5 +69,22 @@ class Batch extends Model
         $poFullyReceived = $this->purchaseOrder->isFullyReceived();
         $this->receipt_status = $poFullyReceived ? 'completed' : 'partially_received';
         $this->save();
+    }
+
+    // Nếu muốn truy cập đến các Product thông qua BatchItem
+    public function products()
+    {
+        return $this->hasManyThrough(Product::class, BatchItem::class, 'batch_id', 'id', 'id', 'product_id');
+    }
+     // Mối quan hệ với người dùng tạo
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // Mối quan hệ với người dùng cập nhật
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }
