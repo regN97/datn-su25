@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronDown, ChevronLeft, ChevronUp, Minus, Search, X } from 'lucide-vue-next';
+import { ChevronDown, ChevronLeft, ChevronUp, Search, X } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 // Types
@@ -186,13 +186,15 @@ function updateQuantity(productId: number, quantity: number) {
     }
 }
 
+const userSearchQuery = ref('');
 const isUserDropdownOpen = ref(false);
 const selectedUser = ref<User | null>(null);
 const userDropdownRef = ref<HTMLElement>();
 
 const filteredUsers = computed(() => {
-    return props.users.filter((user) => user.name.toLowerCase());
-})
+    if (!userSearchQuery.value) return props.users;
+    return props.users.filter((user) => user.name.toLowerCase().includes(userSearchQuery.value.toLowerCase()));
+});
 
 function openUserDropdown() {
     isUserDropdownOpen.value = true;
@@ -204,11 +206,8 @@ function closeUserDropdown() {
 
 function selectUser(user: User) {
     selectedUser.value = user;
-    closeSupplierDropdown();
-}
-
-function unselectUser() {
-    selectedSupplier.value = null;
+    userSearchQuery.value = user.name; // Gán tên user vào input
+    closeUserDropdown();
 }
 
 // Add these reactive refs after existing refs
@@ -260,6 +259,9 @@ function handleClickOutside(event: MouseEvent) {
     }
 }
 
+const expectedImportDate = ref('');
+const orderCode = ref('');
+
 const isPriceModalOpen = ref(false);
 const editingProductId = ref<number | null>(null);
 const editingPrice = ref(0);
@@ -284,12 +286,104 @@ function savePrice() {
     closePriceModal();
 }
 
+// Chiết khấu đơn
+const isDiscountModalOpen = ref(false);
+const discount = ref<{ type: 'amount' | 'percent'; value: number }>({ type: 'amount', value: 0 });
+
+// Thêm biến tạm cho modal
+const modalDiscountType = ref<'amount' | 'percent'>('amount');
+const modalDiscountInput = ref('');
+const discountError = ref('');
+
+const formattedDiscount = computed(() => {
+    if (discount.value.value === 0) return '0₫';
+    if (discount.value.type === 'amount') {
+        return `-${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(discount.value.value)}`;
+    }
+    // percent
+    return `-${discount.value.value}%`;
+});
+
+const discountAmount = computed(() => {
+    if (discount.value.type === 'amount') {
+        return Math.min(discount.value.value, subtotal.value);
+    }
+    // percent
+    return Math.round((subtotal.value * discount.value.value) / 100);
+});
+
+const totalAfterDiscount = computed(() => {
+    return Math.max(subtotal.value - discountAmount.value, 0);
+});
+
+function openDiscountModal() {
+    isDiscountModalOpen.value = true;
+    modalDiscountType.value = discount.value.type;
+    modalDiscountInput.value = discount.value.value ? discount.value.value.toString() : '';
+    discountError.value = '';
+}
+
+function closeDiscountModal() {
+    isDiscountModalOpen.value = false;
+    discountError.value = '';
+}
+
+function setDiscountType(type: 'amount' | 'percent') {
+    modalDiscountType.value = type;
+    modalDiscountInput.value = '';
+    discountError.value = '';
+}
+
+function saveDiscount() {
+    const val = Number(modalDiscountInput.value);
+    if (modalDiscountType.value === 'amount') {
+        if (isNaN(val) || val < 0) {
+            discountError.value = 'Vui lòng nhập số tiền hợp lệ';
+            return;
+        }
+        if (val > subtotal.value) {
+            discountError.value = 'Không được lớn hơn tổng tiền';
+            return;
+        }
+    } else {
+        if (isNaN(val) || val < 0 || val > 100) {
+            discountError.value = 'Phần trăm phải từ 0 đến 100';
+            return;
+        }
+    }
+    // Chỉ khi bấm Lưu mới cập nhật ra ngoài
+    discount.value.type = modalDiscountType.value;
+    discount.value.value = val;
+    closeDiscountModal();
+}
+
 // Watch for search query changes
 watch(searchQuery, (newQuery) => {
     if (isDropdownOpen.value) {
         fetchProducts(newQuery);
     }
 });
+
+const note = ref('');
+
+function submitOrder() {
+    router.post(route('admin.purchase-orders.store'), {
+        products: selectedProducts.value.map((p) => ({
+            id: p.id,
+            quantity: p.quantity,
+            purchase_price: p.purchase_price,
+        })),
+        discount: {
+            type: discount.value.type,
+            value: discount.value.value,
+        },
+        supplier_id: selectedSupplier.value ? selectedSupplier.value.id : null,
+        user_id: selectedUser.value ? selectedUser.value.id : null,
+        expected_import_date: expectedImportDate.value,
+        order_code: orderCode.value,
+        note: note.value,
+    });
+}
 
 // Lifecycle hooks
 onMounted(() => {
@@ -498,20 +592,24 @@ onUnmounted(() => {
                                 </div>
 
                                 <div class="space-y-2">
-                                    <button class="flex items-center text-sm text-blue-600 hover:text-blue-700">
-                                        <Minus class="mr-1 h-4 w-4" />
-                                        Thêm khuyến mãi
-                                    </button>
-                                    <button class="flex items-center text-sm text-blue-600 hover:text-blue-700">
-                                        <Minus class="mr-1 h-4 w-4" />
-                                        Thêm phương thức vận chuyển
-                                    </button>
+                                    <div class="flex items-center justify-between">
+                                        <button
+                                            class="flex items-center text-sm text-blue-600 hover:text-blue-700"
+                                            @click="openDiscountModal"
+                                            type="button"
+                                        >
+                                            Chiết khấu đơn
+                                        </button>
+                                        <span class="min-w-[80px] text-right font-medium text-red-600">{{ formattedDiscount }}</span>
+                                    </div>
                                 </div>
 
                                 <div class="border-t pt-4">
                                     <div class="flex items-center justify-between text-lg font-semibold">
                                         <span>Tiền cần trả NCC</span>
-                                        <span>{{ formattedSubtotal }}</span>
+                                        <span>{{
+                                            new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAfterDiscount)
+                                        }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -599,98 +697,103 @@ onUnmounted(() => {
                             </div>
                         </div>
 
+                        <!-- Users Search -->
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
                                 <h2 class="text-lg font-semibold">Thông tin bổ sung</h2>
                             </div>
-                            <div class="p-4">
-                                <!-- Show search input only when no user is selected -->
-                                <div v-if="!selectedUser" class="relative" ref="userDropdownRef">
+                            <div class="space-y-4 p-4">
+                                <!-- Nhân viên phụ trách -->
+                                <div class="relative" ref="userDropdownRef">
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Nhân viên phụ trách</label>
                                     <div class="relative">
-                                        <span>Nhân viên phụ trách</span>
-                                        <Search class="absolute top-11 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+                                        <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
                                         <input
                                             type="text"
                                             placeholder="Tìm kiếm"
+                                            v-model="userSearchQuery"
                                             @focus="openUserDropdown"
                                             @keydown.escape="closeUserDropdown"
                                             class="h-10 w-full rounded-md border border-gray-300 pr-4 pl-10 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                         />
                                         <button
-                                            v-if="isSupplierDropdownOpen"
-                                            @click="closeSupplierDropdown"
-                                            class="absolute top-11 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+                                            v-if="isUserDropdownOpen"
+                                            @click="closeUserDropdown"
+                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
                                         >
                                             <ChevronUp class="h-4 w-4" />
                                         </button>
                                         <button
                                             v-else
-                                            @click="openSupplierDropdown"
-                                            class="absolute top-11 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+                                            @click="openUserDropdown"
+                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
                                         >
                                             <ChevronDown class="h-4 w-4" />
                                         </button>
                                     </div>
-
-                                    <!-- Supplier Dropdown -->
+                                    <!-- User Dropdown -->
                                     <div
-                                        v-if="isSupplierDropdownOpen"
+                                        v-if="isUserDropdownOpen"
                                         class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg"
                                     >
                                         <div class="max-h-80 overflow-y-auto">
-                                            <div v-if="filteredSuppliers.length > 0">
+                                            <div v-if="filteredUsers.length > 0">
                                                 <button
-                                                    v-for="supplier in filteredSuppliers"
-                                                    :key="supplier.id"
-                                                    @click="selectSupplier(supplier)"
+                                                    v-for="user in filteredUsers"
+                                                    :key="user.id"
+                                                    @click="selectUser(user)"
                                                     class="w-full border-b border-gray-100 p-4 text-left last:border-b-0 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
                                                 >
                                                     <div class="flex flex-col">
-                                                        <span class="font-medium text-gray-900">{{ supplier.name }}</span>
-                                                        <span v-if="supplier.email" class="text-sm text-gray-500">{{ supplier.email }}</span>
-                                                        <span v-if="supplier.phone" class="text-sm text-gray-500">{{ supplier.phone }}</span>
+                                                        <span class="font-medium text-gray-900">{{ user.name }}</span>
                                                     </div>
                                                 </button>
                                             </div>
                                             <div v-else class="p-4 text-center text-gray-500">
-                                                <p class="text-sm">Không tìm thấy nhà cung cấp nào</p>
+                                                <p class="text-sm">Không tìm thấy tài khoản nào</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Show supplier info when selected -->
-                                <div v-if="selectedSupplier" class="rounded-md border border-gray-200 bg-gray-50 p-4">
-                                    <div class="mb-2 flex items-center justify-between">
-                                        <h3 class="font-medium text-gray-900">{{ selectedSupplier.name }}</h3>
-                                        <button @click="unselectSupplier" class="text-gray-400 hover:text-gray-600">
-                                            <X class="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                    <div class="space-y-1 text-sm">
-                                        <h3 class="text-black-900 font-bold">Thông tin nhà cung cấp</h3>
-                                        <p v-if="selectedSupplier.email" class="text-black-400">{{ selectedSupplier.email }}</p>
-                                        <p v-if="selectedSupplier.phone" class="text-black-400">{{ selectedSupplier.phone }}</p>
-                                        <p v-if="selectedSupplier.address" class="text-black-400">{{ selectedSupplier.address }}</p>
-                                    </div>
+                                <!-- Ngày nhập dự kiến -->
+                                <div>
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập dự kiến</label>
+                                    <input
+                                        type="datetime-local"
+                                        v-model="expectedImportDate"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <!-- Mã đơn đặt hàng nhập -->
+                                <div>
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng nhập</label>
+                                    <input
+                                        type="text"
+                                        v-model="orderCode"
+                                        placeholder="Nhập mã đơn hàng"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                             </div>
                         </div>
 
+                        <!-- Ghi chú -->
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
                                 <h2 class="text-lg font-semibold">Ghi chú</h2>
                             </div>
                             <div class="p-4">
                                 <textarea
+                                    v-model="note"
                                     placeholder="Thêm ghi chú..."
                                     class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 ></textarea>
                             </div>
                         </div>
 
-                        <!-- Save Draft Button -->
-                        <button class="h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600">Lưu đơn hàng nháp</button>
+                        <button class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600" @click="submitOrder">
+                            Lưu đơn hàng
+                        </button>
                     </div>
                 </div>
             </div>
@@ -707,6 +810,68 @@ onUnmounted(() => {
                     <div class="flex justify-end space-x-2">
                         <button @click="closePriceModal" class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
                         <button @click="savePrice" class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Lưu</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Discount Modal -->
+        <div v-if="isDiscountModalOpen" class="fixed inset-0 z-50">
+            <div class="fixed inset-0 bg-gray-500/75 transition-opacity"></div>
+            <div class="fixed inset-0 flex items-center justify-center p-4">
+                <div class="w-full max-w-md rounded-lg bg-white p-4 shadow-xl">
+                    <!-- Header -->
+                    <h3 class="mb-6 border-b text-lg font-semibold">Thêm chiết khấu</h3>
+                    <!-- Content -->
+                    <div class="mb-6 flex items-center gap-2 border-b pb-6">
+                        <label class="font-medium whitespace-nowrap text-gray-700">Loại chiết khấu:</label>
+                        <div class="flex items-center">
+                            <button
+                                :class="[
+                                    'h-10 rounded-l border border-gray-300 px-4 whitespace-nowrap',
+                                    modalDiscountType === 'amount' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700',
+                                ]"
+                                @click="setDiscountType('amount')"
+                                type="button"
+                            >
+                                Giá trị
+                            </button>
+                            <button
+                                :class="[
+                                    'h-10 rounded-r border-t border-r border-b border-gray-300 px-4',
+                                    modalDiscountType === 'percent' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700',
+                                ]"
+                                @click="setDiscountType('percent')"
+                                type="button"
+                            >
+                                %
+                            </button>
+                        </div>
+                        <div class="flex items-center">
+                            <input
+                                v-model="modalDiscountInput"
+                                placeholder="0"
+                                type="text"
+                                min="0"
+                                :max="modalDiscountType === 'percent' ? 100 : subtotal"
+                                class="h-10 w-32 rounded-l border border-r-0 border-gray-300 px-2 focus:outline-none"
+                            />
+                            <button class="h-10 w-[36px] rounded-r border border-l-0 border-gray-300 px-2" type="button">
+                                <span v-if="modalDiscountType === 'amount'" class="text-gray-500">₫</span>
+                                <span v-else class="text-gray-500">%</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div v-if="discountError" class="mb-2 text-sm text-red-600">{{ discountError }}</div>
+                    <!-- Footer -->
+                    <div class="flex justify-end space-x-2">
+                        <button
+                            @click="closeDiscountModal"
+                            class="bg-white-200 rounded border-1 border-red-500 px-4 py-1 font-semibold text-red-500 hover:bg-red-100"
+                        >
+                            Xóa
+                        </button>
+                        <button @click="saveDiscount" class="rounded bg-blue-500 px-4 py-1 font-semibold text-white hover:bg-blue-400">Lưu</button>
                     </div>
                 </div>
             </div>

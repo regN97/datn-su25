@@ -9,6 +9,7 @@ use App\Models\Supplier;
 use Inertia\Inertia;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseReceipt;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class PurchaseOrderController extends Controller
@@ -54,10 +55,17 @@ class PurchaseOrderController extends Controller
 
         $products = ['data' => $query->get()];
 
+        $user = User::all();
+
         return Inertia::render('admin/purchase_orders/Create', [
             'products' => $products,
             'suppliers' => $suppliers,
+            'users' => $user
         ]);
+    }
+
+    public function store(Request $request) {
+        dd($request->all());
     }
 
     public function show() {}
