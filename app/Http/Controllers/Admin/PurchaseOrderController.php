@@ -17,10 +17,18 @@ class PurchaseOrderController extends Controller
     public function index()
     {
         $purchaseOrders = PurchaseOrder::with([
-            'supplier', // Tải thông tin nhà cung cấp
-            'status',   // Tải thông tin trạng thái PO (PO Status)
-            'creator',  // Tải thông tin người tạo
-            'approver'  // Tải thông tin người duyệt (nếu có)
+            'supplier:id,name', // Tải thông tin nhà cung cấp, chỉ lấy id và name
+            'status:id,name,code', // Tải thông tin trạng thái PO (PO Status), chỉ lấy id, name và code
+            'creator:id,name',    // Tải thông tin người tạo, chỉ lấy id và name
+            'approver:id,name',   // Tải thông tin người duyệt (nếu có), chỉ lấy id và name
+            'items' => function ($query) {
+                // Tải các mặt hàng của đơn hàng
+                $query->with('product', function ($productQuery) {
+                    // Tải thông tin sản phẩm cho mỗi mặt hàng, bao gồm cả đơn vị (unit)
+                    $productQuery->select('id', 'name', 'sku', 'unit_id') // Chọn các trường cần thiết từ bảng products
+                                 ->with('unit:id,name'); // Tải thông tin đơn vị và chỉ lấy id, name
+                });
+            }
         ])->get(); // Lấy tất cả các đơn hàng sau khi đã tải các mối quan hệ
 
         return Inertia::render('admin/purchase_orders/Index')->with([
