@@ -28,11 +28,13 @@ class ProductController extends Controller
         $categories = Category::all();
         $units = ProductUnit::all();
         $suppliers = ProductSupplier::all();
+        $all_suppliers = Supplier::all(); 
         return Inertia::render('admin/products/Index')->with([
             'products' => $products,
             'categories' => $categories,
             'units' => $units,
             'suppliers' => $suppliers,
+            'allSuppliers' => $all_suppliers, 
         ]);
     }
 
@@ -68,8 +70,8 @@ class ProductController extends Controller
             'description' => 'nullable|string|max:5000',
             'category_id' => 'required|integer|min:1|exists:categories,id',
             'unit_id' => 'required|integer|min:1|exists:product_units,id',
-            'purchase_price' => 'required|numeric|min:0',
-            'selling_price' => 'required|numeric|min:0|gt:purchase_price',
+            
+            'selling_price' => 'required|numeric|min:0',
             'is_active' => 'required|boolean',
             'min_stock_level' => 'nullable|integer|min:0',
             'max_stock_level' => 'nullable|integer|min:0|gte:min_stock_level',
@@ -106,7 +108,6 @@ class ProductController extends Controller
             'description' => 'mô tả',
             'category_id' => 'danh mục',
             'unit_id' => 'đơn vị tính',
-            'purchase_price' => 'giá nhập',
             'selling_price' => 'giá bán',
             'min_stock_level' => 'tồn kho tối thiểu',
             'max_stock_level' => 'tồn kho tối đa',

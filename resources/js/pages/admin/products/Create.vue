@@ -6,6 +6,7 @@ import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import MultiSelectSearch from '@/components/MultiSelectSearch.vue';
 import InputError from '@/components/InputError.vue';
+import ProductUnitSelect from '@/components/ProductUnitSelect.vue';
 
 interface Supplier {
     id: number;
@@ -32,7 +33,6 @@ interface ProductForm {
     image_input_type: 'url' | 'file';
     sku: string;
     selected_supplier_ids: number[];
-    purchase_price: number;
     is_active: boolean;
     selling_price: number;
     barcode: string;
@@ -64,7 +64,6 @@ const form = useForm<ProductForm>({
     image_input_type: 'url',
     sku: '',
     selected_supplier_ids: [],
-    purchase_price: 0,
     is_active: true,
     selling_price: 0,
     barcode: '',
@@ -80,9 +79,7 @@ watch(imageInputType, (newType) => {
     if (newType === 'url') {
         form.image_file = null;
         const fileInput = document.getElementById('image_file_input') as HTMLInputElement;
-        if (fileInput) {
-            fileInput.value = '';
-        }
+        if (fileInput) fileInput.value = '';
     } else {
         form.image_url = null;
     }
@@ -98,6 +95,8 @@ const props = defineProps<{
     product_units: ProductUnit[];
 }>();
 
+const productUnits = ref<ProductUnit[]>(props.product_units);
+
 const handleImageFileChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
     if (target.files && target.files.length > 0) {
@@ -111,30 +110,26 @@ const handleImageFileChange = (event: Event) => {
 const clearImageFile = () => {
     form.image_file = null;
     const fileInput = document.getElementById('image_file_input') as HTMLInputElement;
-    if (fileInput) {
-        fileInput.value = '';
-    }
+    if (fileInput) fileInput.value = '';
 };
 
 const goBack = () => {
-    router.get(route('admin.products.index'));
+    router.get('/admin/products');
 };
 
 const submitForm = () => {
-    form.post(route('admin.products.store'), {
+    form.post('/admin/products', {
         onSuccess: () => {
             form.reset();
             imageInputType.value = 'url';
             clearImageFile();
             console.log('Sản phẩm đã được tạo thành công và form đã được reset.');
-            router.visit(route('admin.products.index'));
+            router.visit('/admin/products');
         },
         onError: (errors) => {
             console.error('Lỗi validation từ server:', errors);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         },
-        onFinish: () => {
-        }
     });
 };
 </script>
@@ -150,8 +145,6 @@ const submitForm = () => {
                 <div class="container mx-auto p-6">
                     <h2 class="text-2xl font-semibold mb-6 text-gray-800 dark:text-gray-200">Thêm sản phẩm</h2>
 
-
-
                     <form class="space-y-6" @submit.prevent="submitForm" enctype="multipart/form-data">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                             <div>
@@ -162,7 +155,6 @@ const submitForm = () => {
                                     class="w-full border border-gray-300 rounded-md h-14 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                     :class="{ 'border-red-500': form.errors.name }"
                                     placeholder="Nhập tên sản phẩm vào đây" />
-
                                 <InputError :message="form.errors.name" />
                             </div>
 
@@ -191,7 +183,6 @@ const submitForm = () => {
                                         placeholder="Nhập link ảnh https://" />
                                     <InputError :message="form.errors.image_url" />
                                 </div>
-
                                 <div v-else-if="imageInputType === 'file'">
                                     <input type="file" id="image_file_input" name="image_file"
                                         @change="handleImageFileChange"
@@ -211,19 +202,17 @@ const submitForm = () => {
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
                                 <div>
-                                    <label for="sku" class="block text-sm font-semibold text-gray-700 mb-1">Mã SKU
-                                        <span class="text-red-500">*</span></label>
+                                    <label for="sku" class="block text-sm font-semibold text-gray-700 mb-1">Mã SKU <span
+                                            class="text-red-500">*</span></label>
                                     <input type="text" id="sku" name="sku" v-model="form.sku"
                                         class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                         :class="{ 'border-red-500': form.errors.sku }" placeholder="G7-MLH-011" />
-                                    <span class="text-gray-500 text-xs mt-1 block">
-                                        Ví dụ: G7-MTHH-001
-                                    </span>
+                                    <span class="text-gray-500 text-xs mt-1 block">Ví dụ: G7-MTHH-001</span>
                                     <InputError :message="form.errors.sku" />
                                 </div>
                                 <div>
-                                    <label for="barcode" class="block text-sm font-semibold text-gray-700 mb-1">Mã
-                                        vạch <span class="text-red-500">*</span></label>
+                                    <label for="barcode" class="block text-sm font-semibold text-gray-700 mb-1">Mã vạch
+                                        <span class="text-red-500">*</span></label>
                                     <input type="text" id="barcode" name="barcode" v-model="form.barcode"
                                         class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                         :class="{ 'border-red-500': form.errors.barcode }"
@@ -233,8 +222,8 @@ const submitForm = () => {
                             </div>
 
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Nhà cung cấp
-                                    <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Nhà cung cấp <span
+                                        class="text-red-500">*</span></label>
                                 <MultiSelectSearch v-model="form.selected_supplier_ids"
                                     :options="props.suppliers.map(s => ({ label: s.name, value: s.id }))"
                                     placeholder="Tìm kiếm nhà cung cấp"
@@ -244,8 +233,7 @@ const submitForm = () => {
                                 <InputError :message="form.errors.selected_supplier_ids" />
                             </div>
 
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                            <div class="grid grid-cols-1 sm:grid-cols-1 gap-x-8 gap-y-5">
                                 <div>
                                     <label for="selling_price"
                                         class="block text-sm font-semibold text-gray-700 mb-1">Giá bán <span
@@ -256,22 +244,11 @@ const submitForm = () => {
                                         :class="{ 'border-red-500': form.errors.selling_price }" placeholder="8000" />
                                     <InputError :message="form.errors.selling_price" />
                                 </div>
-                                <div>
-                                    <label for="purchase_price"
-                                        class="block text-sm font-semibold text-gray-700 mb-1">Giá
-                                        nhập <span class="text-red-500">*</span></label>
-                                    <input type="number" id="purchase_price" name="purchase_price"
-                                        v-model.number="form.purchase_price" min="0"
-                                        class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                        :class="{ 'border-red-500': form.errors.purchase_price }" placeholder="5000" />
-                                    <InputError :message="form.errors.purchase_price" />
-                                </div>
                             </div>
 
-
                             <div>
-                                <label for="is_active" class="block text-sm font-semibold text-gray-700 mb-1">Trạng
-                                    thái <span class="text-red-500">*</span></label>
+                                <label for="is_active" class="block text-sm font-semibold text-gray-700 mb-1">Trạng thái
+                                    <span class="text-red-500">*</span></label>
                                 <select id="is_active" name="is_active" v-model="form.is_active"
                                     class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                     :class="{ 'border-red-500': form.errors.is_active }">
@@ -282,20 +259,18 @@ const submitForm = () => {
                             </div>
 
                             <div>
-                                <label for="category_id" class="block text-sm font-semibold text-gray-700 mb-1">Danh
-                                    mục <span class="text-red-500">*</span></label>
+                                <label for="category_id" class="block text-sm font-semibold text-gray-700 mb-1">Danh mục
+                                    <span class="text-red-500">*</span></label>
                                 <select id="category_id" name="category_id" v-model="form.category_id"
                                     class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                     :class="{ 'border-red-500': form.errors.category_id }">
                                     <option :value="null">Chọn danh mục</option>
                                     <template v-for="category in props.categories" :key="category.id">
-                                        <option :value="category.id">
-                                            {{ category.name }}
-                                        </option>
+                                        <option :value="category.id">{{ category.name }}</option>
                                         <template v-if="category.children && category.children.length">
                                             <option v-for="child in category.children" :key="child.id" :value="child.id"
                                                 class="text-sm">
-                                                &nbsp;&nbsp;&nbsp;— {{ child.name }}
+                                                   — {{ child.name }}
                                             </option>
                                         </template>
                                     </template>
@@ -303,26 +278,14 @@ const submitForm = () => {
                                 <InputError :message="form.errors.category_id" />
                             </div>
 
-                            <div>
-                                <label for="unit_id" class="block text-sm font-semibold text-gray-700 mb-1">Đơn
-                                    vị tính <span class="text-red-500">*</span></label>
-                                <select id="unit_id" name="unit_id" v-model="form.unit_id"
-                                    class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                    :class="{ 'border-red-500': form.errors.unit_id }">
-                                    <option :value="null">Chọn đơn vị tính</option>
-                                    <option v-for="unit in props.product_units" :key="unit.id" :value="unit.id">
-                                        {{ unit.name }}
-                                    </option>
-                                </select>
-                                <InputError :message="form.errors.unit_id" />
-                            </div>
+                            <ProductUnitSelect v-model="form.unit_id" :units="productUnits" :error="form.errors.unit_id"
+                                @update:units="productUnits = $event" />
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
                                 <div>
                                     <label for="min_stock_level"
-                                        class="block text-sm font-semibold text-gray-700 mb-1">Tồn
-                                        kho tối thiểu
-                                        <span class="text-red-500">*</span></label>
+                                        class="block text-sm font-semibold text-gray-700 mb-1">Tồn kho tối thiểu <span
+                                            class="text-red-500">*</span></label>
                                     <input type="number" id="min_stock_level" name="min_stock_level"
                                         v-model.number="form.min_stock_level" min="0"
                                         class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -332,8 +295,8 @@ const submitForm = () => {
 
                                 <div>
                                     <label for="max_stock_level"
-                                        class="block text-sm font-semibold text-gray-700 mb-1">Tồn
-                                        kho tối đa <span class="text-red-500">*</span></label>
+                                        class="block text-sm font-semibold text-gray-700 mb-1">Tồn kho tối đa <span
+                                            class="text-red-500">*</span></label>
                                     <input type="number" id="max_stock_level" name="max_stock_level"
                                         v-model.number="form.max_stock_level" min="0"
                                         class="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -341,10 +304,10 @@ const submitForm = () => {
                                     <InputError :message="form.errors.max_stock_level" />
                                 </div>
                             </div>
+
                             <div>
                                 <label for="description"
-                                    class="block mb-2 font-medium text-gray-700 dark:text-gray-300">Mô
-                                    tả</label>
+                                    class="block mb-2 font-medium text-gray-700 dark:text-gray-300">Mô tả</label>
                                 <textarea id="description" name="description" v-model="form.description"
                                     class="w-full rounded-md border-gray-300 shadow-sm p-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                                     :class="{ 'border-red-500': form.errors.description }" rows="3"
@@ -355,9 +318,6 @@ const submitForm = () => {
                                 <InputError :message="form.errors.description" />
                             </div>
                         </div>
-
-
-
 
                         <div class="flex justify-end space-x-4 mt-8">
                             <button type="button" @click="goBack"
