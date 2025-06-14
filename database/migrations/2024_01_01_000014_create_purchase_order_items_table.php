@@ -19,8 +19,8 @@ return new class extends Migration
             $table->unsignedInteger('quantity_returned')->default(0); // Thêm số lượng trả lại
             $table->unsignedInteger('unit_cost'); // Đổi thành unsignedInteger để thống nhất với bảng purchases
             $table->unsignedInteger('subtotal');  // Đổi thành unsignedInteger để thống nhất với bảng purchases
-            $table->unsignedInteger('tax_amount')->default(0); // Thêm thuế cho từng sản phẩm
-            $table->unsignedInteger('discount_amount')->default(0); // Thêm chiết khấu cho từng sản phẩm
+            $table->unsignedInteger('discount_amount')->default(0)->nullable();
+            $table->enum('discount_type', ['percent', 'amount'])->nullable();
             $table->text('notes')->nullable(); // Thêm ghi chú cho từng mục
             $table->timestamps();
             $table->softDeletes();

@@ -17,10 +17,8 @@ return new class extends Migration
             $table->date('expected_delivery_date')->nullable();
             $table->date('actual_delivery_date')->nullable();
 
-            $table->unsignedInteger('subtotal_amount')->default(0)->comment('Sum of all items before tax/discount');
-            $table->unsignedInteger('tax_amount')->default(0);
-            $table->unsignedInteger('discount_amount')->default(0);
-            $table->unsignedInteger('shipping_cost')->default(0);
+            $table->unsignedInteger('discount_amount')->default(0)->nullable();
+            $table->enum('discount_type', ['percent', 'amount'])->nullable();
             $table->unsignedInteger('total_amount')->default(0)->comment('Final amount after tax/discount');
 
             $table->foreignId('created_by')->constrained('users', 'id')->onDelete('restrict');
@@ -32,7 +30,6 @@ return new class extends Migration
 
             // Indexes
             $table->index('po_number');
-            $table->index('supplier_id', 'idx_po_supplier');
             $table->index('status_id', 'idx_po_status');
             $table->index('order_date');
             $table->index('created_by');
