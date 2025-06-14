@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { ChevronDown, ChevronLeft, ChevronUp, Search, X } from 'lucide-vue-next';
+import Swal from 'sweetalert2';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 // Types
@@ -365,18 +366,37 @@ watch(searchQuery, (newQuery) => {
 });
 
 const note = ref('');
+const supplierError = ref('');
 
 function submitOrder() {
+    if (!selectedSupplier.value) {
+        supplierError.value = 'Nhà cung cấp không được để trống';
+        if (supplierError.value.length > 0) {
+            return Swal.fire({
+                icon: 'error',
+                title: 'Có lỗi xảy ra, vui lòng kiểm tra lại',
+                showConfirmButton: false,
+                timer: 2000,
+            });
+        }
+    } else {
+        supplierError.value = '';
+    }
+
     router.post(route('admin.purchase-orders.store'), {
         products: selectedProducts.value.map((p) => ({
             id: p.id,
+            name: p.name,
+            sku: p.sku,
             quantity: p.quantity,
             purchase_price: p.purchase_price,
+            sub_total: p.total,
         })),
         discount: {
             type: discount.value.type,
             value: discount.value.value,
         },
+        total_amount: totalAfterDiscount.value,
         supplier_id: selectedSupplier.value ? selectedSupplier.value.id : null,
         user_id: selectedUser.value ? selectedUser.value.id : null,
         expected_import_date: expectedImportDate.value,
@@ -622,6 +642,9 @@ onUnmounted(() => {
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
                                 <h2 class="text-lg font-semibold">Tìm kiếm hay thêm mới nhà cung cấp</h2>
+                                <div v-if="supplierError.length > 0" class="text-sm text-red-500">
+                                    {{ supplierError }}
+                                </div>
                             </div>
                             <div class="p-4">
                                 <!-- Show search input only when no supplier is selected -->
@@ -791,7 +814,19 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <button class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600" @click="submitOrder">
+                        <button
+                            class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600"
+                            @click="submitOrder"
+                            v-if="selectedProducts.length > 0"
+                        >
+                            Lưu đơn hàng
+                        </button>
+                        <button
+                            class="mt-4 h-12 w-full rounded-md bg-gray-500 font-medium text-white hover:bg-gray-600"
+                            @click="submitOrder"
+                            v-else
+                            disabled
+                        >
                             Lưu đơn hàng
                         </button>
                     </div>

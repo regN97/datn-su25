@@ -10,7 +10,11 @@ use Inertia\Inertia;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseReceipt;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+use function PHPUnit\Framework\isEmpty;
 
 class PurchaseOrderController extends Controller
 {
@@ -26,7 +30,7 @@ class PurchaseOrderController extends Controller
                 $query->with('product', function ($productQuery) {
                     // Tải thông tin sản phẩm cho mỗi mặt hàng, bao gồm cả đơn vị (unit)
                     $productQuery->select('id', 'name', 'sku', 'unit_id') // Chọn các trường cần thiết từ bảng products
-                                 ->with('unit:id,name'); // Tải thông tin đơn vị và chỉ lấy id, name
+                        ->with('unit:id,name'); // Tải thông tin đơn vị và chỉ lấy id, name
                 });
             }
         ])->get(); // Lấy tất cả các đơn hàng sau khi đã tải các mối quan hệ
@@ -72,8 +76,80 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    public function store(Request $request) {
-        dd($request->all());
+    public function store(Request $request)
+    {
+
+        $user_id = $request->user_id;
+        if ($user_id === null) {
+            $user_id = Auth::id();
+        }
+
+        // 2. Xác định po_number (order_code)
+        $po_number = $request->order_code;
+        if ($po_number === null) {
+            $today = Carbon::now()->format('Ymd');
+            $prefix = "PO-{$today}-";
+
+            // Lấy po_number cuối cùng trong ngày hiện tại
+            $lastPo = PurchaseOrder::where('po_number', 'like', "{$prefix}%")
+                ->orderByDesc('po_number')
+                ->first();
+
+            if ($lastPo) {
+                // Tách số thứ tự cuối cùng
+                $lastNumber = (int)substr($lastPo->po_number, -3);
+                $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+            } else {
+                $nextNumber = '001';
+            }
+
+            $po_number = "{$prefix}{$nextNumber}";
+        }
+
+        // 3. Khởi tạo dữ liệu để insert vào bảng purchase_orders
+        $po_data = [
+            'po_number' => $po_number,
+            'supplier_id' => $request->supplier_id,
+            'status_id' => 1,
+            'order_date' => now(),
+            'expected_delivery_date' => $request->expected_import_date,
+            'actual_delivery_date' => null,
+            'discount_type' => $request->discount['type'] ?? null,
+            'discount_amount' => $request->discount['value'] ?? null,
+            'total_amount' => $request->total_amount,
+            'created_by' => $user_id,
+            'approved_by' => null,
+            'approved_at' => null,
+            'notes' => $request->note,
+        ];
+
+        $purchaseOrder = PurchaseOrder::create($po_data);
+        $purchaseOrderId = $purchaseOrder->id;
+
+        $po_items_data = [];
+        foreach ($request->products as $product) {
+            $po_items_data[] = [
+                'purchase_order_id' => $purchaseOrderId,
+                'product_id'        => $product['id'],
+                'product_name'      => $product['name'],
+                'product_sku'       => $product['sku'],
+                'ordered_quantity'  => $product['quantity'],
+                'received_quantity' => 0,
+                'quantity_returned' => 0,
+                'unit_cost'         => $product['purchase_price'],
+                'subtotal'          => $product['sub_total'],
+                'discount_amount'   => 0,
+                'discount_type'     => 'amount',
+                'notes'             => null,
+            ];
+        }
+
+        // Insert nhiều bản ghi vào bảng purchase_order_items
+        PurchaseOrderItem::insert($po_items_data);
+
+        return Inertia::render('admin/purchase_orders/Show', []);
+
+
     }
 
     public function show() {}
