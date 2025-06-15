@@ -29,7 +29,7 @@ class PurchaseOrderController extends Controller
                 // Tải các mặt hàng của đơn hàng
                 $query->with('product', function ($productQuery) {
                     // Tải thông tin sản phẩm cho mỗi mặt hàng, bao gồm cả đơn vị (unit)
-                    $productQuery->select('id', 'name', 'sku', 'unit_id') // Chọn các trường cần thiết từ bảng products
+                    $productQuery->select('id', 'unit_id') // Chọn các trường cần thiết từ bảng products
                         ->with('unit:id,name'); // Tải thông tin đơn vị và chỉ lấy id, name
                 });
             }
