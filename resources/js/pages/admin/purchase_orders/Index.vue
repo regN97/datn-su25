@@ -373,7 +373,7 @@ function goToTrashedPage() {
                                 <template v-for="order in paginatedPurchaseOrders" :key="order.id">
                                     <tr class="border-t">
                                         <td class="truncate-column w-[10%] p-3 text-left text-sm font-medium">
-                                            {{ order.po_number }}
+                                            <button @click="goToShowPage(order.id)" class="cursor-pointer hover:text-blue-500">{{ order.po_number }}</button>
                                         </td>
                                         <td class="supplier-column w-[15%] p-3 text-left text-sm">
                                             {{ order.supplier ? order.supplier.name : 'N/A' }}

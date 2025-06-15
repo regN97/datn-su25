@@ -421,12 +421,14 @@ onUnmounted(() => {
         <div class="min-h-screen bg-gray-50 p-4">
             <div class="mx-auto max-w-7xl">
                 <!-- Header -->
-                <div class="mb-6">
-                    <button @click="goBack" class="mb-4 flex cursor-pointer items-center text-gray-600 hover:text-gray-800">
-                        <ChevronLeft class="mr-1 h-4 w-4" />
-                        Quay lại
+                <div class="mb-4 flex items-center">
+                    <button
+                        @click="goBack"
+                        class="mb-0 flex h-10 w-10 items-center justify-center rounded border border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:text-gray-800"
+                    >
+                        <ChevronLeft class="h-5 w-5" />
                     </button>
-                    <h1 class="text-3xl font-bold text-gray-900">Tạo đơn hàng nhập</h1>
+                    <h1 class="ml-4 text-3xl font-bold text-gray-900">Tạo đơn hàng nhập</h1>
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">

@@ -14,11 +14,10 @@ class PurchaseOrderItem extends Model
         'ordered_quantity',
         'received_quantity',
         'quantity_returned',
-        'unit',
         'unit_cost',
         'subtotal',
-        'tax_amount',
         'discount_amount',
+        'discount_type',
         'notes',
     ];
 

@@ -147,12 +147,44 @@ class PurchaseOrderController extends Controller
         // Insert nhiều bản ghi vào bảng purchase_order_items
         PurchaseOrderItem::insert($po_items_data);
 
-        return Inertia::render('admin/purchase_orders/Show', []);
+        $purchaseOrderItem = PurchaseOrderItem::where('purchase_order_id', '=', $purchaseOrderId)->with('product')->get();
+        $purchaseOrder = PurchaseOrder::where('id', '=', $purchaseOrderId)->with('status')->get();
+        $productQuery = Product::query();
+        $products = ['data' => $productQuery->get()];
+        $supplierQuery = Supplier::query();
+        $suppliers = $supplierQuery->get();
+        $user = User::all();
 
+        return Inertia::render('admin/purchase_orders/Show', [
+            'purchaseOrderItem' => $purchaseOrderItem,
+            'purchaseOrder' => $purchaseOrder,
+            'products' => $products,
+            'suppliers' => $suppliers,
+            'users' => $user,
 
+        ]);
     }
 
-    public function show() {}
+    public function show($id) {
+        // dd($id);
+        $purchaseOrderItem = PurchaseOrderItem::where('purchase_order_id', '=', $id)->with('product')->get();
+        $purchaseOrder = PurchaseOrder::where('id', '=', $id)->with('status')->get();
+        $productQuery = Product::query();
+        $products = ['data' => $productQuery->get()];
+        $supplierQuery = Supplier::query();
+        $suppliers = $supplierQuery->get();
+        $user = User::all();
+        
+        return Inertia::render('admin/purchase_orders/Show', [
+            'purchaseOrderItem' => $purchaseOrderItem,
+            'purchaseOrder' => $purchaseOrder,
+            'products' => $products,
+            'suppliers' => $suppliers,
+            'users' => $user,
+
+        ]);
+    }
+
     public function destroy(string $id)
     {
         $order = PurchaseOrder::findOrFail($id);
