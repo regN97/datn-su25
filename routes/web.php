@@ -1,16 +1,17 @@
 <?php
 
-use App\Http\Controllers\Admin\PurchaseOrderController;
 use Inertia\Inertia;
-use App\Http\Controllers\Admin\PurchaseReceiptController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProductBatchController;
-use App\Http\Controllers\Admin\ProductSupplierController;
+use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\PurchaseReturnController;
+use App\Http\Controllers\Admin\ProductSupplierController;
+use App\Http\Controllers\Admin\PurchaseReceiptController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -27,6 +28,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Router Products
     Route::resource('products', ProductController::class);
+
+    Route::resource('units',UnitController::class);
 
     // Router Suppliers   
     Route::get('suppliers/trashed', [SupplierController::class, 'trashed'])->name('suppliers.trashed');
