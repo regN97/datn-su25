@@ -1,16 +1,16 @@
 <?php
 
-use App\Http\Controllers\Admin\PurchaseOrderController;
 use Inertia\Inertia;
-use App\Http\Controllers\Admin\PurchaseReceiptController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProductBatchController;
-use App\Http\Controllers\Admin\ProductSupplierController;
+use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\PurchaseReturnController;
+use App\Http\Controllers\Admin\ProductSupplierController;
+use App\Http\Controllers\Admin\PurchaseReceiptController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -35,9 +35,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('suppliers', SupplierController::class);
 
     Route::resource('purchaseReturn', PurchaseReturnController::class);
-    // Router Purchase_receips
-    Route::resource('purchase_receipts', PurchaseReceiptController::class);
-
+    
     Route::resource('product-batches', ProductBatchController::class);
 
     Route::get('purchase-orders/trashed', [PurchaseOrderController::class, 'trashed'])->name('purchase-orders.trashed');

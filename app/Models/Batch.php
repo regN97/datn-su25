@@ -24,7 +24,7 @@ class Batch extends Model
         'payment_status',
         'paid_amount',
         'receipt_status',
-        'is_partial_receipt',
+        'payment_date,',
         'notes',
         'created_by',
         'updated_by'
@@ -32,8 +32,10 @@ class Batch extends Model
 
     // Type casting cho các trường dữ liệu
     protected $casts = [
-        'is_partial_receipt' => 'boolean',
         'received_date' => 'date',
+        'payment_date' => 'date',
+        'payment_status' => 'string',
+        'payment_method' => 'string',
         'total_amount' => 'integer',
         'paid_amount' => 'integer'
     ];
@@ -76,7 +78,7 @@ class Batch extends Model
     {
         return $this->hasManyThrough(Product::class, BatchItem::class, 'batch_id', 'id', 'id', 'product_id');
     }
-     // Mối quan hệ với người dùng tạo
+    // Mối quan hệ với người dùng tạo
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
