@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PurchaseReturn extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'return_number',
         'purchase_order_id',
@@ -16,7 +18,7 @@ class PurchaseReturn extends Model
         'total_items_returned',
         'total_value_returned',
         'created_by',
-    ];  
+    ];
     protected $casts = [
     'return_date' => 'date',
     ];

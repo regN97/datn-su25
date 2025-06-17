@@ -12,7 +12,7 @@ import { computed, ref, watch } from 'vue';
 type POStatus = {
     id: number;
     name: string;
-    code: string;
+    code: string; // Ví dụ: 'pending', 'approved', 'rejected', 'cancelled'
 };
 
 // Kiểu cho User (người tạo, người duyệt)
@@ -50,7 +50,7 @@ type Product = {
     description: string | null;
     category_id: number;
     unit_id: number;
-    unit?: ProductUnit;
+    unit?: ProductUnit; // Mối quan hệ unit
     purchase_price: number;
     selling_price: number;
     image_url: string | null;
@@ -67,23 +67,22 @@ type PurchaseOrderItem = {
     id: number;
     purchase_order_id: number;
     product_id: number;
-    product?: Product; // Mối quan hệ product, bao gồm cả unit
-    product_name: string;
-    product_sku: string;
+    product?: Product;
+    product_name?: string | null;
+    product_sku?: string | null;
     ordered_quantity: number;
+    quantity_returned: number;
     received_quantity: number;
-    quantity_returned: number; // Đã thêm
     unit_cost: number;
     subtotal: number;
-    discount_amount: number | null; // Có thể null
-    discount_type: 'percent' | 'amount' | null; // Có thể null
-    notes: string | null; // Đã thêm
+    tax_amount: number;
+    discount_amount: number;
+    notes: string | null;
     created_at: string;
     updated_at: string;
-    deleted_at: string | null;
 };
 
-// Kiểu cho PurchaseOrder, đã cập nhật theo cấu trúc database mới
+// Kiểu cho PurchaseOrder, đã cập nhật để bao gồm 'items'
 type PurchaseOrder = {
     id: number;
     po_number: string;
@@ -92,10 +91,12 @@ type PurchaseOrder = {
     status_id: number;
     status?: POStatus;
     order_date: string;
-    expected_delivery_date: string | null;
+    expected_delivery_date: string;
     actual_delivery_date: string | null;
-    discount_amount: number | null;
-    discount_type: 'percent' | 'amount' | null;
+    subtotal_amount: number;
+    tax_amount: number;
+    discount_amount: number;
+    shipping_cost: number;
     total_amount: number;
     created_by: number;
     creator?: User;
@@ -123,7 +124,8 @@ const allPurchaseOrders = computed(() => page.props.purchaseOrders); // Đổi t
 
 // --- State cho tìm kiếm và bộ lọc ---
 const searchTerm = ref('');
-const selectedOrderStatus = ref('');
+const selectedOrderStatus = ref(''); // Filter cho trạng thái PO
+// Đã xóa: selectedPaymentStatus, selectedReceivedStatus
 
 // Danh sách các tùy chọn cho bộ lọc trạng thái (thêm vào script setup)
 const poStatusOptions: POStatus[] = [
@@ -133,6 +135,8 @@ const poStatusOptions: POStatus[] = [
     { id: 4, name: 'Nhập toàn bộ', code: 'FULLY RECEIVED' },
     { id: 5, name: 'Đã hủy', code: 'CANCELLED' },
 ];
+
+// Đã xóa: paymentStatusOptions, receivedStatusOptions
 
 // --- Cấu hình phân trang ---
 const perPageOptions = [5, 10, 25, 50];
@@ -165,7 +169,8 @@ const filteredPurchaseOrders = computed(() => {
 });
 
 // Watchers để reset currentPage về 1 khi bất kỳ filter nào thay đổi
-watch([searchTerm, selectedOrderStatus], () => {
+// Đã cập nhật watchers
+watch([searchTerm, selectedOrderStatus], () => { // Đã bỏ selectedPaymentStatus, selectedReceivedStatus
     currentPage.value = 1;
 });
 
@@ -250,37 +255,6 @@ function cancelDelete() {
     showDeleteModal.value = false;
     purchaseOrderToDelete.value = null;
 }
-// Hàm formatCurrency được định nghĩa đúng kiểu PurchaseOrderItem subtotal và unit_cost
-const formatCurrency = (amount: number | null | undefined): string => {
-    if (amount === null || amount === undefined) return '0₫';
-    return amount.toLocaleString('vi-VN') + '₫';
-};
-
-/**
- * Định dạng hiển thị số tiền giảm giá kèm theo loại giảm giá.
- * @param {number | null | undefined} amount - Số tiền hoặc phần trăm giảm giá.
- * @param {'percent' | 'amount' | null | undefined} type - Loại giảm giá ('percent' hoặc 'amount').
- * @returns {string} Chuỗi hiển thị giảm giá.
- */
-const formatDiscountDisplay = (amount: number | null | undefined, type: 'percent' | 'amount' | null | undefined): string => {
-    if (amount === null || amount === undefined || amount === 0) return '0₫';
-
-    if (type === 'percent') {
-        // Giảm giá theo phần trăm
-        return `${amount}%`;
-    } else if (type === 'amount') {
-        // Giảm giá số tiền cố định
-        return formatCurrency(amount);
-    }
-    return '0₫'; // Trường hợp không xác định
-};
-
-// Hàm này sẽ tính tổng phụ từ các item đã có trường subtotal từ backend
-const calculateItemsSubtotalFromData = (items: PurchaseOrderItem[] | undefined): number => {
-    if (!items || items.length === 0) return 0;
-    const total = items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
-    return total;
-};
 
 // --- HÀM HỖ TRỢ DỊCH ENUM SANG TIẾNG VIỆT VÀ TRẢ VỀ CLASS CSS ---
 
@@ -406,6 +380,8 @@ function goToTrashedPage() {
                                                 {{ order.po_number }}
                                             </button>
                                         </td>
+
+
                                         <td class="supplier-column w-[15%] p-3 text-left text-sm">
                                             {{ order.supplier ? order.supplier.name : 'N/A' }}
                                         </td>
@@ -475,17 +451,71 @@ function goToTrashedPage() {
                                                 'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold',
                                                 getOrderStatusClass(order.status?.code),
                                             ]">
-                                            {{ order.status ? order.status.name : 'N/A' }}
-                                        </span>
-                                    </p>
-                                    <p><strong>Người tạo:</strong> {{ order.creator ?
-                                        order.creator.name : 'N/A' }}</p>
-                                    <p><strong>Người duyệt:</strong> {{ order.approver ?
-                                        order.approver.name : 'Chưa duyệt' }}</p>
-                                    <p><strong>Thời gian duyệt:</strong> {{
-                                        formatDate(order.approved_at) || 'Chưa duyệt' }}</p>
-                                </div>
-                            </div>
+                                                {{ order.status ? order.status.name : 'N/A' }}
+                                            </span>
+                                        </td>
+                                        <td class="w-[5%] p-3 text-center text-sm">
+                                            <div class="flex items-center justify-center space-x-2 text-center">
+                                                <button @click="toggleDetails(order.id)"
+                                                    class="flex items-center gap-1 rounded-md bg-gray-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none">
+                                                    <component
+                                                        :is="openPurchaseOrderDetailsId === order.id ? EyeOff : Eye"
+                                                        class="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    class="rounded-md bg-blue-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+                                                    @click="goToEditPage(order.id)">
+                                                    <Pencil class="h-4 w-4" />
+                                                </button>
+                                                <button @click="confirmDelete(order.id)"
+                                                    class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none">
+                                                    <Trash2 class="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="openPurchaseOrderDetailsId === order.id">
+                                        <td :colspan="7" class="border-t border-b border-gray-200 bg-gray-50 p-4">
+                                            <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                                                <h4 class="mb-4 text-xl font-bold text-gray-800">
+                                                    Thông tin chi tiết đơn hàng - {{ order.po_number || 'Không có' }}
+                                                </h4>
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                                    <div
+                                                        class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2 shadow-sm">
+                                                        <p><strong>Mã PO:</strong> {{ order.po_number || 'Không có' }}
+                                                        </p>
+                                                        <p><strong>Nhà cung cấp:</strong> {{ order.supplier ?
+                                                            order.supplier.name : 'N/A' }}</p>
+                                                        <p><strong>Ngày đặt hàng:</strong> {{
+                                                            formatDate(order.order_date) || 'N/A' }}</p>
+                                                        <p><strong>Ngày giao dự kiến:</strong> {{
+                                                            formatDate(order.expected_delivery_date) || 'N/A' }}</p>
+                                                        <p><strong>Ngày giao thực tế:</strong> {{
+                                                            formatDate(order.actual_delivery_date) || 'Chưa giao' }}</p>
+                                                        <p><strong>Ghi chú:</strong> {{ order.notes || 'Không có' }}</p>
+                                                    </div>
+                                                    <div
+                                                        class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2 shadow-sm">
+                                                        <p>
+                                                            <strong>Trạng thái:</strong>
+                                                            <span
+                                                                class="inline-block font-semibold text-base px-3 py-1 rounded"
+                                                                :class="[
+                                                                    'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold',
+                                                                    getOrderStatusClass(order.status?.code),
+                                                                ]">
+                                                                {{ order.status ? order.status.name : 'N/A' }}
+                                                            </span>
+                                                        </p>
+                                                        <p><strong>Người tạo:</strong> {{ order.creator ?
+                                                            order.creator.name : 'N/A' }}</p>
+                                                        <p><strong>Người duyệt:</strong> {{ order.approver ?
+                                                            order.approver.name : 'Chưa duyệt' }}</p>
+                                                        <p><strong>Thời gian duyệt:</strong> {{
+                                                            formatDate(order.approved_at) || 'Chưa duyệt' }}</p>
+                                                    </div>
+                                                </div>
 
                                                 <h5 class="mt-6 mb-3 text-base font-semibold text-gray-800">Sản phẩm trong đơn hàng:</h5>
                                                 <div class="overflow-x-auto">
@@ -627,6 +657,10 @@ function goToTrashedPage() {
                 </div>
             </div>
         </div>
+        <DeleteModal :show="showDeleteModal" title="Xóa đơn đặt hàng"
+            message="Bạn có chắc chắn muốn xóa đơn đặt hàng này? Hành động này không thể hoàn tác."
+            @confirm="handleDeletePurchaseOrder" @close="cancelDelete" />
+
     </AppLayout>
 </template>
 <style lang="css" scoped>

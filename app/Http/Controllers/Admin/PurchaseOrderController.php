@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Batch;
+use App\Models\BatchItem;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseReturn;
+use App\Models\PurchaseReturnItem;
 use App\Models\Supplier;
 use Inertia\Inertia;
 use App\Models\PurchaseOrderItem;
@@ -174,7 +178,7 @@ class PurchaseOrderController extends Controller
         $supplierQuery = Supplier::query();
         $suppliers = $supplierQuery->get();
         $user = User::all();
-        
+
         return Inertia::render('admin/purchase_orders/Show', [
             'purchaseOrderItem' => $purchaseOrderItem,
             'purchaseOrder' => $purchaseOrder,
@@ -187,15 +191,23 @@ class PurchaseOrderController extends Controller
 
     public function destroy(string $id)
     {
-        $order = PurchaseOrder::findOrFail($id);
+        $order = PurchaseOrder::with('items')->findOrFail($id);
+
+        // Soft delete các item
+        $order->items->each(function ($item) {
+            $item->delete();
+        });
+
         $order->delete();
-        PurchaseOrderItem::where('purchase_order_id', $id)->delete();
+
         return redirect()->back()->with('success', 'Đơn đặt hàng và các sản phẩm liên quan đã được xóa mềm!');
     }
 
+
     /**
      * Display a listing of trashed resources.
-     */ public function trashed()
+     */
+    public function trashed()
     {
         $purchaseOrders = PurchaseOrder::onlyTrashed()
             ->with(['supplier', 'status'])
@@ -233,8 +245,45 @@ class PurchaseOrderController extends Controller
     public function forceDelete(string $id)
     {
         $purchaseOrder = PurchaseOrder::onlyTrashed()->findOrFail($id);
+
+        // Lấy tất cả các item_id của đơn hàng
+        $itemIds = PurchaseOrderItem::withTrashed()
+            ->where('purchase_order_id', $purchaseOrder->id)
+            ->pluck('id')
+            ->toArray();
+
+        // 1. Xoá batch_items liên quan
+        if (!empty($itemIds)) {
+            BatchItem::withTrashed()
+                ->whereIn('purchase_order_item_id', $itemIds)
+                ->forceDelete();
+
+            // 2. Xoá purchase_return_items liên quan
+            PurchaseReturnItem::withTrashed()
+                ->whereIn('purchase_order_item_id', $itemIds)
+                ->forceDelete();
+        }
+
+        // 3. Xoá purchase_returns
+        PurchaseReturn::withTrashed()
+            ->where('purchase_order_id', $purchaseOrder->id)
+            ->forceDelete();
+
+        // 4. Xoá purchase_order_items
+        PurchaseOrderItem::withTrashed()
+            ->where('purchase_order_id', $purchaseOrder->id)
+            ->forceDelete();
+
+        // 5. Xoá batches
+        Batch::withTrashed()
+            ->where('purchase_order_id', $purchaseOrder->id)
+            ->forceDelete();
+
+        // 6. Cuối cùng xoá đơn đặt hàng
         $purchaseOrder->forceDelete();
 
-        return redirect()->back()->with('success', 'Nhà cung cấp đã được xóa vĩnh viễn!');
+        return redirect()->back()->with('success', 'Đơn đặt hàng và toàn bộ dữ liệu liên quan đã được xoá vĩnh viễn!');
     }
+
+
 }
