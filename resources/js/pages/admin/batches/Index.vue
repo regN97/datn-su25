@@ -2,14 +2,14 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Search, FileDown, Eye, RotateCcw, ChevronUp, ChevronDown } from 'lucide-vue-next';
+import { Search, FileDown, Eye, PackagePlus, RotateCcw, ChevronUp, ChevronDown } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Pagination from '@/components/Pagination.vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Quản lý lô hàng',
-        href: '/admin/product-batches',
+        title: 'Quản lý đơn nhập hàng',
+        href: '/admin/batches',
     },
 ];
 
@@ -30,7 +30,6 @@ type Batch = {
     payment_status: 'unpaid' | 'partially_paid' | 'paid';
     paid_amount: number;
     receipt_status: 'pending' | 'partially_received' | 'completed' | 'cancelled';
-    is_partial_receipt: boolean;
     notes: string | null;
     created_by: number;
     updated_by: number | null;
@@ -47,6 +46,7 @@ const perPage = ref(10);
 const currentPage = ref(1);
 
 const searchTerm = ref('');
+const filterStatus = ref('');
 const filterPaymentStatus = ref('');
 const filterReceiptStatus = ref('');
 const filterStartDate = ref('');
@@ -177,22 +177,64 @@ function formatCurrency(amount: number): string {
         minimumFractionDigits: 0
     }).format(amount);
 }
+function goToCreatePage() {
+    router.visit(route('admin.product-batches.create'));
+}
+
 </script>
 
 
 
 <template>
 
-    <Head title="Quản lý lô hàng" />
+    <Head title="Quản lý đơn nhập hàng" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div
                 class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min bg-white shadow-lg">
                 <div class="container mx-auto p-6">
-                    <div class="mb-6">
-                        <h1 class="text-2xl font-semibold text-gray-800 mb-4">Quản lý lô hàng</h1>
+                    <div class="mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <h1 class="text-3xl font-semibold text-gray-800">
+                            Quản lý đơn nhập hàng
+                        </h1>
+                        <div class="ml-auto flex gap-4">
+                            <button @click="goToCreatePage"
+                                class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
+                                <PackagePlus class="h-5 w-5" />
+                                <span class="ml-2 hidden md:inline">Tạo Đơn Nhập Hàng</span>
+                            </button>
+                            <button class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng
+                                rác</button>
+                        </div>
+                    </div>
 
+                    <div class="mb-6 flex flex-wrap items-center gap-4">
+                        <div
+                            class="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
+                            <div class="relative w-full md:w-64">
+                                <input type="text" v-model="searchTerm" @input="resetPagination"
+                                    placeholder="Tìm kiếm mã lô, NCC, hóa đơn..."
+                                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out shadow-sm" />
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <Search class="h-5 w-5 text-gray-400" />
+                                </span>
+                            </div>
+                            <select v-model="filterStatus" @change="resetPagination"
+                                class="w-full md:w-48 py-2 px-3 border border-gray-300 bg-white rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out">
+                                <option value="">Tất cả trạng thái</option>
+                                <option value="active">Còn hàng</option>
+                                <option value="low_stock">Sắp hết hàng</option>
+                                <option value="out_of_stock">Hết hàng</option>
+                                <option value="expired">Hết hạn</option>
+                            </select>
+
+                            <button @click="exportBatchesToExcel"
+                                class="inline-flex items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none shadow-sm w-full md:w-auto">
+                                <FileDown class="h-5 w-5 mr-2" />
+                                Xuất Excel
+                            </button>
+                        </div>
 
                     </div>
 

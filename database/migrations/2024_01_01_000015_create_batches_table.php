@@ -21,10 +21,11 @@ return new class extends Migration
 
             $table->unsignedInteger('total_amount')->default(0);
             $table->enum('payment_status', ['unpaid', 'partially_paid', 'paid'])->default('unpaid');
+             $table->enum('payment_method', ['cash', 'bank_transfer', 'credit_card'])->nullable();
+             $table->date('payment_date')->nullable();
             $table->unsignedInteger('paid_amount')->default(0);
 
             $table->enum('receipt_status', ['pending', 'partially_received', 'completed', 'cancelled'])->default('pending');
-            $table->boolean('is_partial_receipt')->default(false);
 
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users');

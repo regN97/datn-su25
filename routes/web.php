@@ -38,9 +38,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('suppliers', SupplierController::class);
 
     Route::resource('purchaseReturn', PurchaseReturnController::class);
-    // Router Purchase_receips
-    Route::resource('purchase_receipts', PurchaseReceiptController::class);
-
+    
     Route::resource('product-batches', ProductBatchController::class);
 
     Route::get('purchase-orders/trashed', [PurchaseOrderController::class, 'trashed'])->name('purchase-orders.trashed');
