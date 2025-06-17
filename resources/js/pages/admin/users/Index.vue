@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, router, useForm ,usePage} from '@inertiajs/vue3';
-import { ref,onMounted } from 'vue';
-import { Pencil ,Trash } from 'lucide-vue-next';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
+import { Pencil, Trash } from 'lucide-vue-next';
 
 interface User {
   id: number;
@@ -24,24 +24,64 @@ defineProps<{
   }[];
 }>();
 
-const showForm = ref(false)
+const showForm = ref(false);
+const isEditing = ref(false);
+const editingUserId = ref<number | null>(null);
 
 const form = useForm({
   name: '',
   email: '',
   password: '',
   phone_number: '',
-  role_id: '', // Để ép user chọn
-})
+  role_id: '' as string | number, // Để ép user chọn
+});
 
 function submit() {
-  form.post('/admin/users', {
-    onSuccess: () => {
-      form.reset()
-      showForm.value = false
-    },
-  })
+  if (isEditing.value && editingUserId.value !== null) {
+    form.put(`/admin/users/${editingUserId.value}`, {
+      onSuccess: () => {
+        resetForm();
+        alert('Cập nhật người dùng thành công');
+      },
+    });
+  } else {
+    form.post('/admin/users', {
+      onSuccess: () => {
+        resetForm();
+        alert('Thêm người dùng thành công');
+      },
+    });
+  }
 }
+
+function editUser(user: User) {
+  showForm.value = true;
+  isEditing.value = true;
+  editingUserId.value = user.id;
+  form.name = user.name;
+  form.email = user.email ?? '';
+  form.phone_number = user.phone_number ?? '';
+  form.password = '';
+  form.role_id = user.role?.id ?? '';
+}
+
+function resetForm() {
+  form.reset();
+  showForm.value = false;
+  isEditing.value = false;
+  editingUserId.value = null;
+}
+
+function deleteUser(id: number) {
+  if (confirm('Bạn có chắc chắn muốn xoá người dùng này?')) {
+    router.delete(`/admin/users/${id}`, {
+      onSuccess: () => {
+        alert('Đã xoá người dùng thành công');
+      },
+    });
+  }
+}
+
 const page = usePage() as { props: { flash: { success?: string } } };
 const hasShownSuccess = ref(false);
 
@@ -51,17 +91,8 @@ onMounted(() => {
     hasShownSuccess.value = true;
   }
 });
-function deleteUser(id: number) {
-  if (confirm('Bạn có chắc chắn muốn xoá người dùng này?')) {
-    router.delete(`/admin/users/${id}`, {
-      onSuccess: () => {
-        // alert đơn giản hoặc flash message
-        alert('Đã xoá người dùng thành công');
-      },
-    })
-  }
-}
 </script>
+
 
 <template>
   <Head title="Quản lý người dùng" />
@@ -122,9 +153,12 @@ function deleteUser(id: number) {
 
 
             <div class="mt-4">
-              <button @click="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
-                Thêm người dùng
-              </button>
+             <button
+  @click="submit"
+  class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
+>
+  {{ isEditing ? 'Cập nhật người dùng' : 'Thêm người dùng' }}
+</button>
             </div>
           </div>
 
@@ -153,12 +187,12 @@ function deleteUser(id: number) {
                   <td class="px-6 py-4">{{ user.role?.name }}</td>
                   <td class="px-6 py-4 text-center rounded-r-lg">
   <button
-    class="text-blue-600 hover:text-blue-800 transition p-1"
-    title="Sửa"
-    @click="router.visit(`/admin/users/${user.id}/edit`)"
-  >
-    <Pencil class="w-5 h-5" />
-  </button>
+  class="text-blue-600 hover:text-blue-800 transition p-1"
+  title="Sửa"
+  @click="editUser(user)"
+>
+  <Pencil class="w-5 h-5" />
+</button>
   <button
     class="text-red-600 hover:text-red-800 transition p-1 ml-2"
     title="Xoá"
