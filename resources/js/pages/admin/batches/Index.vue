@@ -205,17 +205,14 @@ function formatCurrency(amount: number): string {
                                         Mã lô hàng
                                     </th>
                                     <th
-                                        class="w-[15%] p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider select-none">
+                                        class="w-[25%] p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider select-none">
                                         Nhà cung cấp
                                     </th>
                                     <th
                                         class="w-[10%] p-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider select-none">
                                         Ngày nhận hàng
                                     </th>
-                                    <th
-                                        class="w-[10%] p-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider select-none">
-                                        Tổng tiền
-                                    </th>
+                                    
                                     <th
                                         class="w-[15%] p-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider select-none">
                                         Trạng thái thanh toán
@@ -236,15 +233,13 @@ function formatCurrency(amount: number): string {
                                     <td class="w-[10%] p-4 text-sm text-gray-700">
                                         {{ batch.batch_number }}
                                     </td>
-                                    <td class="w-[15%] p-4 text-sm text-gray-700">
+                                    <td class="w-[25%] p-4 text-sm text-gray-700">
                                         {{ batch.supplier?.name || 'N/A' }}
                                     </td>
                                     <td class="w-[10%] p-4 text-center text-sm text-gray-700">
                                         {{ formatDateTime(batch.received_date) }}
                                     </td>
-                                    <td class="w-[10%] p-4 text-right text-sm text-gray-700">
-                                        {{ formatCurrency(batch.total_amount) }}
-                                    </td>
+                                    
                                     <td class="w-[15%] p-4 text-center text-sm">
                                         <span :class="{
                                             'bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold shadow-sm': batch.payment_status === 'paid',

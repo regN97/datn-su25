@@ -23,9 +23,14 @@ type ProductUnit = {
     name: string;
 };
 
+// Cập nhật Supplier type để bao gồm pivot object
 type Supplier = {
     id: number;
     name: string;
+    pivot?: { // Đối tượng pivot chứa các trường từ bảng trung gian
+        purchase_price?: number;
+        // Các trường khác nếu có trên bảng pivot
+    };
 };
 
 type Product = {
@@ -36,7 +41,7 @@ type Product = {
     description: string;
     category_id: number;
     unit_id: number;
-    purchase_price: number;
+    // purchase_price: number; // Loại bỏ trường này khỏi Product type
     selling_price: number;
     image_url: string;
     min_stock_level: number;
@@ -44,25 +49,26 @@ type Product = {
     is_active: boolean;
     category?: Category;
     unit?: ProductUnit;
-    suppliers?: Supplier[];
+    suppliers?: Supplier[]; // Danh sách nhà cung cấp của RIÊNG sản phẩm này
 };
 
 const page = usePage<SharedData>();
 const categories = page.props.categories as Category[];
 const units = page.props.units as ProductUnit[];
 const products = page.props.products as Product[];
-const suppliers = (page.props.suppliers as Supplier[]) || [];
+
 const allSuppliers = (page.props.allSuppliers as Supplier[]) || [];
+
 const isSidebarOpen = ref(false);
 
 // Bộ lọc
 const filterName = ref('');
 const filterCategory = ref<number | null>(null);
 const filterStatus = ref<string>('all');
-const filterMinPrice = ref<number | null>(null);
-const filterMaxPrice = ref<number | null>(null);
+const filterMinSellingPrice = ref<number | null>(null); // Đổi tên để tránh nhầm lẫn với giá nhập
+const filterMaxSellingPrice = ref<number | null>(null); // Đổi tên để tránh nhầm lẫn với giá nhập
 const filterUnit = ref<number | null>(null);
-const filterSuppliers = ref<number[]>([]); 
+const filterSuppliers = ref<number[]>([]);
 
 const filteredProducts = computed(() => {
     return products.filter((product) => {
@@ -75,15 +81,15 @@ const filteredProducts = computed(() => {
             filterStatus.value === 'all' ||
             (filterStatus.value === 'active' && product.is_active) ||
             (filterStatus.value === 'inactive' && !product.is_active);
-        const matchesMinPrice =
-            filterMinPrice.value === null || product.selling_price >= filterMinPrice.value;
-        const matchesMaxPrice =
-            filterMaxPrice.value === null || product.selling_price <= filterMaxPrice.value;
+        const matchesMinSellingPrice =
+            filterMinSellingPrice.value === null || product.selling_price >= filterMinSellingPrice.value;
+        const matchesMaxSellingPrice =
+            filterMaxSellingPrice.value === null || product.selling_price <= filterMaxSellingPrice.value;
         const matchesUnit =
             filterUnit.value === null || product.unit_id === filterUnit.value;
         const matchesSuppliers =
             filterSuppliers.value.length === 0 ||
-            (product.suppliers && 
+            (product.suppliers &&
                 product.suppliers.some((supplier) =>
                     filterSuppliers.value.includes(supplier.id)
                 ));
@@ -92,13 +98,14 @@ const filteredProducts = computed(() => {
             matchesName &&
             matchesCategory &&
             matchesStatus &&
-            matchesMinPrice &&
-            matchesMaxPrice &&
+            matchesMinSellingPrice &&
+            matchesMaxSellingPrice &&
             matchesUnit &&
             matchesSuppliers
         );
     });
 });
+
 function getCategoryName(category_id: number) {
     const category = categories.find((c) => c.id === category_id);
     return category ? category.name : 'Không có';
@@ -193,8 +200,8 @@ function resetFilters() {
     filterName.value = '';
     filterCategory.value = null;
     filterStatus.value = 'all';
-    filterMinPrice.value = null;
-    filterMaxPrice.value = null;
+    filterMinSellingPrice.value = null;
+    filterMaxSellingPrice.value = null;
     filterSuppliers.value = [];
     currentPage.value = 1;
     filterUnit.value = null;
@@ -203,8 +210,8 @@ function resetFilters() {
 function toggleSidebar() {
     isSidebarOpen.value = !isSidebarOpen.value;
 }
-console.log(page.props.suppliers);
 </script>
+
 <template>
 
     <Head title="Products" />
@@ -228,7 +235,6 @@ console.log(page.props.suppliers);
                         </div>
                     </div>
 
-                    <!-- Sidebar -->
                     <div :class="[
                         'fixed inset-y-0 right-0 z-50 w-full transform bg-white p-6 shadow-xl transition-transform duration-300 ease-in-out md:w-96',
                         isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
@@ -270,9 +276,9 @@ console.log(page.props.suppliers);
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Giá bán (VNĐ)</label>
                                 <div class="flex space-x-2">
-                                    <input v-model.number="filterMinPrice" type="number" placeholder="Từ"
+                                    <input v-model.number="filterMinSellingPrice" type="number" placeholder="Từ"
                                         class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50" />
-                                    <input v-model.number="filterMaxPrice" type="number" placeholder="Đến"
+                                    <input v-model.number="filterMaxSellingPrice" type="number" placeholder="Đến"
                                         class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50" />
                                 </div>
                             </div>
@@ -404,8 +410,8 @@ console.log(page.props.suppliers);
                                                             <span>{{
                                                                 product.selling_price
                                                                     ? product.selling_price.toLocaleString('vi-VN') + ' ₫'
-                                                                    : 'Không có'
-                                                            }}</span>
+                                                                : 'Không có'
+                                                                }}</span>
                                                         </div>
                                                         <div class="flex items-start">
                                                             <span class="w-32 font-semibold text-gray-900">Tồn kho tối
@@ -417,25 +423,50 @@ console.log(page.props.suppliers);
                                                                 đa:</span>
                                                             <span>{{ product.max_stock_level || '0' }}</span>
                                                         </div>
-                                                        <div class="flex items-start">
-                                                            <span class="w-32 font-semibold text-gray-900">Nhà cung
-                                                                cấp:</span>
-                                                            <div>
-                                                                <template
-                                                                    v-if="product.suppliers && product.suppliers.length > 0">
-                                                                    <ul class="list-disc pl-5">
-                                                                        <li v-for="supplier in product.suppliers"
-                                                                            :key="supplier.id">
-                                                                            {{ supplier.name }}
-                                                                        </li>
-                                                                    </ul>
-                                                                </template>
-                                                                <template v-else>
-                                                                    <span>Không có</span>
-                                                                </template>
-                                                            </div>
-                                                        </div>
                                                     </div>
+                                                </div>
+
+                                                <div class="mt-6 border-t pt-6 text-sm text-gray-700">
+                                                    <template v-if="product.suppliers && product.suppliers.length > 0">
+                                                        <div
+                                                            class="overflow-x-auto rounded-md border border-gray-200 shadow-sm">
+                                                            <table class="w-full min-w-[300px] text-sm">
+                                                                <thead>
+                                                                    <tr class="bg-gray-100 text-left">
+                                                                        <th
+                                                                            class="px-4 py-2 font-semibold text-gray-700">
+                                                                            Tên nhà cung cấp</th>
+                                                                        <th
+                                                                            class="px-4 py-2 font-semibold text-gray-700 text-right">
+                                                                            Giá nhập</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr v-for="supplier in product.suppliers"
+                                                                        :key="supplier.id"
+                                                                        class="border-t border-gray-200">
+                                                                        <td class="px-4 py-2">{{ supplier.name }}</td>
+                                                                        <td class="px-4 py-2 text-right">
+                                                                            <template
+                                                                                v-if="supplier.pivot && supplier.pivot.purchase_price !== undefined">
+                                                                                {{
+                                                                                supplier.pivot.purchase_price.toLocaleString('vi-VN')
+                                                                                }} ₫
+                                                                            </template>
+                                                                            <template v-else>
+                                                                                <span class="text-gray-500">(Chưa có
+                                                                                    giá)</span>
+                                                                            </template>
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </template>
+                                                    <template v-else>
+                                                        <p class="text-gray-600">Sản phẩm này hiện chưa có nhà cung cấp
+                                                            nào.</p>
+                                                    </template>
                                                 </div>
                                             </div>
                                         </td>
