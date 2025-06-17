@@ -28,120 +28,147 @@ class ProductController extends Controller
         $categories = Category::all();
         $units = ProductUnit::all();
         $suppliers = ProductSupplier::all();
+        $all_suppliers = Supplier::all(); 
         return Inertia::render('admin/products/Index')->with([
             'products' => $products,
             'categories' => $categories,
             'units' => $units,
             'suppliers' => $suppliers,
+            'allSuppliers' => $all_suppliers, 
         ]);
     }
 
 
-    public function create()
-    {
-        return Inertia::render('admin/products/Create', [
-            'suppliers' => Supplier::all(['id', 'name']),
-            'categories' => Category::with('children')->whereNull('parent_id')->get(['id', 'name', 'parent_id']),
-            'product_units' => ProductUnit::all(['id', 'name']),
-            'csrf_token' => csrf_token(),
-        ]);
+   public function create()
+{
+    return Inertia::render('admin/products/Create', [
+        'suppliers' => Supplier::all(['id', 'name']),
+        'categories' => Category::with('children')->whereNull('parent_id')->get(['id', 'name', 'parent_id']),
+        'product_units' => ProductUnit::all(['id', 'name']),
+        'csrf_token' => csrf_token(),
+    ]);
+}
+
+public function store(Request $request): RedirectResponse
+{
+    $data = $request->validate([
+        'name' => 'required|string|min:3|max:255',
+        'sku' => [
+            'required',
+            'string',
+            'min:3',
+            'max:255',
+            Rule::unique('products', 'sku'),
+        ],
+        'barcode' => [
+            'nullable',
+            'string',
+            'min:5',
+            'max:255',
+            Rule::unique('products', 'barcode')->whereNotNull('barcode'),
+        ],
+        'description' => 'nullable|string|max:5000',
+        'category_id' => 'required|integer|min:1|exists:categories,id',
+        'unit_id' => 'required|integer|min:1|exists:product_units,id',
+        'selling_price' => 'required|numeric|min:0',
+        'is_active' => 'required|boolean',
+        'min_stock_level' => 'nullable|integer|min:0',
+        'max_stock_level' => 'nullable|integer|min:0|gte:min_stock_level',
+        'image_input_type' => 'required|in:file,url',
+        'image_url' => [
+            Rule::requiredIf($request->input('image_input_type') === 'url'),
+            'nullable',
+            'string',
+            'url',
+            'max:2048',
+        ],
+        'image_file' => [
+            Rule::requiredIf($request->input('image_input_type') === 'file'),
+            'nullable',
+            'image',
+            'mimes:jpg,jpeg,png,gif,webp',
+            'max:2048',
+        ],
+        'selected_supplier_ids' => 'required|array|min:1',
+        'selected_supplier_ids.*' => 'required|integer|exists:suppliers,id',
+        'purchase_prices' => 'required|array',
+        'purchase_prices.*' => 'nullable|numeric|min:0',
+    ], [
+        'required' => 'Trường :attribute là bắt buộc.',
+        'string' => 'Trường :attribute phải là chuỗi ký tự.',
+        'min' => 'Trường :attribute phải có ít nhất :min ký tự.',
+        'max' => 'Trường :attribute không được vượt quá :max ký tự.',
+        'numeric' => 'Trường :attribute phải là số.',
+        'integer' => 'Trường :attribute phải là số nguyên.',
+        'boolean' => 'Trường :attribute phải là giá trị boolean (true/false).',
+        'url' => 'Đường dẫn ảnh không hợp lệ.',
+        'image' => 'Tệp được tải lên phải là hình ảnh.',
+        'mimes' => 'Ảnh chỉ chấp nhận định dạng JPG, JPEG, PNG, GIF hoặc WEBP.',
+        'in' => 'Giá trị của trường :attribute không hợp lệ.',
+        'array' => 'Trường :attribute phải là danh sách.',
+        'exists' => 'Giá trị đã chọn cho :attribute không tồn tại.',
+        'unique' => ':Attribute này đã tồn tại, vui lòng chọn giá trị khác.',
+        'gt' => 'Giá bán phải lớn hơn giá nhập.',
+        'gte' => 'Tồn kho tối đa phải lớn hơn hoặc bằng tồn kho tối thiểu.',
+        'selected_supplier_ids.min' => 'Cần chọn ít nhất :min nhà cung cấp.',
+        'image_file.max' => 'Kích thước ảnh không được vượt quá :max KB (2MB).',
+        'image_url.max' => 'Đường dẫn ảnh không được vượt quá :max ký tự.',
+        'purchase_prices' => 'Giá nhập từ nhà cung cấp',
+        'purchase_prices.*' => 'Giá nhập từ nhà cung cấp',
+    ], [
+        'name' => 'tên sản phẩm',
+        'sku' => 'mã SKU',
+        'barcode' => 'mã vạch',
+        'description' => 'mô tả',
+        'category_id' => 'danh mục',
+        'unit_id' => 'đơn vị tính',
+        'selling_price' => 'giá bán',
+        'min_stock_level' => 'tồn kho tối thiểu',
+        'max_stock_level' => 'tồn kho tối đa',
+        'is_active' => 'trạng thái',
+        'image_url' => 'đường dẫn ảnh',
+        'image_file' => 'ảnh sản phẩm',
+        'image_input_type' => 'kiểu nhập ảnh',
+        'selected_supplier_ids' => 'nhà cung cấp',
+        'selected_supplier_ids.*' => 'ID nhà cung cấp',
+        'purchase_prices' => 'giá nhập',
+        'purchase_prices.*' => 'giá nhập',
+    ]);
+
+    // Handle image upload
+    $uploadedFilePath = null;
+    if ($request->input('image_input_type') === 'file' && $request->hasFile('image_file')) {
+        $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
+        $data['image_url'] = Storage::url($uploadedFilePath);
+        unset($data['image_file']);
+    } elseif ($request->input('image_input_type') === 'url' && !empty($data['image_url'])) {
+        unset($data['image_file']);
+    } else {
+        $data['image_url'] = null;
+        unset($data['image_file']);
     }
 
-    public function store(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'name' => 'required|string|min:3|max:255',
-            'sku' => [
-                'required',
-                'string',
-                'min:3',
-                'max:255',
-                Rule::unique('products', 'sku'),
-            ],
-            'barcode' => [
-                'nullable',
-                'string',
-                'min:5',
-                'max:255',
-                Rule::unique('products', 'barcode')->whereNotNull('barcode'),
-            ],
-            'description' => 'nullable|string|max:5000',
-            'category_id' => 'required|integer|min:1|exists:categories,id',
-            'unit_id' => 'required|integer|min:1|exists:product_units,id',
-            'purchase_price' => 'required|numeric|min:0',
-            'selling_price' => 'required|numeric|min:0|gt:purchase_price',
-            'is_active' => 'required|boolean',
-            'min_stock_level' => 'nullable|integer|min:0',
-            'max_stock_level' => 'nullable|integer|min:0|gte:min_stock_level',
-            'image_input_type' => 'required|in:file,url',
-            'image_url' => Rule::requiredIf($request->input('image_input_type') === 'url') . '|nullable|string|url|max:2048',
-            'image_file' => Rule::requiredIf($request->input('image_input_type') === 'file') . '|nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
-            'selected_supplier_ids' => 'required|array|min:1',
-            'selected_supplier_ids.*' => 'required|integer|exists:suppliers,id',
-        ], [
-            'required' => 'Trường :attribute là bắt buộc.',
-            'string' => 'Trường :attribute phải là chuỗi ký tự.',
-            'min' => 'Trường :attribute phải có ít nhất :min ký tự.',
-            'max' => 'Trường :attribute không được vượt quá :max ký tự.',
-            'numeric' => 'Trường :attribute phải là số.',
-            'integer' => 'Trường :attribute phải là số nguyên.',
-            'boolean' => 'Trường :attribute phải là giá trị boolean (true/false).',
-            'url' => 'Đường dẫn ảnh không hợp lệ.',
-            'image' => 'Tệp được tải lên phải là hình ảnh.',
-            'mimes' => 'Ảnh chỉ chấp nhận định dạng JPG, JPEG, PNG, GIF hoặc WEBP.',
-            'in' => 'Giá trị của trường :attribute không hợp lệ.',
-            'array' => 'Trường :attribute phải là danh sách.',
-            'exists' => 'Giá trị đã chọn cho :attribute không tồn tại.',
-            'unique' => ':Attribute này đã tồn tại, vui lòng chọn giá trị khác.',
-            'gt' => 'Giá bán phải lớn hơn giá nhập.',
-            'gte' => 'Tồn kho tối đa phải lớn hơn hoặc bằng tồn kho tối thiểu.',
+    // Extract purchase prices and supplier IDs
+    $purchasePrices = $data['purchase_prices'];
+    $selectedSupplierIds = $data['selected_supplier_ids'];
+    unset($data['selected_supplier_ids']);
+    unset($data['purchase_prices']);
+    unset($data['image_input_type']);
 
-            'selected_supplier_ids.min' => 'Cần chọn ít nhất :min nhà cung cấp.',
-            'image_file.max' => 'Kích thước ảnh không được vượt quá :max KB (2MB).',
-            'image_url.max' => 'Đường dẫn ảnh không được vượt quá :max ký tự.',
-        ], [
-            'name' => 'tên sản phẩm',
-            'sku' => 'mã SKU',
-            'barcode' => 'mã vạch',
-            'description' => 'mô tả',
-            'category_id' => 'danh mục',
-            'unit_id' => 'đơn vị tính',
-            'purchase_price' => 'giá nhập',
-            'selling_price' => 'giá bán',
-            'min_stock_level' => 'tồn kho tối thiểu',
-            'max_stock_level' => 'tồn kho tối đa',
-            'is_active' => 'trạng thái',
-            'image_url' => 'đường dẫn ảnh',
-            'image_file' => 'ảnh sản phẩm',
-            'image_input_type' => 'kiểu nhập ảnh',
-            'selected_supplier_ids' => 'nhà cung cấp',
-            'selected_supplier_ids.*' => 'ID nhà cung cấp',
-        ]);
-        $uploadedFilePath = null;
-        if ($request->input('image_input_type') === 'file' && $request->hasFile('image_file')) {
-            $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
-            $data['image_url'] = Storage::url($uploadedFilePath);
-            unset($data['image_file']);
-        } elseif ($request->input('image_input_type') === 'url' && !empty($data['image_url'])) {
-            unset($data['image_file']);
-        } else {
-            $data['image_url'] = null;
-            unset($data['image_file']);
-        }
+    // Create the product
+    $product = Product::create($data);
 
-        $selectedSupplierIds = $data['selected_supplier_ids'];
-        unset($data['selected_supplier_ids']);
-
-        $product = Product::create($data);
-
-        // Đồng bộ nhà cung cấp sau khi tạo sản phẩm
-        $product->suppliers()->sync($selectedSupplierIds);
-
-        return redirect()->route('admin.products.index')->with('success', 'Sản phẩm đã được tạo thành công.');
-
+    // Sync suppliers and attach purchase prices
+    $syncData = [];
+    foreach ($selectedSupplierIds as $supplierId) {
+        $syncData[$supplierId] = [
+            'purchase_price' => $purchasePrices[$supplierId] ?? null,
+        ];
     }
+    $product->suppliers()->sync($syncData);
 
-
+    return redirect()->route('admin.products.index')->with('success', 'Sản phẩm đã được tạo thành công.');
+}
 
     public function show(string $id)
     {

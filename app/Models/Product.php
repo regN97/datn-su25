@@ -20,7 +20,6 @@ class Product extends Model
         'description',
         'category_id',
         'unit_id',
-        'purchase_price',
         'selling_price',
         'image_url',
         'min_stock_level',
@@ -29,7 +28,6 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'purchase_price' => 'integer',
         'selling_price' => 'integer',
         'min_stock_level' => 'integer',
         'max_stock_level' => 'integer',

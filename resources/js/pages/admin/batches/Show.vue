@@ -246,8 +246,8 @@ function goBack() {
                                         {{ getStatusDisplayName(props.batch.receipt_status) }}
                                     </span>
                                 </p>
-                                <p><strong>Nhận hàng một phần:</strong> {{ props.batch.is_partial_receipt ? 'Có' :
-                                    'Không' }}</p>
+                                <!-- <p><strong>Nhận hàng một phần:</strong> {{ props.batch.is_partial_receipt ? 'Có' :
+                                    'Không' }}</p> -->
                             </div>
 
                             <!-- Cột 3 -->

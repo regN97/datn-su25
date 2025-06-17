@@ -2,6 +2,7 @@
 
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\SupplierController;
@@ -27,6 +28,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Router Products
     Route::resource('products', ProductController::class);
+
+    Route::resource('units',UnitController::class);
 
     // Router Suppliers   
     Route::get('suppliers/trashed', [SupplierController::class, 'trashed'])->name('suppliers.trashed');
