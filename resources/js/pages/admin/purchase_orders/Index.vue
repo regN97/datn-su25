@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import DeleteModal from '@/components/DeleteModal.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { Eye, EyeOff, PackagePlus, Pencil, Trash2 } from 'lucide-vue-next';
@@ -333,25 +332,23 @@ function goToTrashedPage() {
 }
 </script>
 <template>
-
     <Head title="Purchase Orders" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-            <div
-                class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
+            <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
                     <div class="mb-4 flex items-center gap-4">
                         <h1 class="text-2xl font-bold">Quản lý đơn đặt hàng</h1>
                         <div class="ml-auto flex gap-4">
-                            <button @click="goToCreatePage"
-                                class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
+                            <button
+                                @click="goToCreatePage"
+                                class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600"
+                            >
                                 <PackagePlus class="h-5 w-5" />
                                 <span class="ml-2 hidden md:inline">Tạo Đơn Hàng Mới</span>
                             </button>
-                            <button @click="goToTrashedPage"
-                                class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng
-                                rác</button>
+                            <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng rác</button>
                         </div>
                     </div>
 
@@ -359,28 +356,35 @@ function goToTrashedPage() {
                         <div class="relative min-w-[250px] flex-1">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                 <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd"
+                                    <path
+                                        fill-rule="evenodd"
                                         d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                                        clip-rule="evenodd"></path>
+                                        clip-rule="evenodd"
+                                    ></path>
                                 </svg>
                             </div>
-                            <input type="text" v-model="searchTerm" placeholder="Tìm kiếm mã PO, NCC, ghi chú..."
-                                class="w-full rounded-md border-gray-300 py-2 pr-4 pl-10 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                            <input
+                                type="text"
+                                v-model="searchTerm"
+                                placeholder="Tìm kiếm mã PO, NCC, ghi chú..."
+                                class="w-full rounded-md border-gray-300 py-2 pr-4 pl-10 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
                         </div>
 
                         <div class="min-w-[150px]">
                             <label for="po-status-filter" class="sr-only">Lọc theo trạng thái PO</label>
-                            <select id="po-status-filter" v-model="selectedOrderStatus"
-                                class="w-full rounded-md border-gray-300 py-2 pr-8 pl-3 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <select
+                                id="po-status-filter"
+                                v-model="selectedOrderStatus"
+                                class="w-full rounded-md border-gray-300 py-2 pr-8 pl-3 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
                                 <option value="">Tất cả trạng thái PO</option>
                                 <option v-for="option in poStatusOptions" :key="option.code" :value="option.code">
                                     {{ option.name }}
                                 </option>
                             </select>
                         </div>
-
                     </div>
-
                     <div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">
                         <table class="w-full">
                             <thead>
@@ -398,7 +402,9 @@ function goToTrashedPage() {
                                 <template v-for="order in paginatedPurchaseOrders" :key="order.id">
                                     <tr class="border-t">
                                         <td class="truncate-column w-[10%] p-3 text-left text-sm font-medium">
-                                            <button @click="goToShowPage(order.id)" class="cursor-pointer hover:text-blue-500">{{ order.po_number }}</button>
+                                            <button @click="goToShowPage(order.id)" class="cursor-pointer hover:text-blue-500">
+                                                {{ order.po_number }}
+                                            </button>
                                         </td>
                                         <td class="supplier-column w-[15%] p-3 text-left text-sm">
                                             {{ order.supplier ? order.supplier.name : 'N/A' }}
@@ -413,218 +419,179 @@ function goToTrashedPage() {
                                             {{ formatDate(order.actual_delivery_date) }}
                                         </td>
                                         <td class="w-[10%] p-3 text-left text-sm">
-                                            <span :class="[
-<div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">
-    <table class="w-full">
-        <thead>
-            <tr class="bg-gray-200">
-                <th class="w-[5%] p-3 text-left text-sm font-semibold">Mã PO</th>
-                <th class="w-[10%] p-3 text-left text-sm font-semibold">Nhà cung cấp</th>
-                <th class="w-[10%] p-3 text-left text-sm font-semibold">Ngày đặt</th>
-                <th class="w-[10%] p-3 text-left text-sm font-semibold">Ngày giao dự kiến</th>
-                <th class="w-[10%] p-3 text-left text-sm font-semibold">Ngày giao thực tế</th>
-                <th class="w-[10%] p-3 text-left text-sm font-semibold">Trạng thái</th>
-                <th class="w-[5%] p-3 text-center text-sm font-semibold">Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            <template v-for="order in paginatedPurchaseOrders" :key="order.id">
-                <tr class="border-t">
-                    <td class="truncate-column w-[10%] p-3 text-left text-sm font-medium">
-                        {{ order.po_number }}
-                    </td>
-                    <td class="supplier-column w-[15%] p-3 text-left text-sm">
-                        {{ order.supplier ? order.supplier.name : 'N/A' }}
-                    </td>
-                    <td class="truncate-column w-[10%] p-3 text-left text-sm">
-                        {{ formatDate(order.order_date) }}
-                    </td>
-                    <td class="truncate-column w-[10%] p-3 text-left text-sm">
-                        {{ formatDate(order.expected_delivery_date) }}
-                    </td>
-                    <td class="truncate-column w-[10%] p-3 text-left text-sm">
-                        {{ formatDate(order.actual_delivery_date) }}
-                    </td>
-                    <td class="w-[10%] p-3 text-left text-sm">
-                        <span :class="[
-                                'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold',
-                                getOrderStatusClass(order.status?.code),
-                            ]">
-                            {{ order.status ? order.status.name : 'N/A' }}
-                        </span>
-                    </td>
-                    <td class="w-[5%] p-3 text-center text-sm">
-                        <div class="flex items-center justify-center space-x-2 text-center">
-                            <button @click="toggleDetails(order.id)"
-                                class="flex items-center gap-1 rounded-md bg-gray-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none">
-                                <component :is="openPurchaseOrderDetailsId === order.id ? EyeOff : Eye"
-                                    class="h-4 w-4" />
-                            </button>
-                            <button
-                                class="rounded-md bg-blue-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-                                @click="goToEditPage(order.id)">
-                                <Pencil class="h-4 w-4" />
-                            </button>
-                            <button @click="confirmDelete(order.id)"
-                                class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none">
-                                <Trash2 class="h-4 w-4" />
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr v-if="openPurchaseOrderDetailsId === order.id">
-                    <td :colspan="7" class="border-t border-b border-gray-200 bg-gray-50 p-4">
-                        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                            <h4 class="mb-4 text-xl font-bold text-gray-800">
-                                Thông tin chi tiết đơn hàng - {{ order.po_number || 'Không có' }}
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                <div
-                                    class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2 shadow-sm">
-                                    <p><strong>Mã PO:</strong> {{ order.po_number || 'Không có' }}
-                                    </p>
-                                    <p><strong>Nhà cung cấp:</strong> {{ order.supplier ?
-                                        order.supplier.name : 'N/A' }}</p>
-                                    <p><strong>Ngày đặt hàng:</strong> {{
-                                        formatDate(order.order_date) || 'N/A' }}</p>
-                                    <p><strong>Ngày giao dự kiến:</strong> {{
-                                        formatDate(order.expected_delivery_date) || 'N/A' }}</p>
-                                    <p><strong>Ngày giao thực tế:</strong> {{
-                                        formatDate(order.actual_delivery_date) || 'Chưa giao' }}</p>
-                                    <p><strong>Ghi chú đơn hàng:</strong> {{ order.notes || 'Không có' }}</p>
-                                </div>
-                                <div
-                                    class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2 shadow-sm">
-                                    <p>
-                                        <strong>Trạng thái:</strong>
-                                        <span
-                                            class="inline-block font-semibold text-base px-3 py-1 rounded"
-                                            :class="[
-                                                'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold',
-                                                getOrderStatusClass(order.status?.code),
-                                            ]">
-                                            {{ order.status ? order.status.name : 'N/A' }}
-                                        </span>
-                                    </p>
-                                    <p><strong>Người tạo:</strong> {{ order.creator ?
-                                        order.creator.name : 'N/A' }}</p>
-                                    <p><strong>Người duyệt:</strong> {{ order.approver ?
-                                        order.approver.name : 'Chưa duyệt' }}</p>
-                                    <p><strong>Thời gian duyệt:</strong> {{
-                                        formatDate(order.approved_at) || 'Chưa duyệt' }}</p>
-                                </div>
-                            </div>
+                                            <span
+                                                :class="[
+                                                    'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold',
+                                                    getOrderStatusClass(order.status?.code),
+                                                ]"
+                                            >
+                                                {{ order.status ? order.status.name : 'N/A' }}
+                                            </span>
+                                        </td>
+                                        <td class="w-[5%] p-3 text-center text-sm">
+                                            <div class="flex items-center justify-center space-x-2 text-center">
+                                                <button
+                                                    @click="toggleDetails(order.id)"
+                                                    class="flex items-center gap-1 rounded-md bg-gray-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
+                                                >
+                                                    <component :is="openPurchaseOrderDetailsId === order.id ? EyeOff : Eye" class="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    class="rounded-md bg-blue-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+                                                    @click="goToEditPage(order.id)"
+                                                >
+                                                    <Pencil class="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    @click="confirmDelete(order.id)"
+                                                    class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+                                                >
+                                                    <Trash2 class="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="openPurchaseOrderDetailsId === order.id">
+                                        <td :colspan="7" class="border-t border-b border-gray-200 bg-gray-50 p-4">
+                                            <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                                                <h4 class="mb-4 text-xl font-bold text-gray-800">
+                                                    Thông tin chi tiết đơn hàng - {{ order.po_number || 'Không có' }}
+                                                </h4>
+                                                <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+                                                    <div class="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-4 shadow-sm">
+                                                        <p><strong>Mã PO:</strong> {{ order.po_number || 'Không có' }}</p>
+                                                        <p><strong>Nhà cung cấp:</strong> {{ order.supplier ? order.supplier.name : 'N/A' }}</p>
+                                                        <p><strong>Ngày đặt hàng:</strong> {{ formatDate(order.order_date) || 'N/A' }}</p>
+                                                        <p>
+                                                            <strong>Ngày giao dự kiến:</strong>
+                                                            {{ formatDate(order.expected_delivery_date) || 'N/A' }}
+                                                        </p>
+                                                        <p>
+                                                            <strong>Ngày giao thực tế:</strong>
+                                                            {{ formatDate(order.actual_delivery_date) || 'Chưa giao' }}
+                                                        </p>
+                                                        <p><strong>Ghi chú đơn hàng:</strong> {{ order.notes || 'Không có' }}</p>
+                                                    </div>
+                                                    <div class="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-4 shadow-sm">
+                                                        <p>
+                                                            <strong>Trạng thái:</strong>
+                                                            <span
+                                                                class="inline-block rounded px-3 py-1 text-base font-semibold"
+                                                                :class="[
+                                                                    'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold',
+                                                                    getOrderStatusClass(order.status?.code),
+                                                                ]"
+                                                            >
+                                                                {{ order.status ? order.status.name : 'N/A' }}
+                                                            </span>
+                                                        </p>
+                                                        <p><strong>Người tạo:</strong> {{ order.creator ? order.creator.name : 'N/A' }}</p>
+                                                        <p><strong>Người duyệt:</strong> {{ order.approver ? order.approver.name : 'Chưa duyệt' }}</p>
+                                                        <p><strong>Thời gian duyệt:</strong> {{ formatDate(order.approved_at) || 'Chưa duyệt' }}</p>
+                                                    </div>
+                                                </div>
 
-                            <h5 class="mb-3 mt-6 text-base font-semibold text-gray-800">Sản phẩm trong đơn hàng:</h5>
-                            <div class="overflow-x-auto">
-                                <table
-                                    class="min-w-full table-fixed border-collapse text-sm border border-gray-200 rounded-lg overflow-hidden">
-                                    <thead
-                                        class="bg-blue-50 text-gray-700 font-semibold uppercase">
-                                        <tr>
-                                            <th class="w-[12%] p-2 text-left whitespace-normal">
-                                                Tên sản phẩm</th>
-                                            <th class="w-[10%] p-2 text-left ">Mã SKU</th>
-                                            <th
-                                                class="w-[7%] p-2 text-center whitespace-normal">
-                                                SL đặt</th>
-                                            <th
-                                                class="w-[7%] p-2 text-center whitespace-normal">
-                                                SL trả</th>
-                                            <th
-                                                class="w-[7%] p-2 text-center whitespace-normal">
-                                                SL nhận</th>
-                                            <th class="w-[5%] p-2 text-left ">Đơn vị</th>
-                                            <th class="w-[9%] p-2 text-right">Đơn giá</th>
-                                            <th class="w-[10%] p-2 text-right ">Tổng phụ</th>
-                                            <th class="w-[9%] p-2 text-right ">Loại giảm giá</th>
-                                            <th class="w-[9%] p-2 text-right ">Số tiền giảm giá</th>
-                                            <th
-                                                class="w-[15%] p-2 text-left whitespace-normal break-words">
-                                                Ghi chú mục</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <template v-if="order.items && order.items.length > 0">
-                                            <tr v-for="item in order.items" :key="item.id"
-                                                class="border-t">
-                                                <td
-                                                    class="w-[12%] p-2 whitespace-normal break-words">
-                                                    {{item.product_name }}</td>
-                                                <td class="w-[10%] p-2">
-                                                    {{item.product_sku }}</td>
-                                                <td class="w-[7%] text-center">{{
-                                                    item.ordered_quantity }}</td>
-                                                <td class="w-[7%] text-center">{{
-                                                    item.quantity_returned }}</td>
-                                                <td class="w-[7%] text-center">{{
-                                                    item.received_quantity }}</td>
-                                                <td class="w-[5%] text-left">{{ item.product &&
-                                                    item.product.unit ? item.product.unit.name :
-                                                    'N/A' }}</td>
-                                                <td class="w-[9%] text-right">{{
-                                                    formatCurrency(item.unit_cost) }}</td>
-                                                <td class="w-[10%] text-right">{{
-                                                    formatCurrency(item.subtotal) }}</td>
-                                                <th class="w-[9%] text-right">
-                                                    {{ item.discount_type === 'percent' ? 'Phần trăm' : item.discount_type === 'amount' ? 'Số tiền' : 'Không' }}
-                                                </th>
-                                                <th class="w-[9%] text-right">
-                                                    {{ formatDiscountDisplay(item.discount_amount, item.discount_type) }}
-                                                </th>
-                                                <td
-                                                    class="w-[15%] p-2 whitespace-normal break-words">
-                                                    {{ item.notes || '—' }}</td>
-                                            </tr>
-                                        </template>
-                                        <tr v-else>
-                                            <td :colspan="11"
-                                                class="text-center py-4 text-gray-500">Không có
-                                                sản phẩm nào trong đơn hàng này.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                                <div
-                                    class="flex flex-col items-end gap-2 text-gray-800 mb-5 mt-6">
-                                    <h2
-                                        class="text-lg font-semibold mb-3 text-gray-800 w-full text-right">
-                                        Tổng kết đơn hàng</h2>
+                                                <h5 class="mt-6 mb-3 text-base font-semibold text-gray-800">Sản phẩm trong đơn hàng:</h5>
+                                                <div class="overflow-x-auto">
+                                                    <table
+                                                        class="min-w-full table-fixed border-collapse overflow-hidden rounded-lg border border-gray-200 text-sm"
+                                                    >
+                                                        <thead class="bg-blue-50 font-semibold text-gray-700 uppercase">
+                                                            <tr>
+                                                                <th class="w-[12%] p-2 text-left whitespace-normal">Tên sản phẩm</th>
+                                                                <th class="w-[10%] p-2 text-left">Mã SKU</th>
+                                                                <th class="w-[7%] p-2 text-center whitespace-normal">SL đặt</th>
+                                                                <th class="w-[7%] p-2 text-center whitespace-normal">SL trả</th>
+                                                                <th class="w-[7%] p-2 text-center whitespace-normal">SL nhận</th>
+                                                                <th class="w-[5%] p-2 text-left">Đơn vị</th>
+                                                                <th class="w-[9%] p-2 text-right">Đơn giá</th>
+                                                                <th class="w-[10%] p-2 text-right">Tổng phụ</th>
+                                                                <th class="w-[9%] p-2 text-right">Loại giảm giá</th>
+                                                                <th class="w-[9%] p-2 text-right">Số tiền giảm giá</th>
+                                                                <th class="w-[15%] p-2 text-left break-words whitespace-normal">Ghi chú mục</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <template v-if="order.items && order.items.length > 0">
+                                                                <tr v-for="item in order.items" :key="item.id" class="border-t">
+                                                                    <td class="w-[12%] p-2 break-words whitespace-normal">
+                                                                        {{ item.product_name }}
+                                                                    </td>
+                                                                    <td class="w-[10%] p-2">
+                                                                        {{ item.product_sku }}
+                                                                    </td>
+                                                                    <td class="w-[7%] text-center">{{ item.ordered_quantity }}</td>
+                                                                    <td class="w-[7%] text-center">{{ item.quantity_returned }}</td>
+                                                                    <td class="w-[7%] text-center">{{ item.received_quantity }}</td>
+                                                                    <td class="w-[5%] text-left">
+                                                                        {{ item.product && item.product.unit ? item.product.unit.name : 'N/A' }}
+                                                                    </td>
+                                                                    <td class="w-[9%] text-right">{{ formatCurrency(item.unit_cost) }}</td>
+                                                                    <td class="w-[10%] text-right">{{ formatCurrency(item.subtotal) }}</td>
+                                                                    <th class="w-[9%] text-right">
+                                                                        {{
+                                                                            item.discount_type === 'percent'
+                                                                                ? 'Phần trăm'
+                                                                                : item.discount_type === 'amount'
+                                                                                  ? 'Số tiền'
+                                                                                  : 'Không'
+                                                                        }}
+                                                                    </th>
+                                                                    <th class="w-[9%] text-right">
+                                                                        {{ formatDiscountDisplay(item.discount_amount, item.discount_type) }}
+                                                                    </th>
+                                                                    <td class="w-[15%] p-2 break-words whitespace-normal">
+                                                                        {{ item.notes || '—' }}
+                                                                    </td>
+                                                                </tr>
+                                                            </template>
+                                                            <tr v-else>
+                                                                <td :colspan="11" class="py-4 text-center text-gray-500">
+                                                                    Không có sản phẩm nào trong đơn hàng này.
+                                                                </td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                    <div class="mt-6 mb-5 flex flex-col items-end gap-2 text-gray-800">
+                                                        <h2 class="mb-3 w-full text-right text-lg font-semibold text-gray-800">Tổng kết đơn hàng</h2>
 
-                                    <div class="mt-4 grid gap-y-2 gap-x-5"
-                                        style="grid-template-columns: max-content auto;">
-                                        <div class="text-left"><strong>Tổng phụ (theo SP):</strong>
-                                        </div>
-                                        <div class="text-right">{{ formatCurrency(calculateItemsSubtotalFromData(order.items)) }}
-                                        </div>
-                                        <div class="text-left"><strong>Loại giảm giá:</strong></div>
-                                        <div class="text-right">
-                                            {{ order.discount_type === 'percent' ? 'Phần trăm' : order.discount_type === 'amount' ? 'Số tiền' : 'Không' }}
-                                        </div>
-                                        <div class="text-left"><strong>Số tiền giảm giá:</strong></div>
-                                        <div class="text-right">
-                                            {{ formatDiscountDisplay(order.discount_amount, order.discount_type) }}
-                                        </div>
-                                        <div class="text-left text-xl"><strong>Tổng
-                                                tiền:</strong></div>
-                                        <div class="text-right text-xl font-bold">{{
-                                            formatCurrency(order.total_amount) }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            </template>
-            <tr v-if="paginatedPurchaseOrders.length === 0">
-                <td colspan="7"
-                    class="px-6 py-4 text-center text-sm whitespace-nowrap text-gray-500"> Không có
-                    đơn hàng nào được
-                    tìm thấy.
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</div>                    <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                                        <div class="mt-4 grid gap-x-5 gap-y-2" style="grid-template-columns: max-content auto">
+                                                            <div class="text-left"><strong>Tổng phụ (theo SP):</strong></div>
+                                                            <div class="text-right">
+                                                                {{ formatCurrency(calculateItemsSubtotalFromData(order.items)) }}
+                                                            </div>
+                                                            <div class="text-left"><strong>Loại giảm giá:</strong></div>
+                                                            <div class="text-right">
+                                                                {{
+                                                                    order.discount_type === 'percent'
+                                                                        ? 'Phần trăm'
+                                                                        : order.discount_type === 'amount'
+                                                                          ? 'Số tiền'
+                                                                          : 'Không'
+                                                                }}
+                                                            </div>
+                                                            <div class="text-left"><strong>Số tiền giảm giá:</strong></div>
+                                                            <div class="text-right">
+                                                                {{ formatDiscountDisplay(order.discount_amount, order.discount_type) }}
+                                                            </div>
+                                                            <div class="text-left text-xl"><strong>Tổng tiền:</strong></div>
+                                                            <div class="text-right text-xl font-bold">{{ formatCurrency(order.total_amount) }}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr v-if="paginatedPurchaseOrders.length === 0">
+                                    <td colspan="7" class="px-6 py-4 text-center text-sm whitespace-nowrap text-gray-500">
+                                        Không có đơn hàng nào được tìm thấy.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <p class="text-sm">
                             Hiển thị kết quả từ
                             <span class="font-semibold">{{ (currentPage - 1) * perPage + 1 }}</span>
@@ -633,26 +600,31 @@ function goToTrashedPage() {
                             trên tổng <span class="font-semibold">{{ total }}</span>
                         </p>
                         <div class="flex items-center space-x-2">
-                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                                :disabled="currentPage === 1" @click="prevPage">
+                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700" :disabled="currentPage === 1" @click="prevPage">
                                 &larr; Trang trước
                             </button>
                             <template v-for="pageNumber in totalPages" :key="pageNumber">
-                                <button class="rounded px-3 py-1 text-sm"
+                                <button
+                                    class="rounded px-3 py-1 text-sm"
                                     :class="pageNumber === currentPage ? 'bg-gray-200 font-bold' : 'text-gray-500 hover:text-gray-700'"
-                                    @click="goToPage(pageNumber)">
+                                    @click="goToPage(pageNumber)"
+                                >
                                     {{ pageNumber }}
                                 </button>
                             </template>
-                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                                :disabled="currentPage === totalPages" @click="nextPage">
+                            <button
+                                class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+                                :disabled="currentPage === totalPages"
+                                @click="nextPage"
+                            >
                                 Trang sau &rarr;
                             </button>
-                            <select v-model="perPage" @change="changePerPage"
-                                class="rounded-md border-gray-300 py-1 pl-2 pr-7 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option v-for="option in perPageOptions" :key="option" :value="option">
-                                    {{ option }} / trang
-                                </option>
+                            <select
+                                v-model="perPage"
+                                @change="changePerPage"
+                                class="rounded-md border-gray-300 py-1 pr-7 pl-2 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option v-for="option in perPageOptions" :key="option" :value="option">{{ option }} / trang</option>
                             </select>
                         </div>
                     </div>
