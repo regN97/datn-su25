@@ -154,8 +154,6 @@ function getOrderStatusClass(statusCode: string | undefined): string {
                             <th class="p-3 text-sm font-semibold">Nhà cung cấp</th>
                             <th class="p-3 text-sm font-semibold">Ngày đặt</th>
                             <th class="p-3 text-sm font-semibold">Ngày giao dự kiến</th>
-                            <th class="p-3 text-sm font-semibold">Trạng thái TT</th>
-                            <th class="p-3 text-sm font-semibold">Trạng thái nhận</th>
                             <th class="p-3 text-sm font-semibold">Trạng thái</th>
                             <th class="p-3 text-sm font-semibold">Tổng tiền</th>
                             <th class="p-3 text-sm font-semibold">Thao tác</th>
@@ -169,21 +167,12 @@ function getOrderStatusClass(statusCode: string | undefined): string {
                             </td>
                             <td class="p-3 text-sm">{{ formatDate(order.order_date) }}</td>
                             <td class="p-3 text-sm">{{ formatDate(order.expected_delivery_date) }}</td>
+                        
                             <td class="p-3 text-sm">
-                                <span :class="getPaymentStatusClass(order.payment_status)">
-                                    {{ translatePaymentStatus(order.payment_status) }}
+                                <span :class="getOrderStatusClass(order.status?.code)">
+                                    {{ order.status ? order.status.name : 'N/A' }}
                                 </span>
                             </td>
-                            <td class="p-3 text-sm">
-                                <span :class="getReceivedStatusClass(order.received_status)">
-                                    {{ translateReceivedStatus(order.received_status) }}
-                                </span>
-                            </td>
-                         <td class="p-3 text-sm">
-    <span :class="getOrderStatusClass(order.status?.code)">
-        {{ order.status ? order.status.name : 'N/A' }}
-    </span>
-</td>
 
                             <td class="p-3 text-sm">{{ order.total_amount?.toLocaleString('vi-VN') }} đ</td>
                             <td class="p-3 text-sm">
