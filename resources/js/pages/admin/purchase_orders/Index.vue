@@ -128,11 +128,11 @@ const selectedOrderStatus = ref('');
 
 // Danh sách các tùy chọn cho bộ lọc trạng thái (thêm vào script setup)
 const poStatusOptions: POStatus[] = [
-    { id: 1, name: 'Đang chờ', code: 'pending' },
-    { id: 2, name: 'Đã duyệt', code: 'approved' },
-    { id: 3, name: 'Đã gửi', code: 'sent' },
-    { id: 4, name: 'Đã hủy', code: 'cancelled' },
-    { id: 5, name: 'Từ chối', code: 'rejected' },
+    { id: 1, name: 'Nháp', code: 'DRAFT' },
+    { id: 2, name: 'Chờ nhập', code: 'PENDING' },
+    { id: 3, name: 'Nhập một phần', code: 'PARTIAL RECEIVED' },
+    { id: 4, name: 'Nhập toàn bộ', code: 'FULLY RECEIVED' },
+    { id: 5, name: 'Đã hủy', code: 'CANCELLED' },
 ];
 
 // --- Cấu hình phân trang ---
