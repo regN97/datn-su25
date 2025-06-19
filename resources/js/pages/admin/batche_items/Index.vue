@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { PackagePlus, Eye, Trash2, ArrowUpNarrowWide, ArrowDownWideNarrow, Search, FileDown } from 'lucide-vue-next'; // Added FileDown icon
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Eye, FileDown, Search } from 'lucide-vue-next'; // Added FileDown icon
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -29,7 +28,6 @@ type Batch = {
     notes: string | null;
 };
 
-
 const page = usePage<SharedData>();
 
 const batches = ref([...(page.props.batches as Batch[])]);
@@ -51,17 +49,16 @@ const filteredAndSortedBatches = computed(() => {
 
     const trimmedSearch = searchTerm.value.trim().toLowerCase();
     if (trimmedSearch) {
-
-        currentBatches = currentBatches.filter(batch =>
-            batch.batch_number.toLowerCase().includes(trimmedSearch) ||
-            (batch.supplier?.name && batch.supplier.name.toLowerCase().includes(trimmedSearch)) ||
-            (batch.invoice_number && batch.invoice_number.toLowerCase().includes(trimmedSearch))
+        currentBatches = currentBatches.filter(
+            (batch) =>
+                batch.batch_number.toLowerCase().includes(trimmedSearch) ||
+                (batch.supplier?.name && batch.supplier.name.toLowerCase().includes(trimmedSearch)) ||
+                (batch.invoice_number && batch.invoice_number.toLowerCase().includes(trimmedSearch)),
         );
-
     }
 
     if (filterStatus.value) {
-        currentBatches = currentBatches.filter(batch => batch.status === filterStatus.value);
+        currentBatches = currentBatches.filter((batch) => batch.status === filterStatus.value);
     }
 
     if (sortKey.value) {
@@ -90,7 +87,6 @@ const paginatedBatches = computed(() => {
     const start = (currentPage.value - 1) * perPage.value;
     return filteredAndSortedBatches.value.slice(start, start + perPage.value);
 });
-
 
 function goToPage(page: number) {
     if (page < 1 || page > totalPages.value) return;
@@ -156,36 +152,39 @@ function formatDateTime(dateStr: string | null): string {
         // minute: '2-digit',
     });
 }
-
 </script>
 
 <template>
-
     <Head title="Batches" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div
-                class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min bg-white shadow-lg">
+                class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border bg-white shadow-lg md:min-h-min"
+            >
                 <div class="container mx-auto p-6">
-                    <div class="mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                        <h1 class="text-3xl font-semibold text-gray-800">
-                            Quản lý lô hàng
-                        </h1>
+                    <div class="mb-6 flex flex-col items-center justify-between gap-4 md:flex-row">
+                        <h1 class="text-3xl font-semibold text-gray-800">Quản lý lô hàng</h1>
 
-                        <div
-                            class="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
+                        <div class="flex w-full flex-col items-center space-y-3 md:w-auto md:flex-row md:space-y-0 md:space-x-4">
                             <div class="relative w-full md:w-64">
-                                <input type="text" v-model="searchTerm" @input="resetPagination"
+                                <input
+                                    type="text"
+                                    v-model="searchTerm"
+                                    @input="resetPagination"
                                     placeholder="Tìm kiếm mã lô, NCC, hóa đơn..."
-                                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out shadow-sm" />
+                                    class="w-full rounded-lg border border-gray-300 py-2 pr-4 pl-10 shadow-sm transition duration-150 ease-in-out focus:border-blue-500 focus:ring-blue-500"
+                                />
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-3">
                                     <Search class="h-5 w-5 text-gray-400" />
                                 </span>
                             </div>
 
-                            <select v-model="filterStatus" @change="resetPagination"
-                                class="w-full md:w-48 py-2 px-3 border border-gray-300 bg-white rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out">
+                            <select
+                                v-model="filterStatus"
+                                @change="resetPagination"
+                                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm transition duration-150 ease-in-out focus:border-blue-500 focus:ring-blue-500 md:w-48"
+                            >
                                 <option value="">Tất cả trạng thái</option>
                                 <option value="active">Còn hàng</option>
                                 <option value="low_stock">Sắp hết hàng</option>
@@ -193,62 +192,69 @@ function formatDateTime(dateStr: string | null): string {
                                 <option value="expired">Hết hạn</option>
                             </select>
 
-                            <button @click="exportBatchesToExcel"
-                                class="inline-flex items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none shadow-sm w-full md:w-auto">
-                                <FileDown class="h-5 w-5 mr-2" />
+                            <button
+                                @click="exportBatchesToExcel"
+                                class="inline-flex w-full items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none md:w-auto"
+                            >
+                                <FileDown class="mr-2 h-5 w-5" />
                                 Xuất Excel
                             </button>
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto rounded-lg shadow-md border border-gray-200">
-                        <table class="w-full text-left bg-white">
-                            <thead class="bg-gray-100 border-b border-gray-200">
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
+                        <table class="w-full bg-white text-left">
+                            <thead class="border-b border-gray-200 bg-gray-100">
                                 <tr>
-                                    <th class="w-[15%] p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none"
-                                        @click="sortBy('batch_number')">
+                                    <th
+                                        class="w-[15%] cursor-pointer p-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase select-none"
+                                        @click="sortBy('batch_number')"
+                                    >
                                         Mã lô hàng
-                                        <span v-if="sortKey === 'batch_number'" class="inline-flex align-middle ml-2">
-                                            <ArrowUpNarrowWide v-if="sortOrder === 'asc'"
-                                                class="h-4 w-4 text-gray-500" />
-                                            <ArrowDownWideNarrow v-else class="h-4 w-4 text-gray-500" />
-                                        </span>
-                                    </th>
-                                    <th class="w-[25%] p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none"
-                                        @click="sortBy('supplier')">
-                                        Nhà cung cấp
-                                        <span v-if="sortKey === 'supplier'" class="inline-flex align-middle ml-2">
-                                            <ArrowUpNarrowWide v-if="sortOrder === 'asc'"
-                                                class="h-4 w-4 text-gray-500" />
-                                            <ArrowDownWideNarrow v-else class="h-4 w-4 text-gray-500" />
-                                        </span>
-                                    </th>
-                                    <th class="w-[15%] p-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none"
-                                        @click="sortBy('received_date')">
-                                        Ngày nhận hàng
-                                        <span v-if="sortKey === 'received_date'" class="inline-flex align-middle ml-2">
-                                            <ArrowUpNarrowWide v-if="sortOrder === 'asc'"
-                                                class="h-4 w-4 text-gray-500" />
-                                            <ArrowDownWideNarrow v-else class="h-4 w-4 text-gray-500" />
-                                        </span>
-                                    </th>
-                                    <th class="w-[15%] p-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none"
-                                        @click="sortBy('status')">
-                                        Trạng thái
-                                        <span v-if="sortKey === 'status'" class="inline-flex align-middle ml-2">
-                                            <ArrowUpNarrowWide v-if="sortOrder === 'asc'"
-                                                class="h-4 w-4 text-gray-500" />
+                                        <span v-if="sortKey === 'batch_number'" class="ml-2 inline-flex align-middle">
+                                            <ArrowUpNarrowWide v-if="sortOrder === 'asc'" class="h-4 w-4 text-gray-500" />
                                             <ArrowDownWideNarrow v-else class="h-4 w-4 text-gray-500" />
                                         </span>
                                     </th>
                                     <th
-                                        class="w-[10%] p-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Thao tác</th>
+                                        class="w-[25%] cursor-pointer p-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase select-none"
+                                        @click="sortBy('supplier')"
+                                    >
+                                        Nhà cung cấp
+                                        <span v-if="sortKey === 'supplier'" class="ml-2 inline-flex align-middle">
+                                            <ArrowUpNarrowWide v-if="sortOrder === 'asc'" class="h-4 w-4 text-gray-500" />
+                                            <ArrowDownWideNarrow v-else class="h-4 w-4 text-gray-500" />
+                                        </span>
+                                    </th>
+                                    <th
+                                        class="w-[15%] cursor-pointer p-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase select-none"
+                                        @click="sortBy('received_date')"
+                                    >
+                                        Ngày nhận hàng
+                                        <span v-if="sortKey === 'received_date'" class="ml-2 inline-flex align-middle">
+                                            <ArrowUpNarrowWide v-if="sortOrder === 'asc'" class="h-4 w-4 text-gray-500" />
+                                            <ArrowDownWideNarrow v-else class="h-4 w-4 text-gray-500" />
+                                        </span>
+                                    </th>
+                                    <th
+                                        class="w-[15%] cursor-pointer p-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase select-none"
+                                        @click="sortBy('status')"
+                                    >
+                                        Trạng thái
+                                        <span v-if="sortKey === 'status'" class="ml-2 inline-flex align-middle">
+                                            <ArrowUpNarrowWide v-if="sortOrder === 'asc'" class="h-4 w-4 text-gray-500" />
+                                            <ArrowDownWideNarrow v-else class="h-4 w-4 text-gray-500" />
+                                        </span>
+                                    </th>
+                                    <th class="w-[10%] p-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(batch) in paginatedBatches" :key="batch.id"
-                                    class="border-b border-gray-100 hover:bg-gray-50 transition duration-100 ease-in-out">
+                                <tr
+                                    v-for="batch in paginatedBatches"
+                                    :key="batch.id"
+                                    class="border-b border-gray-100 transition duration-100 ease-in-out hover:bg-gray-50"
+                                >
                                     <td class="w-[15%] p-4 text-sm text-gray-700">
                                         {{ batch.batch_number }}
                                     </td>
@@ -259,26 +265,31 @@ function formatDateTime(dateStr: string | null): string {
                                         {{ formatDateTime(batch.received_date) || 'N/A' }}
                                     </td>
                                     <td class="w-[15%] p-4 text-center text-sm">
-                                        <span :class="{
-                                            'bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold shadow-sm': batch.status === 'active',
-                                            'bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold shadow-sm': batch.status === 'low_stock',
-                                            'bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold shadow-sm': batch.status === 'out_of_stock' || batch.status === 'expired',
-                                        }">
+                                        <span
+                                            :class="{
+                                                'rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 shadow-sm':
+                                                    batch.status === 'active',
+                                                'rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800 shadow-sm':
+                                                    batch.status === 'low_stock',
+                                                'rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800 shadow-sm':
+                                                    batch.status === 'out_of_stock' || batch.status === 'expired',
+                                            }"
+                                        >
                                             {{ getStatusDisplayName(batch.status) }}
                                         </span>
                                     </td>
                                     <td class="w-[10%] p-4 text-center text-sm">
                                         <button
-                                            class="inline-flex items-center justify-center rounded-md bg-blue-600 p-2 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none shadow-sm"
-                                            @click="goToBatchDetails(batch.id)" title="Xem chi tiết">
+                                            class="inline-flex items-center justify-center rounded-md bg-blue-600 p-2 text-white shadow-sm transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+                                            @click="goToBatchDetails(batch.id)"
+                                            title="Xem chi tiết"
+                                        >
                                             <Eye class="h-5 w-5" />
                                         </button>
-
                                     </td>
                                 </tr>
                                 <tr v-if="paginatedBatches.length === 0">
-                                    <td colspan="6" class="p-4 text-center text-sm text-gray-500">Không có dữ liệu phù
-                                        hợp với tiêu chí tìm kiếm.</td>
+                                    <td colspan="6" class="p-4 text-center text-sm text-gray-500">Không có dữ liệu phù hợp với tiêu chí tìm kiếm.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -293,19 +304,23 @@ function formatDateTime(dateStr: string | null): string {
                             trên tổng <span class="font-semibold">{{ total }}</span>
                         </p>
                         <div class="flex items-center space-x-2">
-                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                                :disabled="currentPage === 1" @click="prevPage">
+                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700" :disabled="currentPage === 1" @click="prevPage">
                                 &larr; Trang trước
                             </button>
                             <template v-for="page in totalPages" :key="page">
-                                <button class="rounded px-3 py-1 text-sm"
+                                <button
+                                    class="rounded px-3 py-1 text-sm"
                                     :class="page === currentPage ? 'bg-gray-200 font-bold' : 'text-gray-500 hover:text-gray-700'"
-                                    @click="goToPage(page)">
+                                    @click="goToPage(page)"
+                                >
                                     {{ page }}
                                 </button>
                             </template>
-                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                                :disabled="currentPage === totalPages" @click="nextPage">
+                            <button
+                                class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+                                :disabled="currentPage === totalPages"
+                                @click="nextPage"
+                            >
                                 Trang sau &rarr;
                             </button>
                         </div>

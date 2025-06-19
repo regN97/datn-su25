@@ -61,19 +61,23 @@ function changeItemsPerPage(event: Event) {
             trên tổng <span class="font-semibold">{{ totalItems }}</span>
         </p>
         <div class="flex items-center space-x-2">
-            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">
+            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">
                 &larr; Trang trước
             </button>
             <template v-for="page in displayedPages" :key="page">
-                <button class="rounded px-3 py-1 text-sm"
+                <button
+                    class="rounded px-3 py-1 text-sm"
                     :class="page === currentPage ? 'bg-gray-200 font-bold' : 'text-gray-500 hover:text-gray-700'"
-                    @click="goToPage(page)">
+                    @click="goToPage(page)"
+                >
                     {{ page }}
                 </button>
             </template>
-            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">
+            <button
+                class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+                :disabled="currentPage === totalPages"
+                @click="goToPage(currentPage + 1)"
+            >
                 Trang sau &rarr;
             </button>
         </div>

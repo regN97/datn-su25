@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import type { BreadcrumbItem, SharedData } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quản lý nhà cung cấp', href: '/admin/suppliers' },
@@ -23,16 +23,20 @@ const page = usePage<SharedData>();
 const suppliers = ref<Supplier[]>(page.props.suppliers as Supplier[]);
 
 function restoreSupplier(id: number) {
-    router.post(`/admin/suppliers/${id}/restore`, {}, {
-        preserveScroll: true,
-        onSuccess: () => {
-            suppliers.value = suppliers.value.filter(s => s.id !== id);
-            alert('Khôi phục thành công!');
+    router.post(
+        `/admin/suppliers/${id}/restore`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                suppliers.value = suppliers.value.filter((s) => s.id !== id);
+                alert('Khôi phục thành công!');
+            },
+            onError: () => {
+                alert('Khôi phục thất bại!');
+            },
         },
-        onError: () => {
-            alert('Khôi phục thất bại!');
-        }
-    });
+    );
 }
 
 function forceDeleteSupplier(id: number) {
@@ -40,26 +44,25 @@ function forceDeleteSupplier(id: number) {
         router.delete(`/admin/suppliers/${id}/force-delete`, {
             preserveScroll: true,
             onSuccess: () => {
-                suppliers.value = suppliers.value.filter(s => s.id !== id);
+                suppliers.value = suppliers.value.filter((s) => s.id !== id);
                 alert('Xóa vĩnh viễn thành công!');
             },
             onError: () => {
                 alert('Xóa vĩnh viễn thất bại!');
-            }
+            },
         });
     }
 }
 </script>
 
-
 <template>
     <Head title="Thùng rác nhà cung cấp" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-4 space-y-4">
+        <div class="space-y-4 p-4">
             <h1 class="text-2xl font-bold">Thùng rác nhà cung cấp</h1>
 
-            <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="overflow-hidden rounded-lg bg-white shadow">
                 <table class="w-full table-auto text-left">
                     <thead class="bg-gray-200">
                         <tr>
@@ -82,7 +85,7 @@ function forceDeleteSupplier(id: number) {
                             <td class="p-3 text-sm text-gray-500">{{ supplier.deleted_at }}</td>
                             <td class="p-3 text-sm">
                                 <button @click="restoreSupplier(supplier.id)" class="text-blue-600 hover:underline">Khôi phục</button>
-                                <button @click="forceDeleteSupplier(supplier.id)" class="text-red-600 hover:underline ml-2">Xóa vĩnh viễn</button>
+                                <button @click="forceDeleteSupplier(supplier.id)" class="ml-2 text-red-600 hover:underline">Xóa vĩnh viễn</button>
                             </td>
                         </tr>
                         <tr v-if="suppliers.length === 0">
@@ -100,7 +103,8 @@ table {
     width: 100%;
     border-collapse: collapse;
 }
-th, td {
+th,
+td {
     border: 1px solid #e5e7eb;
 }
 </style>

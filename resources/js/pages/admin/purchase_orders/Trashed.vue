@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import type { BreadcrumbItem, SharedData } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quản lý đơn đặt hàng', href: '/admin/purchase-orders' },
@@ -26,16 +26,20 @@ const page = usePage<SharedData>();
 const orders = ref<PurchaseOrder[]>(page.props.purchaseOrders as PurchaseOrder[]);
 
 function restoreOrder(id: number) {
-    router.post(`/admin/purchase-orders/${id}/restore`, {}, {
-        preserveScroll: true,
-        onSuccess: () => {
-            orders.value = orders.value.filter(o => o.id !== id);
-            alert('Khôi phục thành công!');
+    router.post(
+        `/admin/purchase-orders/${id}/restore`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                orders.value = orders.value.filter((o) => o.id !== id);
+                alert('Khôi phục thành công!');
+            },
+            onError: () => {
+                alert('Khôi phục thất bại!');
+            },
         },
-        onError: () => {
-            alert('Khôi phục thất bại!');
-        }
-    });
+    );
 }
 
 function forceDeleteOrder(id: number) {
@@ -43,12 +47,12 @@ function forceDeleteOrder(id: number) {
         router.delete(`/admin/purchase-orders/${id}/force-delete`, {
             preserveScroll: true,
             onSuccess: () => {
-                orders.value = orders.value.filter(o => o.id !== id);
+                orders.value = orders.value.filter((o) => o.id !== id);
                 alert('Xóa vĩnh viễn thành công!');
             },
             onError: () => {
                 alert('Xóa vĩnh viễn thất bại!');
-            }
+            },
         });
     }
 }
@@ -74,21 +78,30 @@ function formatDate(dateString: string | null): string {
 
 function translatePaymentStatus(status: PurchaseOrder['payment_status']): string {
     switch (status) {
-        case 'unpaid': return 'Chưa thanh toán';
-        case 'partially_paid': return 'Đã thanh toán một phần';
-        case 'paid': return 'Đã thanh toán đủ';
-        case 'overdue': return 'Quá hạn thanh toán';
-        default: return status;
+        case 'unpaid':
+            return 'Chưa thanh toán';
+        case 'partially_paid':
+            return 'Đã thanh toán một phần';
+        case 'paid':
+            return 'Đã thanh toán đủ';
+        case 'overdue':
+            return 'Quá hạn thanh toán';
+        default:
+            return status;
     }
 }
 
 function getPaymentStatusClass(status: PurchaseOrder['payment_status']): string {
     switch (status) {
         case 'unpaid':
-        case 'overdue': return 'bg-red-100 text-red-800';
-        case 'partially_paid': return 'bg-yellow-100 text-yellow-800';
-        case 'paid': return 'bg-green-100 text-green-800';
-        default: return 'bg-gray-100 text-gray-800';
+        case 'overdue':
+            return 'bg-red-100 text-red-800';
+        case 'partially_paid':
+            return 'bg-yellow-100 text-yellow-800';
+        case 'paid':
+            return 'bg-green-100 text-green-800';
+        default:
+            return 'bg-gray-100 text-gray-800';
     }
 }
 
@@ -104,19 +117,27 @@ function getPaymentStatusClass(status: PurchaseOrder['payment_status']): string 
 
 function translateReceivedStatus(status: PurchaseOrder['received_status']): string {
     switch (status) {
-        case 'pending': return 'Đang chờ nhận';
-        case 'partial': return 'Đã nhận một phần';
-        case 'fully': return 'Đã nhận đủ';
-        default: return status;
+        case 'pending':
+            return 'Đang chờ nhận';
+        case 'partial':
+            return 'Đã nhận một phần';
+        case 'fully':
+            return 'Đã nhận đủ';
+        default:
+            return status;
     }
 }
 
 function getReceivedStatusClass(status: PurchaseOrder['received_status']): string {
     switch (status) {
-        case 'pending': return 'bg-yellow-100 text-yellow-800';
-        case 'partial': return 'bg-blue-100 text-blue-800';
-        case 'fully': return 'bg-green-100 text-green-800';
-        default: return 'bg-gray-100 text-gray-800';
+        case 'pending':
+            return 'bg-yellow-100 text-yellow-800';
+        case 'partial':
+            return 'bg-blue-100 text-blue-800';
+        case 'fully':
+            return 'bg-green-100 text-green-800';
+        default:
+            return 'bg-gray-100 text-gray-800';
     }
 }
 
@@ -125,28 +146,31 @@ function getOrderStatusClass(statusCode: string | undefined): string {
 
     switch (statusCode.toLowerCase()) {
         case 'pending':
-        case 'draft': return 'bg-yellow-100 text-yellow-800';
-        case 'approved': return 'bg-green-100 text-green-800';
-        case 'sent': return 'bg-indigo-100 text-indigo-800'; // Thêm màu cho 'sent'
+        case 'draft':
+            return 'bg-yellow-100 text-yellow-800';
+        case 'approved':
+            return 'bg-green-100 text-green-800';
+        case 'sent':
+            return 'bg-indigo-100 text-indigo-800'; // Thêm màu cho 'sent'
         case 'rejected':
-        case 'cancelled': return 'bg-red-100 text-red-800';
-        case 'processing': return 'bg-blue-100 text-blue-800';
-        case 'completed': return 'bg-purple-100 text-purple-800';
-        default: return 'bg-gray-100 text-gray-800';
+        case 'cancelled':
+            return 'bg-red-100 text-red-800';
+        case 'processing':
+            return 'bg-blue-100 text-blue-800';
+        case 'completed':
+            return 'bg-purple-100 text-purple-800';
+        default:
+            return 'bg-gray-100 text-gray-800';
     }
 }
-
-
-
 </script>
 <template>
-
     <Head title="Thùng rác đơn đặt hàng" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-4 space-y-4">
+        <div class="space-y-4 p-4">
             <h1 class="text-2xl font-bold">Thùng rác đơn đặt hàng</h1>
 
-            <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="overflow-hidden rounded-lg bg-white shadow">
                 <table class="w-full table-auto text-left">
                     <thead class="bg-gray-200">
                         <tr>
@@ -167,7 +191,7 @@ function getOrderStatusClass(statusCode: string | undefined): string {
                             </td>
                             <td class="p-3 text-sm">{{ formatDate(order.order_date) }}</td>
                             <td class="p-3 text-sm">{{ formatDate(order.expected_delivery_date) }}</td>
-                        
+
                             <td class="p-3 text-sm">
                                 <span :class="getOrderStatusClass(order.status?.code)">
                                     {{ order.status ? order.status.name : 'N/A' }}
@@ -176,24 +200,19 @@ function getOrderStatusClass(statusCode: string | undefined): string {
 
                             <td class="p-3 text-sm">{{ order.total_amount?.toLocaleString('vi-VN') }} đ</td>
                             <td class="p-3 text-sm">
-                                <button @click="restoreOrder(order.id)" class="text-blue-600 hover:underline">Khôi
-                                    phục</button>
-                                <button @click="forceDeleteOrder(order.id)"
-                                    class="text-red-600 hover:underline ml-2">Xóa vĩnh viễn</button>
+                                <button @click="restoreOrder(order.id)" class="text-blue-600 hover:underline">Khôi phục</button>
+                                <button @click="forceDeleteOrder(order.id)" class="ml-2 text-red-600 hover:underline">Xóa vĩnh viễn</button>
                             </td>
                         </tr>
                         <tr v-if="orders.length === 0">
-                            <td colspan="9" class="p-3 text-center text-sm">Không có đơn đặt hàng nào trong thùng rác
-                            </td>
+                            <td colspan="9" class="p-3 text-center text-sm">Không có đơn đặt hàng nào trong thùng rác</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="flex justify-end">
-                <button @click="comeback()" class="px-6 py-2 rounded bg-gray-200 hover:bg-gray-300 text-primary-700">
-                    Quay lại
-                </button>
+                <button @click="comeback()" class="text-primary-700 rounded bg-gray-200 px-6 py-2 hover:bg-gray-300">Quay lại</button>
             </div>
         </div>
     </AppLayout>

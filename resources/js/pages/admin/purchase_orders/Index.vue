@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
@@ -127,11 +128,11 @@ const selectedOrderStatus = ref('');
 
 // Danh sách các tùy chọn cho bộ lọc trạng thái (thêm vào script setup)
 const poStatusOptions: POStatus[] = [
-    { id: 1, name: 'Nháp', code: 'DRAFT' },
-    { id: 2, name: 'Chờ nhập', code: 'PENDING' },
-    { id: 3, name: 'Nhập một phần', code: 'PARTIAL RECEIVED' },
-    { id: 4, name: 'Nhập toàn bộ', code: 'FULLY RECEIVED' },
-    { id: 5, name: 'Đã hủy', code: 'CANCELLED' },
+    { id: 1, name: 'Đang chờ', code: 'pending' },
+    { id: 2, name: 'Đã duyệt', code: 'approved' },
+    { id: 3, name: 'Đã gửi', code: 'sent' },
+    { id: 4, name: 'Đã hủy', code: 'cancelled' },
+    { id: 5, name: 'Từ chối', code: 'rejected' },
 ];
 
 // --- Cấu hình phân trang ---
@@ -419,62 +420,12 @@ function goToTrashedPage() {
                                             {{ formatDate(order.actual_delivery_date) }}
                                         </td>
                                         <td class="w-[10%] p-3 text-left text-sm">
-                                            <span :class="['inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold',
-                                getOrderStatusClass(order.status?.code),
-                            ]">
-                            {{ order.status ? order.status.name : 'N/A' }}
-                        </span>
-                    </td>
-                    <td class="w-[5%] p-3 text-center text-sm">
-                        <div class="flex items-center justify-center space-x-2 text-center">
-                            <button @click="toggleDetails(order.id)"
-                                class="flex items-center gap-1 rounded-md bg-gray-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none">
-                                <component :is="openPurchaseOrderDetailsId === order.id ? EyeOff : Eye"
-                                    class="h-4 w-4" />
-                            </button>
-                            <button
-                                class="rounded-md bg-blue-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-                                @click="goToEditPage(order.id)">
-                                <Pencil class="h-4 w-4" />
-                            </button>
-                            <button @click="confirmDelete(order.id)"
-                                class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none">
-                                <Trash2 class="h-4 w-4" />
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr v-if="openPurchaseOrderDetailsId === order.id">
-                    <td :colspan="7" class="border-t border-b border-gray-200 bg-gray-50 p-4">
-                        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                            <h4 class="mb-4 text-xl font-bold text-gray-800">
-                                Thông tin chi tiết đơn hàng - {{ order.po_number || 'Không có' }}
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                <div
-                                    class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2 shadow-sm">
-                                    <p><strong>Mã PO:</strong> {{ order.po_number || 'Không có' }}
-                                    </p>
-                                    <p><strong>Nhà cung cấp:</strong> {{ order.supplier ?
-                                        order.supplier.name : 'N/A' }}</p>
-                                    <p><strong>Ngày đặt hàng:</strong> {{
-                                        formatDate(order.order_date) || 'N/A' }}</p>
-                                    <p><strong>Ngày giao dự kiến:</strong> {{
-                                        formatDate(order.expected_delivery_date) || 'N/A' }}</p>
-                                    <p><strong>Ngày giao thực tế:</strong> {{
-                                        formatDate(order.actual_delivery_date) || 'Chưa giao' }}</p>
-                                    <p><strong>Ghi chú đơn hàng:</strong> {{ order.notes || 'Không có' }}</p>
-                                </div>
-                                <div
-                                    class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2 shadow-sm">
-                                    <p>
-                                        <strong>Trạng thái:</strong>
-                                        <span
-                                            class="inline-block font-semibold text-base px-3 py-1 rounded"
-                                            :class="[
-                                                'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold',
-                                                getOrderStatusClass(order.status?.code),
-                                            ]">
+                                            <span
+                                                :class="[
+                                                    'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold',
+                                                    getOrderStatusClass(order.status?.code),
+                                                ]"
+                                            >
                                                 {{ order.status ? order.status.name : 'N/A' }}
                                             </span>
                                         </td>
@@ -681,6 +632,14 @@ function goToTrashedPage() {
                 </div>
             </div>
         </div>
+
+        <DeleteModal
+            :is-open="showDeleteModal"
+            :title="'Xác nhận xóa'"
+            :description="'Bạn có chắc chắn muốn xóa đơn hàng này?'"
+            @confirm="handleDeletePurchaseOrder"
+            @cancel="cancelDelete"
+        />
     </AppLayout>
 </template>
 <style lang="css" scoped>

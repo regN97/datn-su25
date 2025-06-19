@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 interface Option {
     label: string;
@@ -32,17 +32,16 @@ const filteredOptions = computed(() => {
     const lowerCaseSearchTerm = searchTerm.value.toLowerCase();
     const selectedValues = new Set(props.modelValue);
 
-    return props.options.filter(option =>
-        !selectedValues.has(option.value) && // Only show unselected options
-        option.label.toLowerCase().includes(lowerCaseSearchTerm)
+    return props.options.filter(
+        (option) =>
+            !selectedValues.has(option.value) && // Only show unselected options
+            option.label.toLowerCase().includes(lowerCaseSearchTerm),
     );
 });
 
 // Options that are currently selected (for displaying tags)
 const selectedOptions = computed(() => {
-    return props.options.filter(option =>
-        props.modelValue.includes(option.value)
-    );
+    return props.options.filter((option) => props.modelValue.includes(option.value));
 });
 
 // Handle selecting an option
@@ -61,7 +60,7 @@ const selectOption = (option: Option) => {
 
 // Handle removing a selected option
 const removeOption = (value: number | string) => {
-    const newSelection = props.modelValue.filter(item => item !== value);
+    const newSelection = props.modelValue.filter((item) => item !== value);
     emit('update:modelValue', newSelection);
     // Optionally re-focus input if it was the last tag removed
     if (newSelection.length === 0) {
@@ -137,7 +136,6 @@ const scrollToActiveOption = () => {
     });
 };
 
-
 // Close dropdown when clicking outside
 const onClickOutside = (event: MouseEvent) => {
     if (inputRef.value && dropdownRef.value) {
@@ -158,11 +156,14 @@ onUnmounted(() => {
 });
 
 // Watch for changes in selected values to potentially close dropdown
-watch(() => props.modelValue, () => {
-    if (filteredOptions.value.length === 0 && searchTerm.value === '') {
-        // showDropdown.value = false; // Keep dropdown open if user is actively searching
-    }
-});
+watch(
+    () => props.modelValue,
+    () => {
+        if (filteredOptions.value.length === 0 && searchTerm.value === '') {
+            // showDropdown.value = false; // Keep dropdown open if user is actively searching
+        }
+    },
+);
 
 // Optional: Debounce search term if options list is very large
 // import { debounce } from 'lodash'; // You might need to install lodash
@@ -175,28 +176,32 @@ watch(() => props.modelValue, () => {
 <template>
     <div class="relative w-full">
         <div
-            class="multi-select-wrapper w-full rounded-md border border-gray-300 shadow-sm p-2 flex flex-wrap items-center cursor-text bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            class="multi-select-wrapper flex w-full cursor-text flex-wrap items-center rounded-md border border-gray-300 bg-white p-2 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
             :class="{ 'border-blue-500 ring ring-blue-200 dark:ring-blue-800': showDropdown }"
             @click="toggleDropdown"
             aria-haspopup="listbox"
             :aria-expanded="showDropdown"
             role="combobox"
         >
-            <div v-for="option in selectedOptions" :key="option.value"
-                class="multi-select-tag flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded mr-2 mb-1 dark:bg-blue-900 dark:text-blue-200">
+            <div
+                v-for="option in selectedOptions"
+                :key="option.value"
+                class="multi-select-tag mr-2 mb-1 flex items-center rounded bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+            >
                 <span>{{ option.label }}</span>
-                <button type="button" @click.stop="removeOption(option.value)"
-                    class="ml-1 text-blue-500 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-100 focus:outline-none"
-                    :aria-label="`Xóa ${option.label}`">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
-                        </path>
+                <button
+                    type="button"
+                    @click.stop="removeOption(option.value)"
+                    class="ml-1 text-blue-500 hover:text-blue-700 focus:outline-none dark:text-blue-300 dark:hover:text-blue-100"
+                    :aria-label="`Xóa ${option.label}`"
+                >
+                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
 
-            <div class="flex-grow min-w-[50px] relative">
+            <div class="relative min-w-[50px] flex-grow">
                 <input
                     ref="inputRef"
                     type="text"
@@ -204,8 +209,8 @@ watch(() => props.modelValue, () => {
                     @focus="showDropdown = true"
                     @input="showDropdown = true"
                     @keydown="handleKeydown"
-                    :placeholder="selectedOptions.length === 0 ? (placeholder || 'Tìm kiếm...') : ''"
-                    class="multi-select-input flex-grow w-full outline-none border-none focus:ring-0 p-0 m-0 bg-transparent text-gray-700 dark:text-gray-200"
+                    :placeholder="selectedOptions.length === 0 ? placeholder || 'Tìm kiếm...' : ''"
+                    class="multi-select-input m-0 w-full flex-grow border-none bg-transparent p-0 text-gray-700 outline-none focus:ring-0 dark:text-gray-200"
                     autocomplete="off"
                     role="textbox"
                     aria-autocomplete="list"
@@ -214,16 +219,19 @@ watch(() => props.modelValue, () => {
             </div>
         </div>
 
-        <div v-if="showDropdown"
+        <div
+            v-if="showDropdown"
             ref="dropdownRef"
-            class="multi-select-dropdown absolute z-20 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto"
+            class="multi-select-dropdown absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-gray-300 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-700"
             role="listbox"
             :id="`multi-select-list-${uniqueId}`"
         >
             <ul v-if="filteredOptions.length > 0">
-                <li v-for="(option, index) in filteredOptions" :key="option.value"
+                <li
+                    v-for="(option, index) in filteredOptions"
+                    :key="option.value"
                     @click="selectOption(option)"
-                    class="multi-select-option px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200"
+                    class="multi-select-option cursor-pointer px-4 py-2 text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
                     :class="{ 'active bg-blue-50 dark:bg-blue-800': index === activeOptionIndex }"
                     role="option"
                     :aria-selected="index === activeOptionIndex"
@@ -231,8 +239,8 @@ watch(() => props.modelValue, () => {
                     {{ option.label }}
                 </li>
             </ul>
-            <p v-else class="px-4 py-2 text-gray-500 dark:text-gray-400 text-sm">
-                {{ searchTerm ? (noResultsText || 'Không tìm thấy kết quả.') : (noOptionsText || 'Không có tùy chọn nào.') }}
+            <p v-else class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                {{ searchTerm ? noResultsText || 'Không tìm thấy kết quả.' : noOptionsText || 'Không có tùy chọn nào.' }}
             </p>
         </div>
     </div>
@@ -256,7 +264,6 @@ watch(() => props.modelValue, () => {
     left: 0;
     right: 0;
 }
-
 
 /* Optional: If you want custom focus states */
 .multi-select-input:focus {
