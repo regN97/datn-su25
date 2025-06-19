@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\ProductBatchController;
 use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\PurchaseReturnController;
@@ -46,6 +47,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::delete('purchase-orders/{supplier}/force-delete', [PurchaseOrderController::class, 'forceDelete'])->name('purchase-orders.forceDelete');
 
     Route::resource('purchase-orders', PurchaseOrderController::class);
+
+    Route::post('inventory/{id}', [InventoryController::class, 'updateI'])->name('inventory.update');
+    Route::resource('inventory', InventoryController::class);
 })->middleware(['auth', 'verified']);
 
 
