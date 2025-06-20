@@ -17,6 +17,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 use function PHPUnit\Framework\isEmpty;
 
@@ -307,6 +308,102 @@ class PurchaseOrderController extends Controller
             return redirect()->route('admin.purchase-orders.show', $id)->with('success', 'Duyệt đơn thành công!');
         } else {
             return redirect()->route('admin.purchase-orders.show', $id)->with('error', 'Đơn hàng đã được duyệt!');
+        }
+    }
+
+    public function edit(string $id)
+    {
+        // Lấy thông tin đơn hàng và các sản phẩm trong đơn hàng
+        $purchaseOrderItem = PurchaseOrderItem::where('purchase_order_id', '=', $id)->with('product')->get();
+        $purchaseOrder = PurchaseOrder::where('id', '=', $id)->with('status')->get();
+        
+        // Kiểm tra trạng thái đơn hàng, chỉ cho phép chỉnh sửa nếu đơn hàng chưa được duyệt
+        if ($purchaseOrder[0]->status_id != 1 && $purchaseOrder[0]->status_id != 2) {
+            return redirect()->route('admin.purchase-orders.show', $id)
+                ->with('error', 'Không thể chỉnh sửa đơn hàng đã được duyệt, đã nhập hàng hoặc đã hủy!');
+        }
+        
+        // Lấy danh sách sản phẩm, nhà cung cấp và người dùng
+        $productQuery = Product::query();
+        $products = ['data' => $productQuery->get()];
+        $supplierQuery = Supplier::query();
+        $suppliers = $supplierQuery->get();
+        $user = User::all();
+
+        return Inertia::render('admin/purchase_orders/Edit', [
+            'purchaseOrderItem' => $purchaseOrderItem,
+            'purchaseOrder' => $purchaseOrder,
+            'products' => $products,
+            'suppliers' => $suppliers,
+            'users' => $user,
+        ]);
+    }
+
+    public function update(Request $request, string $id)
+    {
+        // Bắt đầu transaction để đảm bảo tính toàn vẹn dữ liệu
+        DB::beginTransaction();
+        
+        try {
+            // Lấy thông tin đơn hàng hiện tại
+            $purchaseOrder = PurchaseOrder::findOrFail($id);
+            
+            // Kiểm tra trạng thái đơn hàng, chỉ cho phép cập nhật nếu đơn hàng chưa được duyệt hoặc đã duyệt
+            if ($purchaseOrder->status_id != 1 && $purchaseOrder->status_id != 2) {
+                return redirect()->route('admin.purchase-orders.show', $id)
+                    ->with('error', 'Không thể cập nhật đơn hàng đã nhập hàng hoặc đã hủy!');
+            }
+            
+            // Cập nhật thông tin đơn hàng
+            $purchaseOrder->po_number = $request->order_code ?? $purchaseOrder->po_number;
+            $purchaseOrder->supplier_id = $request->supplier_id;
+            $purchaseOrder->expected_delivery_date = $request->expected_import_date;
+            $purchaseOrder->discount_type = $request->discount['type'] ?? null;
+            $purchaseOrder->discount_amount = $request->discount['value'] ?? null;
+            $purchaseOrder->total_amount = $request->total_amount;
+            $purchaseOrder->created_by = $request->user_id ?? Auth::id();
+            $purchaseOrder->notes = $request->note;
+            $purchaseOrder->save();
+            
+            // Xóa tất cả các item hiện tại của đơn hàng
+            PurchaseOrderItem::where('purchase_order_id', $id)->delete();
+            
+            // Thêm lại các item mới
+            $po_items_data = [];
+            foreach ($request->products as $product) {
+                $po_items_data[] = [
+                    'purchase_order_id' => $id,
+                    'product_id'        => $product['id'],
+                    'product_name'      => $product['name'],
+                    'product_sku'       => $product['sku'],
+                    'ordered_quantity'  => $product['quantity'],
+                    'received_quantity' => 0,
+                    'quantity_returned' => 0,
+                    'unit_cost'         => $product['purchase_price'],
+                    'subtotal'          => $product['sub_total'],
+                    'discount_amount'   => 0,
+                    'discount_type'     => 'amount',
+                    'notes'             => null,
+                ];
+            }
+            
+            // Insert nhiều bản ghi vào bảng purchase_order_items
+            PurchaseOrderItem::insert($po_items_data);
+            
+            // Commit transaction
+            DB::commit();
+            
+            // Redirect về trang chi tiết đơn hàng với thông báo thành công
+            return redirect()->route('admin.purchase-orders.show', $id)
+                ->with('success', 'Cập nhật đơn hàng thành công!');
+                
+        } catch (\Exception $e) {
+            // Rollback transaction nếu có lỗi
+            DB::rollBack();
+            
+            // Redirect về trang chỉnh sửa với thông báo lỗi
+            return redirect()->route('admin.purchase-orders.edit', $id)
+                ->with('error', 'Đã xảy ra lỗi khi cập nhật đơn hàng: ' . $e->getMessage());
         }
     }
 }
