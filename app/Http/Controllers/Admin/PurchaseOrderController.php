@@ -165,11 +165,11 @@ class PurchaseOrderController extends Controller
             'products' => $products,
             'suppliers' => $suppliers,
             'users' => $user,
-
         ]);
     }
 
-    public function show($id) {
+    public function show($id)
+    {
         // dd($id);
         $purchaseOrderItem = PurchaseOrderItem::where('purchase_order_id', '=', $id)->with('product')->get();
         $purchaseOrder = PurchaseOrder::where('id', '=', $id)->with('status')->get();
@@ -185,7 +185,6 @@ class PurchaseOrderController extends Controller
             'products' => $products,
             'suppliers' => $suppliers,
             'users' => $user,
-
         ]);
     }
 
@@ -285,5 +284,29 @@ class PurchaseOrderController extends Controller
         return redirect()->back()->with('success', 'Đơn đặt hàng và toàn bộ dữ liệu liên quan đã được xoá vĩnh viễn!');
     }
 
+    public function cancel(string $id)
+    {
+        $purchaseOrder = PurchaseOrder::find($id);
+        if ($purchaseOrder && $purchaseOrder->status_id != 5) {
+            $purchaseOrder->status_id = 5;
+            $purchaseOrder->save();
+            // Thay vì redirect()->back(), chỉ định rõ route để redirect
+            return redirect()->route('admin.purchase-orders.show', $id)->with('success', 'Đơn hàng đã được hủy thành công!');
+        } else {
+            return redirect()->route('admin.purchase-orders.show', $id)->with('error', 'Đơn hàng đã bị hủy hoặc hoàn thành!');
+        }
+    }
 
+    public function approve(string $id)
+    {
+        $purchaseOrder = PurchaseOrder::find($id);
+        if ($purchaseOrder && $purchaseOrder->status_id != 2) {
+            $purchaseOrder->status_id = 2;
+            $purchaseOrder->save();
+            // Thay vì redirect()->back(), chỉ định rõ route để redirect
+            return redirect()->route('admin.purchase-orders.show', $id)->with('success', 'Duyệt đơn thành công!');
+        } else {
+            return redirect()->route('admin.purchase-orders.show', $id)->with('error', 'Đơn hàng đã được duyệt!');
+        }
+    }
 }
