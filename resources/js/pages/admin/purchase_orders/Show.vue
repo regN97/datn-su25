@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronLeft, CircleCheckBig, CircleX, PencilLine, Printer } from 'lucide-vue-next';
+import { ChevronLeft, CircleCheckBig, CircleX, PackagePlus, PencilLine, Printer } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { computed, ref } from 'vue';
 
@@ -37,6 +37,11 @@ interface PurchaseOrder {
     total_amount: number;
     created_by: number;
     notes?: string;
+    status: {
+        id: number;
+        name: string;
+        code: string;
+    };
 }
 
 interface PurchaseOrderItem {
@@ -92,6 +97,24 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const po_products = ref<PurchaseOrderItem[]>(props.purchaseOrderItem);
+const purchase_order = ref<PurchaseOrder[]>(props.purchaseOrder);
+
+function getStatusClass(status_id: number) {
+    switch (status_id) {
+        case 1:
+            return 'bg-green-100 text-green-600';
+        case 2:
+            return 'bg-yellow-100 text-yellow-600';
+        case 3:
+            return 'bg-blue-100 text-blue-600';
+        case 4:
+            return 'bg-gray-100 text-gray-600';
+        case 5:
+            return 'bg-red-100 text-red-600';
+        default:
+            return 'bg-gray-100 text-gray-600';
+    }
+}
 
 const formattedSubtotal = computed(() => {
     const total = po_products.value.reduce((sum, item) => sum + (item.subtotal || 0), 0);
@@ -102,7 +125,7 @@ const formattedSubtotal = computed(() => {
 });
 
 function goBack() {
-    window.history.back();
+    router.visit(route('admin.purchase-orders.index'));
 }
 
 function formatPrice(price: number): string {
@@ -147,10 +170,27 @@ function approveOrder() {
         {},
         {
             onSuccess: () => {
-                Swal.fire('Thành công', 'Đơn hàng đã được duyệt!', 'success');
+                purchase_order.value[0].status_id = 2;
+                purchase_order.value[0].status.name = 'Chờ nhập';
+                purchase_order.value[0].status.code = 'pending';
             },
             onError: () => {
                 Swal.fire('Lỗi', 'Không thể duyệt đơn hàng.', 'error');
+            },
+        },
+    );
+}
+
+function importOrder() {
+    router.post(
+        route('admin.purchase-orders.import', { id: props.purchaseOrder[0].id }),
+        {},
+        {
+            onSuccess: () => {
+                Swal.fire('Thành công', 'Đơn hàng đã được nhập!', 'success');
+            },
+            onError: () => {
+                Swal.fire('Lỗi', 'Không thể nhập đơn hàng.', 'error');
             },
         },
     );
@@ -170,10 +210,10 @@ function cancelOrder() {
                 {},
                 {
                     onSuccess: () => {
-                        Swal.fire('Đã hủy', 'Đơn hàng đã bị hủy.', 'success');
-                    },
-                    onError: () => {
-                        Swal.fire('Lỗi', 'Không thể hủy đơn hàng.', 'error');
+                        // Cập nhật trạng thái trực tiếp trong Vue
+                        purchase_order.value[0].status_id = 5;
+                        purchase_order.value[0].status.name = 'Đã hủy';
+                        purchase_order.value[0].status.code = 'cancelled';
                     },
                 },
             );
@@ -202,24 +242,45 @@ function printOrder() {
                             <ChevronLeft class="h-5 w-5" />
                         </button>
                         <h1 class="ml-4 text-3xl font-bold text-gray-900">{{ orderCode }}</h1>
+                        <span
+                            :class="[
+                                'text-1xl font-regular ml-3 inline-flex rounded-full px-3.5 py-1 leading-5',
+                                getStatusClass(purchase_order[0].status_id),
+                            ]"
+                            >{{ purchase_order[0].status.name }}</span
+                        >
                     </div>
                     <!-- Nhóm bên phải: 4 nút chức năng -->
                     <div class="flex space-x-2">
                         <button
+                            v-if="purchase_order[0].status_id != 5 && purchase_order[0].status_id != 3 && purchase_order[0].status_id != 4"
                             @click="editOrder"
                             class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                         >
                             <PencilLine class="mr-1 h-4 w-4" />
                             Sửa đơn
                         </button>
+
                         <button
+                            v-if="purchase_order[0].status_id == 1"
                             @click="approveOrder"
                             class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                         >
                             <CircleCheckBig class="mr-1 h-4 w-4" />
                             Duyệt đơn
                         </button>
+
                         <button
+                            v-if="purchase_order[0].status_id == 2 || purchase_order[0].status_id == 3"
+                            @click="importOrder"
+                            class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                        >
+                            <PackagePlus class="mr-1 h-4 w-4" />
+                            Nhập hàng
+                        </button>
+
+                        <button
+                            v-if="purchase_order[0].status_id != 5 && purchase_order[0].status_id != 3 && purchase_order[0].status_id != 4"
                             @click="cancelOrder"
                             class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                         >

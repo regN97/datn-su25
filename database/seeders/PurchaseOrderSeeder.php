@@ -16,7 +16,7 @@ class PurchaseOrderSeeder extends Seeder
             [
                 'po_number' => 'PO-20250601-001',
                 'supplier_id' => 1, // Unilever
-                'status_id' => 5, // RECEIVED
+                'status_id' => 1, // RECEIVED
                 'order_date' => '2025-06-01',
                 'expected_delivery_date' => '2025-06-04',
                 'actual_delivery_date' => '2025-06-01',
@@ -33,7 +33,7 @@ class PurchaseOrderSeeder extends Seeder
             [
                 'po_number' => 'PO-20250603-002',
                 'supplier_id' => 2, // Vinamilk
-                'status_id' => 5, // RECEIVED
+                'status_id' => 2, // RECEIVED
                 'order_date' => '2025-06-03',
                 'expected_delivery_date' => '2025-06-07',
                 'actual_delivery_date' => '2025-06-05',
@@ -50,7 +50,7 @@ class PurchaseOrderSeeder extends Seeder
             [
                 'po_number' => 'PO-20250605-003',
                 'supplier_id' => 3, // PepsiCo
-                'status_id' => 4, // SENT
+                'status_id' => 3, // SENT
                 'order_date' => '2025-06-05',
                 'expected_delivery_date' => '2025-06-10',
                 'actual_delivery_date' => null,
@@ -67,7 +67,7 @@ class PurchaseOrderSeeder extends Seeder
             [
                 'po_number' => 'PO-20250608-004',
                 'supplier_id' => 4, // Nestlé
-                'status_id' => 5, // RECEIVED
+                'status_id' => 4, // RECEIVED
                 'order_date' => '2025-06-08',
                 'expected_delivery_date' => '2025-06-12',
                 'actual_delivery_date' => '2025-06-10',
@@ -84,7 +84,7 @@ class PurchaseOrderSeeder extends Seeder
             [
                 'po_number' => 'PO-20250610-005',
                 'supplier_id' => 5, // Sunhouse
-                'status_id' => 2, // PENDING
+                'status_id' => 5, // PENDING
                 'order_date' => '2025-06-10',
                 'expected_delivery_date' => '2025-06-15',
                 'actual_delivery_date' => null,
