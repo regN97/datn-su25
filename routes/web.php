@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\PurchaseReturnController;
 use App\Http\Controllers\Admin\ProductSupplierController;
 use App\Http\Controllers\Admin\PurchaseReceiptController;
+use App\Http\Controllers\Admin\UserController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -52,6 +53,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::post('inventory/{id}', [InventoryController::class, 'updateI'])->name('inventory.update');
     Route::resource('inventory', InventoryController::class);
+    Route::resource('users', UserController::class);
+
+
 })->middleware(['auth', 'verified']);
 
 
