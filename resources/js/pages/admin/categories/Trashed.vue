@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import type { BreadcrumbItem, SharedData } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quản lý danh mục', href: '/admin/categories' },
@@ -14,7 +14,7 @@ type Category = {
     name: string;
     parent_id: number | null;
     description: string;
-    deleted_at: string
+    deleted_at: string;
 };
 
 const page = usePage<SharedData>();
@@ -27,16 +27,20 @@ const getParentName = (parent_id: number | null) => {
 };
 
 function restoreCategory(id: number) {
-    router.post(`/admin/categories/${id}/restore`, {}, {
-        preserveScroll: true,
-        onSuccess: () => {
-            categories.value = categories.value.filter(s => s.id !== id);
-            alert('Khôi phục thành công!');
+    router.post(
+        `/admin/categories/${id}/restore`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                categories.value = categories.value.filter((s) => s.id !== id);
+                alert('Khôi phục thành công!');
+            },
+            onError: () => {
+                alert('Khôi phục thất bại!');
+            },
         },
-        onError: () => {
-            alert('Khôi phục thất bại!');
-        }
-    });
+    );
 }
 
 function forceDeleteCategory(id: number) {
@@ -44,12 +48,12 @@ function forceDeleteCategory(id: number) {
         router.delete(`/admin/categories/${id}/force-delete`, {
             preserveScroll: true,
             onSuccess: () => {
-                categories.value = categories.value.filter(s => s.id !== id);
+                categories.value = categories.value.filter((s) => s.id !== id);
                 alert('Xóa vĩnh viễn thành công!');
             },
             onError: () => {
                 alert('Xóa vĩnh viễn thất bại!');
-            }
+            },
         });
     }
 }
@@ -58,16 +62,14 @@ function comback() {
 }
 </script>
 
-
 <template>
-
     <Head title="Thùng rác danh mục" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-4 space-y-4">
+        <div class="space-y-4 p-4">
             <h1 class="text-2xl font-bold">Thùng rác danh mục</h1>
 
-            <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="overflow-hidden rounded-lg bg-white shadow">
                 <table class="w-full table-auto text-left">
                     <thead class="bg-gray-200">
                         <tr>
@@ -83,23 +85,18 @@ function comback() {
                             <td class="p-3 text-sm">{{ getParentName(cat.parent_id) }}</td>
                             <td class="p-3 text-sm">{{ cat.description }}</td>
                             <td class="p-3 text-sm">
-                                <button @click="restoreCategory(cat.id)" class="text-blue-600 hover:underline">Khôi
-                                    phục</button>
-                                <button @click="forceDeleteCategory(cat.id)"
-                                    class="text-red-600 hover:underline ml-2">Xóa vĩnh viễn</button>
+                                <button @click="restoreCategory(cat.id)" class="text-blue-600 hover:underline">Khôi phục</button>
+                                <button @click="forceDeleteCategory(cat.id)" class="ml-2 text-red-600 hover:underline">Xóa vĩnh viễn</button>
                             </td>
                         </tr>
                         <tr v-if="categories.length === 0">
-                            <td colspan="7" class="p-3 text-center text-sm">Không có nhà cung cấp nào trong thùng rác
-                            </td>
+                            <td colspan="7" class="p-3 text-center text-sm">Không có nhà cung cấp nào trong thùng rác</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
             <div class="flex justify-end">
-                <button @click="comback()" class="px-6 py-2 rounded bg-gray-200 hover:bg-gray-300 text-primary-700">
-                    Quay lại
-                </button>
+                <button @click="comback()" class="text-primary-700 rounded bg-gray-200 px-6 py-2 hover:bg-gray-300">Quay lại</button>
             </div>
         </div>
     </AppLayout>

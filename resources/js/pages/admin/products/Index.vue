@@ -213,7 +213,6 @@ function toggleSidebar() {
 </script>
 
 <template>
-
     <Head title="Products" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -408,10 +407,10 @@ function toggleSidebar() {
                                                             <span class="w-32 font-semibold text-gray-900">Giá
                                                                 bán:</span>
                                                             <span>{{
-                                                                product.selling_price
-                                                                    ? product.selling_price.toLocaleString('vi-VN') + ' ₫'
-                                                                : 'Không có'
-                                                                }}</span>
+    product.selling_price
+        ? product.selling_price.toLocaleString('vi-VN') + ' ₫'
+        : 'Không có'
+}}</span>
                                                         </div>
                                                         <div class="flex items-start">
                                                             <span class="w-32 font-semibold text-gray-900">Tồn kho tối
@@ -442,15 +441,14 @@ function toggleSidebar() {
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    <tr v-for="supplier in product.suppliers"
-                                                                        :key="supplier.id"
+                                                                    <tr v-for="supplier in product.suppliers" :key="supplier.id"
                                                                         class="border-t border-gray-200">
                                                                         <td class="px-4 py-2">{{ supplier.name }}</td>
                                                                         <td class="px-4 py-2 text-right">
                                                                             <template
                                                                                 v-if="supplier.pivot && supplier.pivot.purchase_price !== undefined">
                                                                                 {{
-                                                                                supplier.pivot.purchase_price.toLocaleString('vi-VN')
+                                        supplier.pivot.purchase_price.toLocaleString('vi-VN')
                                                                                 }} ₫
                                                                             </template>
                                                                             <template v-else>

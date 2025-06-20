@@ -9,10 +9,13 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\ProductBatchController;
 use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\PurchaseReturnController;
 use App\Http\Controllers\Admin\ProductSupplierController;
+use App\Http\Controllers\Admin\PurchaseReceiptController;
+use App\Http\Controllers\Admin\UserController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -47,8 +50,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('purchase-orders/trashed', [PurchaseOrderController::class, 'trashed'])->name('purchase-orders.trashed');
     Route::post('purchase-orders/{supplier}/restore', [PurchaseOrderController::class, 'restore'])->name('purchase-orders.restore');
     Route::delete('purchase-orders/{supplier}/force-delete', [PurchaseOrderController::class, 'forceDelete'])->name('purchase-orders.forceDelete');
+    Route::post('purchase-orders/{po_id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
+    Route::post('purchase-orders/{po_id}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-orders.approve');
 
     Route::resource('purchase-orders', PurchaseOrderController::class);
+
+    Route::post('inventory/{id}', [InventoryController::class, 'updateI'])->name('inventory.update');
+    Route::resource('inventory', InventoryController::class);
+    Route::resource('users', UserController::class);
+
+
 })->middleware(['auth', 'verified']);
 
 

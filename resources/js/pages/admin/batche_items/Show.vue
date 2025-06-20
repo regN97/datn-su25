@@ -2,7 +2,6 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { Eye } from 'lucide-vue-next';  
 
 const props = defineProps<{
     batch: {
@@ -92,55 +91,58 @@ function goBack() {
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div class="container mx-auto p-6">
                 <div
-                    class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min bg-white shadow-lg">
+                    class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border bg-white shadow-lg md:min-h-min"
+                >
                     <div class="container mx-auto p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-gray-800">Thông tin lô hàng - {{
-                                props.batch.batch_number }}</h2>
-                            <button @click="goBack"
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
-                                    fill="currentColor">
-                                    <path fill-rule="evenodd"
+                        <div class="mb-6 flex items-center justify-between">
+                            <h2 class="text-2xl font-bold text-gray-800">Thông tin lô hàng - {{ props.batch.batch_number }}</h2>
+                            <button
+                                @click="goBack"
+                                class="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        fill-rule="evenodd"
                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L9.414 11H13a1 1 0 100-2H9.414l1.293-1.293z"
-                                        clip-rule="evenodd" />
+                                        clip-rule="evenodd"
+                                    />
                                 </svg>
                                 Quay lại
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                        <div class="grid grid-cols-1 gap-4 text-gray-700 md:grid-cols-2">
                             <div>
                                 <p class="mb-2"><strong>Mã lô hàng:</strong> {{ props.batch.batch_number }}</p>
-                                <p class="mb-2"><strong>Nhà cung cấp:</strong> {{ props.batch.supplier?.name ||
-                                    'N/A' }}
-                                </p>
-                                <p class="mb-2"><strong>Ngày nhận hàng:</strong> {{
-                                    formatDate(props.batch.received_date) }}</p>
-                                <p class="mb-2"><strong>Số hóa đơn:</strong> {{ props.batch.invoice_number ||
-                                    'N/A' }}
-                                </p>
+                                <p class="mb-2"><strong>Nhà cung cấp:</strong> {{ props.batch.supplier?.name || 'N/A' }}</p>
+                                <p class="mb-2"><strong>Ngày nhận hàng:</strong> {{ formatDate(props.batch.received_date) }}</p>
+                                <p class="mb-2"><strong>Số hóa đơn:</strong> {{ props.batch.invoice_number || 'N/A' }}</p>
                             </div>
                             <div>
-                                <p class="mb-2"><strong>Trạng thái:</strong> <span :class="{
-                                    'text-green-600 font-medium': props.batch.status === 'active',
-                                    'text-yellow-600 font-medium': props.batch.status === 'low_stock',
-                                    'text-red-600 font-medium': props.batch.status === 'out_of_stock' || props.batch.status === 'expired',
-                                }">
+                                <p class="mb-2">
+                                    <strong>Trạng thái:</strong>
+                                    <span
+                                        :class="{
+                                            'font-medium text-green-600': props.batch.status === 'active',
+                                            'font-medium text-yellow-600': props.batch.status === 'low_stock',
+                                            'font-medium text-red-600': props.batch.status === 'out_of_stock' || props.batch.status === 'expired',
+                                        }"
+                                    >
                                         {{ getProductItemStatusDisplayName(props.batch.status) }}
-                                    </span></p>
+                                    </span>
+                                </p>
                             </div>
                         </div>
 
-                        <div v-if="props.batch.notes" class="bg-gray-50 p-6 rounded-lg shadow-sm mb-8 mt-4">
+                        <div v-if="props.batch.notes" class="mt-4 mb-8 rounded-lg bg-gray-50 p-6 shadow-sm">
                             <p class="text-gray-700"><strong>Ghi chú:</strong> {{ props.batch.notes }}</p>
                         </div>
 
-                        <h3 class="text-xl font-bold text-gray-800 mb-4">Thông tin sản phẩm trong lô</h3>
+                        <h3 class="mb-4 text-xl font-bold text-gray-800">Thông tin sản phẩm trong lô</h3>
 
-                        <div class="bg-white p-6 rounded-lg shadow-sm overflow-x-auto">
+                        <div class="overflow-x-auto rounded-lg bg-white p-6 shadow-sm">
                             <table class="min-w-full table-auto border-collapse border border-gray-200">
-                                <thead class="bg-gray-100 text-gray-700 text-sm uppercase">
+                                <thead class="bg-gray-100 text-sm text-gray-700 uppercase">
                                     <tr>
                                         <th class="border border-gray-200 px-4 py-3 text-left">Tên sản phẩm</th>
                                         <th class="border border-gray-200 px-4 py-3 text-left">Hình ảnh</th>
@@ -154,18 +156,19 @@ function goBack() {
                                 </thead>
                                 <tbody>
                                     <template v-if="props.batch.products_in_batch.length > 0">
-                                        <tr v-for="productItem in props.batch.products_in_batch" :key="productItem.id"
-                                            class="text-sm text-gray-800">
+                                        <tr v-for="productItem in props.batch.products_in_batch" :key="productItem.id" class="text-sm text-gray-800">
                                             <td class="border border-gray-200 px-4 py-3">{{ productItem.name }}</td>
                                             <td class="border border-gray-200 px-4 py-3">
-                                                <img v-if="productItem.image_url" :src="productItem.image_url"
-                                                    alt="Product image" class="w-20 h-20 object-cover rounded shadow" />
+                                                <img
+                                                    v-if="productItem.image_url"
+                                                    :src="productItem.image_url"
+                                                    alt="Product image"
+                                                    class="h-20 w-20 rounded object-cover shadow"
+                                                />
                                                 <span v-else class="text-gray-400 italic">Không có ảnh</span>
                                             </td>
-                                            <td class="border border-gray-200 px-4 py-3">{{
-                                                formatDate(props.batch.manufacturing_date) }}</td>
-                                            <td class="border border-gray-200 px-4 py-3">{{
-                                                formatDate(props.batch.expiry_date) }}</td>
+                                            <td class="border border-gray-200 px-4 py-3">{{ formatDate(props.batch.manufacturing_date) }}</td>
+                                            <td class="border border-gray-200 px-4 py-3">{{ formatDate(props.batch.expiry_date) }}</td>
                                             <td class="border border-gray-200 px-4 py-3">{{ productItem.unit }}</td>
                                             <td class="border border-gray-200 px-4 py-3">
                                                 {{ formatCurrency(productItem.purchase_price) }}

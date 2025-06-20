@@ -207,7 +207,6 @@ function cancelDelete() {
             @confirm="handleDeleteCategory"
             @cancel="cancelDelete"
         />
-        
     </AppLayout>
 </template>
 

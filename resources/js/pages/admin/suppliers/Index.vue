@@ -56,7 +56,6 @@ function changePerPage(event: Event) {
     currentPage.value = 1;
 }
 
-
 function goToEditSupplier(id: number) {
     router.visit(`/admin/suppliers/${id}/edit`);
 }
@@ -110,7 +109,7 @@ function cancelDelete() {
                             <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
                                 <PackagePlus />
                             </button>
-                            <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"> Thùng rác </button>
+                            <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng rác</button>
                         </div>
                     </div>
 
@@ -221,7 +220,6 @@ function cancelDelete() {
             @confirm="handleDeleteSupplier"
             @cancel="cancelDelete"
         />
-
     </AppLayout>
 </template>
 

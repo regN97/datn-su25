@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
@@ -127,11 +128,11 @@ const selectedOrderStatus = ref('');
 
 // Danh sách các tùy chọn cho bộ lọc trạng thái (thêm vào script setup)
 const poStatusOptions: POStatus[] = [
-    { id: 1, name: 'Đang chờ', code: 'pending' },
-    { id: 2, name: 'Đã duyệt', code: 'approved' },
-    { id: 3, name: 'Đã gửi', code: 'sent' },
-    { id: 4, name: 'Đã hủy', code: 'cancelled' },
-    { id: 5, name: 'Từ chối', code: 'rejected' },
+    { id: 1, name: 'Đơn nháp', code: 'DRAFT' },
+    { id: 2, name: 'Chờ nhập', code: 'PENDING' },
+    { id: 3, name: 'Nhập một phần', code: 'PARTIAL RECEIVED' },
+    { id: 4, name: 'Nhập toàn bộ', code: 'FULLY RECEIVED' },
+    { id: 5, name: 'Đã hủy', code: 'CANCELLED' },
 ];
 
 // --- Cấu hình phân trang ---
@@ -288,22 +289,18 @@ function getOrderStatusClass(statusCode: string | undefined): string {
     if (!statusCode) return 'bg-gray-100 text-gray-800';
 
     switch (statusCode.toLowerCase()) {
-        case 'pending':
         case 'draft':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'approved':
-            return 'bg-green-100 text-green-800';
-        case 'sent':
-            return 'bg-indigo-100 text-indigo-800';
-        case 'rejected':
+            return 'bg-green-100 text-green-600';
+        case 'pending':
+            return 'bg-yellow-100 text-yellow-600';
+        case 'partial received':
+            return 'bg-blue-100 text-blue-600';
+        case 'fully received':
+            return 'bg-gray-100 text-gray-600';
         case 'cancelled':
-            return 'bg-red-100 text-red-800';
-        case 'processing':
-            return 'bg-blue-100 text-blue-800';
-        case 'completed':
-            return 'bg-purple-100 text-purple-800';
+            return 'bg-red-100 text-red-600';
         default:
-            return 'bg-gray-100 text-gray-800';
+            return 'bg-gray-100 text-gray-600';
     }
 }
 
@@ -372,7 +369,6 @@ function goToTrashedPage() {
                         </div>
 
                         <div class="min-w-[150px]">
-                            <label for="po-status-filter" class="sr-only">Lọc theo trạng thái PO</label>
                             <select
                                 id="po-status-filter"
                                 v-model="selectedOrderStatus"
@@ -421,11 +417,11 @@ function goToTrashedPage() {
                                         <td class="w-[10%] p-3 text-left text-sm">
                                             <span
                                                 :class="[
-                                                    'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold',
+                                                    'inline-flex rounded-full px-3.5 py-1 text-xs leading-5 font-semibold',
                                                     getOrderStatusClass(order.status?.code),
                                                 ]"
                                             >
-                                                {{ order.status ? order.status.name : 'N/A' }}
+                                                {{ order.status_id ? order.status?.name : 'N/A' }}
                                             </span>
                                         </td>
                                         <td class="w-[5%] p-3 text-center text-sm">
@@ -631,6 +627,14 @@ function goToTrashedPage() {
                 </div>
             </div>
         </div>
+
+        <DeleteModal
+            :is-open="showDeleteModal"
+            :title="'Xác nhận xóa'"
+            :description="'Bạn có chắc chắn muốn xóa đơn hàng này?'"
+            @confirm="handleDeletePurchaseOrder"
+            @cancel="cancelDelete"
+        />
     </AppLayout>
 </template>
 <style lang="css" scoped>

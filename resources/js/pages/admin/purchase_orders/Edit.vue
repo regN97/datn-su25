@@ -1,27 +1,20 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/AppLayout.vue';
+import { Head } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
-import { ChevronDown, ChevronLeft, ChevronUp, Search, X } from 'lucide-vue-next';
-import Swal from 'sweetalert2';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { router } from '@inertiajs/vue3';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { ChevronLeft, ChevronDown, ChevronUp, Search, X } from 'lucide-vue-next';
 
-// Types
 interface Product {
     id: number;
     name: string;
     sku: string;
-    barcode?: string;
     description?: string;
-    category_id?: number;
-    unit_id: number;
-    purchase_price: number;
-    selling_price: number;
     image_url?: string;
-    min_stock_level: number;
-    max_stock_level: number;
-    is_active: boolean;
-    suppliers: Supplier[];
+    purchase_price: number;
+    quantity: number;
+    total: number;
 }
 
 interface Supplier {
@@ -30,9 +23,6 @@ interface Supplier {
     email?: string;
     phone?: string;
     address?: string;
-    pivot: {
-        purchase_price: number;
-    };
 }
 
 interface User {
@@ -42,140 +32,182 @@ interface User {
 
 interface SelectedProduct extends Product {
     quantity: number;
+    purchase_price: number;
     total: number;
+    sub_total: number;
 }
 
-interface ProductsResponse {
-    data: Product[];
-    total: number;
+interface PurchaseOrderItem {
+    id: number;
+    purchase_order_id: number;
+    product_id: number;
+    product_name: string;
+    product_sku: string;
+    ordered_quantity: number;
+    received_quantity: number;
+    quantity_returned: number;
+    unit_cost: number;
+    subtotal: number;
+    discount_amount: number;
+    discount_type: string;
+    notes: string | null;
+    product: Product;
 }
 
-// Props from Laravel via Inertia
-interface Props {
-    products?: ProductsResponse;
-    suppliers?: Supplier[];
-    users?: User[];
-    batch: {
+interface PurchaseOrder {
+    id: number;
+    po_number: string;
+    supplier_id: number;
+    status_id: number;
+    order_date: string;
+    expected_delivery_date: string | null;
+    actual_delivery_date: string | null;
+    discount_type: string | null;
+    discount_amount: number | null;
+    total_amount: number;
+    created_by: number;
+    approved_by: number | null;
+    approved_at: string | null;
+    notes: string | null;
+    status: {
         id: number;
-        batch_number: string;
-        purchase_order_id: number;
-        supplier_id: number | null;
-        received_date: string;
-        invoice_number: string | null;
-        total_amount: number;
-        payment_status: 'unpaid' | 'partially_paid' | 'paid';
-        paid_amount: number;
-        receipt_status: 'pending' | 'partially_received' | 'completed' | 'canceled';
-        notes: string | null;
-        created_at: string;
-        updated_at: string;
-
-
-        created_by: {
-            id: number;
-            name: string;
-            email: string;
-        };
-        updated_by: {
-            id: number;
-            name: string;
-            email: string;
-        } | null;
-
-        supplier?: {
-            id: number;
-            name: string;
-            address?: string;
-            phone?: string;
-        };
-        purchase_order?: {
-            id: number;
-            po_number: string;
-            order_date?: string;
-            total_amount?: number;
-        };
-
-
-        batch_items: Array<{
-            id: number;
-            batch_id: number;
-            product_id: number;
-            purchase_order_item_id: number;
-            ordered_quantity: number;
-            received_quantity: number;
-            remaining_quantity: number;
-            current_quantity: number;
-            purchase_price: number;
-            total_amount: number;
-            manufacturing_date: string | null;
-            expiry_date: string | null;
-            inventory_status: 'active' | 'low_stock' | 'out_of_stock' | 'expired';
-            created_at: string;
-            updated_at: string;
-
-            created_by: {
-                id: number;
-                name: string;
-                email?: string;
-            };
-            updated_by: {
-                id: number;
-                name: string;
-                email?: string;
-            } | null;
-
-            product?: {
-                id: number;
-                name: string;
-                sku?: string;
-                image_url?: string;
-                unit?: {
-                    id: number;
-                    name: string;
-                };
-                description?: string;
-            };
-            purchaseOrderItem?: {
-                id: number;
-                quantity_ordered: number;
-                unit_cost: number;
-            };
-
-        }>;
+        name: string;
+        code: string;
     };
 }
 
-const props = withDefaults(defineProps<Props>(), {
-    products: () => ({
-        data: [],
-        total: 0,
-    }),
-    suppliers: () => [], // Add default value for suppliers
-    users: () => [], // Add default value for users
-});
+interface Props {
+    purchaseOrderItem: PurchaseOrderItem[];
+    purchaseOrder: PurchaseOrder[];
+    products: {
+        data: Product[];
+    };
+    suppliers: Supplier[];
+    users: User[];
+}
 
+const props = defineProps<Props>();
+
+// Breadcrumbs
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Tạo đơn nhập hàng',
-        href: '/admin/batches/create',
-    },
+    { title: 'Chỉnh sửa đơn đặt hàng', href: route('admin.purchase-orders.edit', props.purchaseOrder[0].id) },
 ];
 
-// Reactive data
+// Lấy thông tin đơn hàng hiện tại
+const currentPurchaseOrder = ref<PurchaseOrder>(props.purchaseOrder[0]);
+
+// Khởi tạo danh sách sản phẩm đã chọn từ purchaseOrderItem
+const selectedProducts = ref<SelectedProduct[]>([]);
+
+// Khởi tạo các biến cho tìm kiếm sản phẩm
 const searchQuery = ref('');
 const isDropdownOpen = ref(false);
-const selectedProducts = ref<SelectedProduct[]>([]);
 const isLoading = ref(false);
-const searchInputRef = ref<HTMLInputElement>();
-const dropdownRef = ref<HTMLElement>();
+const dropdownRef = ref<HTMLElement | null>(null);
+const searchInputRef = ref<HTMLElement | null>(null);
+
+// Khởi tạo các biến cho nhà cung cấp
+const selectedSupplier = ref<Supplier | null>(null);
+const supplierSearchQuery = ref('');
+const isSupplierDropdownOpen = ref(false);
+const supplierDropdownRef = ref<HTMLElement | null>(null);
+const supplierError = ref('');
+
+// Khởi tạo các biến cho người dùng
+const selectedUser = ref<User | null>(null);
+const userSearchQuery = ref('');
+const isUserDropdownOpen = ref(false);
+const userDropdownRef = ref<HTMLElement | null>(null);
+
+// Khởi tạo các biến cho ngày nhập dự kiến và mã đơn hàng
+const expectedImportDate = ref<string | null>(null);
+const orderCode = ref<string | null>(null);
+
+// Khởi tạo biến cho ghi chú
+const note = ref<string | null>(null);
+
+// Khởi tạo các biến cho modal chỉnh sửa giá
+const isPriceModalOpen = ref(false);
+const editingProductId = ref<number | null>(null);
+const editingPrice = ref<number>(0);
+
+// Khởi tạo các biến cho chiết khấu
+const isDiscountModalOpen = ref(false);
+const discount = ref<{ type: string; value: number } | null>(null);
+const modalDiscountType = ref<'amount' | 'percent'>('amount');
+const modalDiscountInput = ref<string>('');
+const discountError = ref<string>('');
+
+// Khởi tạo dữ liệu từ đơn hàng hiện tại
+onMounted(() => {
+    // Thêm event listener cho click outside
+    document.addEventListener('click', handleClickOutside);
+    
+    // Khởi tạo dữ liệu từ đơn hàng hiện tại
+    initializeFromPurchaseOrder();
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
+
+// Hàm khởi tạo dữ liệu từ đơn hàng hiện tại
+function initializeFromPurchaseOrder() {
+    // Khởi tạo danh sách sản phẩm đã chọn
+    selectedProducts.value = props.purchaseOrderItem.map(item => ({
+        id: item.product_id,
+        name: item.product_name,
+        sku: item.product_sku,
+        purchase_price: item.unit_cost,
+        quantity: item.ordered_quantity,
+        total: item.subtotal,
+        sub_total: item.subtotal,
+        image_url: item.product.image_url,
+        description: item.product.description
+    }));
+
+    // Tìm và thiết lập nhà cung cấp
+    const supplier = props.suppliers.find(s => s.id === currentPurchaseOrder.value.supplier_id);
+    if (supplier) {
+        selectedSupplier.value = supplier;
+    }
+
+    // Tìm và thiết lập người dùng phụ trách
+    const user = props.users.find(u => u.id === currentPurchaseOrder.value.created_by);
+    if (user) {
+        selectedUser.value = user;
+    }
+
+    // Thiết lập ngày nhập dự kiến
+    if (currentPurchaseOrder.value.expected_delivery_date) {
+        expectedImportDate.value = currentPurchaseOrder.value.expected_delivery_date.substring(0, 16);
+    }
+
+    // Thiết lập mã đơn hàng
+    orderCode.value = currentPurchaseOrder.value.po_number;
+
+    // Thiết lập ghi chú
+    note.value = currentPurchaseOrder.value.notes;
+
+    // Thiết lập chiết khấu
+    if (currentPurchaseOrder.value.discount_amount && currentPurchaseOrder.value.discount_type) {
+        discount.value = {
+            type: currentPurchaseOrder.value.discount_type,
+            value: currentPurchaseOrder.value.discount_amount
+        };
+        modalDiscountType.value = currentPurchaseOrder.value.discount_type as 'amount' | 'percent';
+        modalDiscountInput.value = currentPurchaseOrder.value.discount_amount.toString();
+    }
+}
 
 // Computed properties
 const filteredProducts = computed(() => {
-    if (!searchQuery.value) return props.products.data;
-    return props.products.data.filter(
-        (product) =>
-            product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            product.sku.toLowerCase().includes(searchQuery.value.toLowerCase()),
+    if (!searchQuery.value.trim()) return props.products.data;
+    
+    const query = searchQuery.value.toLowerCase();
+    return props.products.data.filter(product => 
+        product.name.toLowerCase().includes(query) || 
+        product.sku.toLowerCase().includes(query)
     );
 });
 
@@ -184,50 +216,77 @@ const subtotal = computed(() => {
 });
 
 const formattedSubtotal = computed(() => {
-    return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND',
-    }).format(subtotal.value);
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(subtotal.value);
 });
 
-// Methods
+const discountAmount = computed(() => {
+    if (!discount.value) return 0;
+    
+    if (discount.value.type === 'amount') {
+        return discount.value.value;
+    } else {
+        return (subtotal.value * discount.value.value) / 100;
+    }
+});
+
+const formattedDiscount = computed(() => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(discountAmount.value);
+});
+
+const totalAfterDiscount = computed(() => {
+    return subtotal.value - discountAmount.value;
+});
+
+const filteredSuppliers = computed(() => {
+    if (!supplierSearchQuery.value.trim()) return props.suppliers;
+    
+    const query = supplierSearchQuery.value.toLowerCase();
+    return props.suppliers.filter(supplier => 
+        supplier.name.toLowerCase().includes(query) || 
+        (supplier.email && supplier.email.toLowerCase().includes(query)) || 
+        (supplier.phone && supplier.phone.includes(query))
+    );
+});
+
+const filteredUsers = computed(() => {
+    if (!userSearchQuery.value.trim()) return props.users;
+    
+    const query = userSearchQuery.value.toLowerCase();
+    return props.users.filter(user => 
+        user.name.toLowerCase().includes(query)
+    );
+});
+
+// Utility functions
 function goBack() {
     window.history.back();
 }
 
-function formatPrice(price: number): string {
-    return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND',
-    }).format(price);
+function formatPrice(price: number) {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 }
 
-// Function to fetch products via Inertia
-function fetchProducts(search: string = '') {
-    isLoading.value = true;
-
-    router.get(
-        route('admin.batches.create'),
-        {
-            search: search,
-            per_page: 100, // hoặc số lớn để lấy hết sản phẩm
-        },
-        {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['products'],
-            onFinish: () => {
-                isLoading.value = false;
-            },
-        },
-    );
+function handleClickOutside(event: MouseEvent) {
+    // Xử lý dropdown sản phẩm
+    if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node) && 
+        searchInputRef.value && !searchInputRef.value.contains(event.target as Node)) {
+        isDropdownOpen.value = false;
+    }
+    
+    // Xử lý dropdown nhà cung cấp
+    if (supplierDropdownRef.value && !supplierDropdownRef.value.contains(event.target as Node)) {
+        isSupplierDropdownOpen.value = false;
+    }
+    
+    // Xử lý dropdown người dùng
+    if (userDropdownRef.value && !userDropdownRef.value.contains(event.target as Node)) {
+        isUserDropdownOpen.value = false;
+    }
 }
 
+// Product dropdown functions
 function openDropdown() {
     isDropdownOpen.value = true;
-    if (props.products.data.length === 0) {
-        fetchProducts(searchQuery.value);
-    }
 }
 
 function closeDropdown() {
@@ -235,87 +294,48 @@ function closeDropdown() {
 }
 
 function selectProduct(product: Product) {
-    const existingProduct = selectedProducts.value.find((p) => p.id === product.id);
-
+    // Kiểm tra xem sản phẩm đã được chọn chưa
+    const existingProduct = selectedProducts.value.find(p => p.id === product.id);
+    
     if (existingProduct) {
+        // Nếu đã chọn, tăng số lượng lên 1
         existingProduct.quantity += 1;
         existingProduct.total = existingProduct.quantity * existingProduct.purchase_price;
+        existingProduct.sub_total = existingProduct.total;
     } else {
-        selectedProducts.value.push({
+        // Nếu chưa chọn, thêm vào danh sách với số lượng là 1
+        const newProduct: SelectedProduct = {
             ...product,
-            purchase_price: 0, // Đơn giá mặc định là 0
             quantity: 1,
-            total: 0,
-        });
+            purchase_price: product.purchase_price || 0,
+            total: product.purchase_price || 0,
+            sub_total: product.purchase_price || 0
+        };
+        selectedProducts.value.push(newProduct);
     }
-
-    searchQuery.value = '';
+    
+    // Đóng dropdown
     closeDropdown();
-
-    router.get(
-        route('admin.batches.create'),
-        {},
-        {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        },
-    );
+    // Xóa query tìm kiếm
+    searchQuery.value = '';
 }
 
 function removeProduct(productId: number) {
-    selectedProducts.value = selectedProducts.value.filter((p) => p.id !== productId);
+    selectedProducts.value = selectedProducts.value.filter(p => p.id !== productId);
 }
 
 function updateQuantity(productId: number, quantity: number) {
-    const product = selectedProducts.value.find((p) => p.id === productId);
-    if (product && quantity > 0) {
+    if (quantity < 1) return;
+    
+    const product = selectedProducts.value.find(p => p.id === productId);
+    if (product) {
         product.quantity = quantity;
         product.total = product.quantity * product.purchase_price;
+        product.sub_total = product.total;
     }
 }
 
-const userSearchQuery = ref('');
-const isUserDropdownOpen = ref(false);
-const selectedUser = ref<User | null>(null);
-const userDropdownRef = ref<HTMLElement>();
-
-const filteredUsers = computed(() => {
-    if (!userSearchQuery.value) return props.users;
-    return props.users.filter((user) => user.name.toLowerCase().includes(userSearchQuery.value.toLowerCase()));
-});
-
-function openUserDropdown() {
-    isUserDropdownOpen.value = true;
-}
-
-function closeUserDropdown() {
-    isUserDropdownOpen.value = false;
-}
-
-function selectUser(user: User) {
-    selectedUser.value = user;
-    userSearchQuery.value = user.name; // Gán tên user vào input
-    closeUserDropdown();
-}
-
-// Add these reactive refs after existing refs
-const supplierSearchQuery = ref('');
-const isSupplierDropdownOpen = ref(false);
-const selectedSupplier = ref<Supplier | null>(null);
-const supplierDropdownRef = ref<HTMLElement>();
-
-// Add computed property for filtered suppliers
-const filteredSuppliers = computed(() => {
-    if (!supplierSearchQuery.value) return props.suppliers;
-    return props.suppliers.filter(
-        (supplier) =>
-            supplier.name.toLowerCase().includes(supplierSearchQuery.value.toLowerCase()) ||
-            (supplier.email && supplier.email.toLowerCase().includes(supplierSearchQuery.value.toLowerCase())) ||
-            (supplier.phone && supplier.phone.includes(supplierSearchQuery.value)),
-    );
-});
-
+// Supplier dropdown functions
 function openSupplierDropdown() {
     isSupplierDropdownOpen.value = true;
 }
@@ -326,36 +346,31 @@ function closeSupplierDropdown() {
 
 function selectSupplier(supplier: Supplier) {
     selectedSupplier.value = supplier;
-    supplierSearchQuery.value = ''; // Clear the search query
+    supplierError.value = '';
     closeSupplierDropdown();
+    supplierSearchQuery.value = '';
 }
 
 function unselectSupplier() {
     selectedSupplier.value = null;
-    supplierSearchQuery.value = '';
 }
 
-// Handle click outside to close dropdown
-function handleClickOutside(event: MouseEvent) {
-    if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
-        closeDropdown();
-    }
-    if (supplierDropdownRef.value && !supplierDropdownRef.value.contains(event.target as Node)) {
-        closeSupplierDropdown();
-    }
-    if (userDropdownRef.value && !userDropdownRef.value.contains(event.target as Node)) {
-        closeUserDropdown();
-    }
+// User dropdown functions
+function openUserDropdown() {
+    isUserDropdownOpen.value = true;
 }
 
-const expectedImportDate = ref('');
-const batchCode = ref('');
-const invoiceCode = ref('');
+function closeUserDropdown() {
+    isUserDropdownOpen.value = false;
+}
 
-const isPriceModalOpen = ref(false);
-const editingProductId = ref<number | null>(null);
-const editingPrice = ref(0);
+function selectUser(user: User) {
+    selectedUser.value = user;
+    closeUserDropdown();
+    userSearchQuery.value = '';
+}
 
+// Price modal functions
 function openPriceModal(product: SelectedProduct) {
     editingProductId.value = product.id;
     editingPrice.value = product.purchase_price;
@@ -368,179 +383,125 @@ function closePriceModal() {
 }
 
 function savePrice() {
-    const product = selectedProducts.value.find((p) => p.id === editingProductId.value);
-    if (product) {
+    if (editingProductId.value === null) return;
+    
+    const product = selectedProducts.value.find(p => p.id === editingProductId.value);
+    if (product && editingPrice.value >= 0) {
         product.purchase_price = editingPrice.value;
         product.total = product.quantity * product.purchase_price;
+        product.sub_total = product.total;
     }
+    
     closePriceModal();
 }
 
-// Chiết khấu đơn
-const isDiscountModalOpen = ref(false);
-const discount = ref<{ type: 'amount' | 'percent'; value: number }>({ type: 'amount', value: 0 });
-
-// Thêm biến tạm cho modal
-const modalDiscountType = ref<'amount' | 'percent'>('amount');
-const modalDiscountInput = ref('');
-const discountError = ref('');
-
-const formattedDiscount = computed(() => {
-    if (discount.value.value === 0) return '0₫';
-    if (discount.value.type === 'amount') {
-        return `-${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(discount.value.value)}`;
-    }
-    // percent
-    return `-${discount.value.value}%`;
-});
-
-const discountAmount = computed(() => {
-    if (discount.value.type === 'amount') {
-        return Math.min(discount.value.value, subtotal.value);
-    }
-    // percent
-    return Math.round((subtotal.value * discount.value.value) / 100);
-});
-
-const totalAfterDiscount = computed(() => {
-    return Math.max(subtotal.value - discountAmount.value, 0);
-});
-
+// Discount modal functions
 function openDiscountModal() {
+    if (discount.value) {
+        modalDiscountType.value = discount.value.type as 'amount' | 'percent';
+        modalDiscountInput.value = discount.value.value.toString();
+    } else {
+        modalDiscountType.value = 'amount';
+        modalDiscountInput.value = '';
+    }
+    
     isDiscountModalOpen.value = true;
-    modalDiscountType.value = discount.value.type;
-    modalDiscountInput.value = discount.value.value ? discount.value.value.toString() : '';
-    discountError.value = '';
 }
 
 function closeDiscountModal() {
     isDiscountModalOpen.value = false;
+    discount.value = null;
+    modalDiscountInput.value = '';
     discountError.value = '';
 }
 
 function setDiscountType(type: 'amount' | 'percent') {
     modalDiscountType.value = type;
-    modalDiscountInput.value = '';
-    discountError.value = '';
 }
 
 function saveDiscount() {
-    const val = Number(modalDiscountInput.value);
-    if (modalDiscountType.value === 'amount') {
-        if (isNaN(val) || val < 0) {
-            discountError.value = 'Vui lòng nhập số tiền hợp lệ';
-            return;
-        }
-        if (val > subtotal.value) {
-            discountError.value = 'Không được lớn hơn tổng tiền';
-            return;
-        }
-    } else {
-        if (isNaN(val) || val < 0 || val > 100) {
-            discountError.value = 'Phần trăm phải từ 0 đến 100';
-            return;
-        }
+    discountError.value = '';
+    
+    const value = parseFloat(modalDiscountInput.value);
+    
+    if (isNaN(value) || value < 0) {
+        discountError.value = 'Vui lòng nhập giá trị hợp lệ';
+        return;
     }
-    // Chỉ khi bấm Lưu mới cập nhật ra ngoài
-    discount.value.type = modalDiscountType.value;
-    discount.value.value = val;
-    closeDiscountModal();
+    
+    if (modalDiscountType.value === 'percent' && value > 100) {
+        discountError.value = 'Phần trăm chiết khấu không thể vượt quá 100%';
+        return;
+    }
+    
+    if (modalDiscountType.value === 'amount' && value > subtotal.value) {
+        discountError.value = 'Giá trị chiết khấu không thể vượt quá tổng tiền';
+        return;
+    }
+    
+    discount.value = {
+        type: modalDiscountType.value,
+        value: value
+    };
+    
+    isDiscountModalOpen.value = false;
 }
 
-// Watch for search query changes
-watch(searchQuery, (newQuery) => {
-    if (isDropdownOpen.value) {
-        fetchProducts(newQuery);
+// Watch for changes in search query
+watch(searchQuery, (newValue) => {
+    if (newValue.trim().length > 0) {
+        isLoading.value = true;
+        // Simulate API call
+        setTimeout(() => {
+            isLoading.value = false;
+        }, 300);
     }
 });
 
-const note = ref('');
-const supplierError = ref('');
-
-function submitBatch() {
+// Submit function
+function submitOrder() {
+    // Kiểm tra xem đã chọn nhà cung cấp chưa
     if (!selectedSupplier.value) {
-        supplierError.value = 'Nhà cung cấp không được để trống';
-        if (supplierError.value.length > 0) {
-            return Swal.fire({
-                icon: 'error',
-                title: 'Có lỗi xảy ra, vui lòng kiểm tra lại',
-                showConfirmButton: false,
-                timer: 2000,
-            });
-        }
-    } else {
-        supplierError.value = '';
+        supplierError.value = 'Vui lòng chọn nhà cung cấp';
+        return;
     }
-
-    router.post(route('admin.batches.store'), {
-        products: selectedProducts.value.map((p) => ({
-            id: p.id,
-            name: p.name,
-            sku: p.sku,
-            quantity: p.quantity,
-            purchase_price: p.purchase_price,
-            sub_total: p.total,
+    
+    // Gửi dữ liệu cập nhật đơn hàng
+    router.post(route('admin.purchase-orders.update', currentPurchaseOrder.value.id), {
+        _method: 'PUT',
+        products: selectedProducts.value.map(product => ({
+            id: product.id,
+            name: product.name,
+            sku: product.sku,
+            quantity: product.quantity,
+            purchase_price: product.purchase_price,
+            sub_total: product.total
         })),
-        discount: {
-            type: discount.value.type,
-            value: discount.value.value,
-        },
+        supplier_id: selectedSupplier.value.id,
+        discount: discount.value,
         total_amount: totalAfterDiscount.value,
-        supplier_id: selectedSupplier.value ? selectedSupplier.value.id : null,
         user_id: selectedUser.value ? selectedUser.value.id : null,
         expected_import_date: expectedImportDate.value,
-        batch_code: batchCode.value,
-        invoice_code: invoiceCode.value,
+        order_code: orderCode.value,
         note: note.value,
-        payment_status: paymentStatus.value,
-        paid_amount: paidAmount.value,
-        payment_date: paymentDate.value,
-        payment_method: paymentStatus.value === 'unpaid' ? null : paymentMethod.value,
-        receipt_status: receiptStatus.value,
     });
 }
-
-// Lifecycle hooks
-onMounted(() => {
-    document.addEventListener('click', handleClickOutside);
-});
-
-onUnmounted(() => {
-    document.removeEventListener('click', handleClickOutside);
-});
-
-// Payment status
-
-const paymentStatus = ref('unpaid'); // mặc định là 'Thanh toán sau'
-const paymentMethod = ref('cash');
-const paymentDate = ref('');
-const paymentReference = ref('');
-const paidAmount = ref('');
-const receiptStatus = ref('pending');
-
-watch(paymentStatus, (newStatus) => {
-    if (newStatus === 'paid' || newStatus === 'partially_received') {
-        if (!paymentMethod.value) {
-            paymentMethod.value = 'cash';
-        }
-    } else {
-        paymentMethod.value = '';
-    }
-});
 </script>
 
 <template>
-    <Head title="Create Batch" />
+    <Head title="Edit PO" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="min-h-screen bg-gray-50 p-4">
             <div class="mx-auto max-w-7xl">
                 <!-- Header -->
-                <div class="mb-6">
-                    <button @click="goBack" class="mb-4 flex cursor-pointer items-center text-gray-600 hover:text-gray-800">
-                        <ChevronLeft class="mr-1 h-4 w-4" />
-                        Quay lại
+                <div class="mb-4 flex items-center">
+                    <button
+                        @click="goBack"
+                        class="mb-0 flex h-10 w-10 items-center justify-center rounded border border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:text-gray-800"
+                    >
+                        <ChevronLeft class="h-5 w-5" />
                     </button>
-                    <h1 class="text-3xl font-bold text-gray-900">Tạo đơn nhập từ đơn đặt{{ props.batch.purchase_order?.po_number }}</h1>
+                    <h1 class="ml-4 text-3xl font-bold text-gray-900">Chỉnh sửa đơn hàng nhập</h1>
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -548,7 +509,7 @@ watch(paymentStatus, (newStatus) => {
                     <div class="flex flex-col gap-6 lg:col-span-2">
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
-                                <h2 class="text-lg font-semibold">Tạo đơn nhập tự đơn đặt {{ props.batch.purchase_order?.po_number }}</h2>
+                                <h2 class="text-lg font-semibold">Chi tiết đơn hàng</h2>
                             </div>
                             <div class="space-y-6 p-6">
                                 <!-- Selected Products -->
@@ -742,163 +703,8 @@ watch(paymentStatus, (newStatus) => {
                                     <div class="flex items-center justify-between text-lg font-semibold">
                                         <span>Tiền cần trả NCC</span>
                                         <span>{{
-                                            new Intl.NumberFormat('vi-VN', {
-                                                style: 'currency',
-                                                currency: 'VND',
-                                            }).format(totalAfterDiscount)
+                                            new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAfterDiscount)
                                         }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="border-t pt-4">
-                                    <div class="w-full space-y-4 rounded-md bg-blue-50 p-6">
-                                        <div class="space-y-4 rounded-md bg-blue-50 p-4">
-                                            <!-- Radio "Đã thanh toán" -->
-                                            <div class="flex items-center space-x-6">
-                                                <label class="inline-flex items-center space-x-2">
-                                                    <input
-                                                        type="radio"
-                                                        name="payment_status"
-                                                        value="paid"
-                                                        v-model="paymentStatus"
-                                                        class="form-radio text-blue-600"
-                                                    />
-                                                    <span class="font-medium text-gray-800">Đã thanh toán</span>
-                                                </label>
-                                            </div>
-
-                                            <!-- Phần hiển thị thêm khi chọn "Đã thanh toán" -->
-                                            <div v-if="paymentStatus === 'paid'" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                <!-- Hình thức thanh toán -->
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Hình thức thanh toán</label>
-                                                    <select
-                                                        v-model="paymentMethod"
-                                                        class="border-white-300 mt-1 w-full rounded-md bg-white p-2 shadow-sm"
-                                                    >
-                                                        <option value="cash">Tiền mặt</option>
-                                                        <option value="bank">Chuyển khoản</option>
-                                                        <option value="card">Thẻ</option>
-                                                    </select>
-                                                </div>
-
-                                                <!-- Số tiền thanh toán -->
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Số tiền thanh toán</label>
-                                                    <div class="relative mt-1">
-                                                        <input
-                                                            type="text"
-                                                            v-model="paidAmount"
-                                                            class="w-full rounded-md bg-white p-2 pr-10 shadow-sm"
-                                                        />
-                                                        <span class="text-black-500 absolute inset-y-0 right-3 flex items-center">₫</span>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Ngày ghi nhận -->
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Ngày ghi nhận</label>
-                                                    <input
-                                                        type="date"
-                                                        v-model="paymentDate"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
-                                                    />
-                                                </div>
-
-                                                <!-- Tham chiếu -->
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Tham chiếu</label>
-                                                    <input
-                                                        type="text"
-                                                        v-model="paymentReference"
-                                                        placeholder="Nhập mã tham chiếu"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
-                                                    />
-                                                </div>
-
-                                                <!--  -->
-                                            </div>
-
-                                            <!-- Radio "Đã thanh toán một phần" -->
-                                            <div class="flex items-center space-x-6">
-                                                <label class="inline-flex items-center space-x-2">
-                                                    <input
-                                                        type="radio"
-                                                        name="payment_status"
-                                                        value="partially_received"
-                                                        v-model="paymentStatus"
-                                                        class="form-radio text-blue-600"
-                                                    />
-                                                    <span class="font-medium text-gray-800">Đã thanh toán một phần</span>
-                                                </label>
-                                            </div>
-
-                                            <!-- Phần hiển thị thêm khi chọn "Đã thanh toán một phần" -->
-                                            <div v-if="paymentStatus === 'partially_received'" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                <!-- Hình thức thanh toán -->
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Hình thức thanh toán</label>
-                                                    <select
-                                                        v-model="paymentMethod"
-                                                        class="border-white-300 mt-1 w-full rounded-md bg-white p-2 shadow-sm"
-                                                    >
-                                                        <option value="cash">Tiền mặt</option>
-                                                        <option value="bank">Chuyển khoản</option>
-                                                        <option value="card">Thẻ</option>
-                                                    </select>
-                                                </div>
-
-                                                <!-- Số tiền thanh toán -->
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Số tiền thanh toán</label>
-                                                    <div class="relative mt-1">
-                                                        <input
-                                                            type="text"
-                                                            v-model="paidAmount"
-                                                            class="w-full rounded-md bg-white p-2 pr-10 shadow-sm"
-                                                        />
-                                                        <span class="text-black-500 absolute inset-y-0 right-3 flex items-center">₫</span>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Ngày ghi nhận -->
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Ngày ghi nhận</label>
-                                                    <input
-                                                        type="date"
-                                                        v-model="paymentDate"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
-                                                    />
-                                                </div>
-
-                                                <!-- Tham chiếu -->
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Tham chiếu</label>
-                                                    <input
-                                                        type="text"
-                                                        v-model="paymentReference"
-                                                        placeholder="Nhập mã tham chiếu"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
-                                                    />
-                                                </div>
-
-                                                <!--  -->
-                                            </div>
-
-                                            <!-- Radio "Thanh toán sau" -->
-                                            <div class="flex items-center space-x-6">
-                                                <label class="inline-flex items-center space-x-2">
-                                                    <input
-                                                        type="radio"
-                                                        name="payment_status"
-                                                        value="unpaid"
-                                                        v-model="paymentStatus"
-                                                        class="form-radio text-blue-600"
-                                                    />
-                                                    <span class="font-medium text-gray-800">Thanh toán sau</span>
-                                                </label>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -910,7 +716,7 @@ watch(paymentStatus, (newStatus) => {
                         <!-- Suppliers Search -->
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
-                                <h2 class="text-lg font-semibold">Nhà cung cấp</h2>
+                                <h2 class="text-lg font-semibold">Tìm kiếm hay thêm mới nhà cung cấp</h2>
                                 <div v-if="supplierError.length > 0" class="text-sm text-red-500">
                                     {{ supplierError }}
                                 </div>
@@ -998,6 +804,19 @@ watch(paymentStatus, (newStatus) => {
                                 <!-- Nhân viên phụ trách -->
                                 <div class="relative" ref="userDropdownRef">
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Nhân viên phụ trách</label>
+                                    <!-- Hiển thị nhân viên đã chọn -->
+                                    <div v-if="selectedUser" class="mb-2 flex items-center justify-between rounded-md border border-gray-300 bg-blue-50 p-2">
+                                        <div class="flex items-center">
+                                            <span class="font-medium text-gray-900">{{ selectedUser.name }}</span>
+                                        </div>
+                                        <button
+                                            @click="selectedUser = null"
+                                            class="ml-2 rounded-full p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+                                        >
+                                            <X class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <!-- Input tìm kiếm -->
                                     <div class="relative">
                                         <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
                                         <input
@@ -1056,35 +875,13 @@ watch(paymentStatus, (newStatus) => {
                                         class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
-                                <!-- Trạng thái nhận hàng -->
-                                <div>
-                                    <label class="mb-1 block text-sm font-medium text-gray-700">Trạng thái nhập hàng</label>
-                                    <select
-                                        v-model="receiptStatus"
-                                        class="h-10 w-full rounded-md border border-gray-300 bg-white px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="pending">Đang chờ</option>
-                                        <option value="partially_received">Đã nhận một phần</option>
-                                        <option value="completed">Hoàn thành</option>
-                                        <option value="cancelled">Đã hủy</option>
-                                    </select>
-                                </div>
                                 <!-- Mã đơn đặt hàng nhập -->
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng nhập</label>
                                     <input
                                         type="text"
-                                        v-model="batchCode"
-                                        placeholder="Nhập mã đơn nhập hàng"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label class="mb-1 block text-sm font-medium text-gray-700">Tham chiếu</label>
-                                    <input
-                                        type="text"
-                                        v-model="invoiceCode"
-                                        placeholder="Mã nhập tham chiếu"
+                                        v-model="orderCode"
+                                        placeholder="Nhập mã đơn hàng"
                                         class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -1107,18 +904,18 @@ watch(paymentStatus, (newStatus) => {
 
                         <button
                             class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600"
-                            @click="submitBatch"
+                            @click="submitOrder"
                             v-if="selectedProducts.length > 0"
                         >
-                            Lưu đơn hàng
+                            Cập nhật đơn hàng
                         </button>
                         <button
                             class="mt-4 h-12 w-full rounded-md bg-gray-500 font-medium text-white hover:bg-gray-600"
-                            @click="submitBatch"
+                            @click="submitOrder"
                             v-else
                             disabled
                         >
-                            Lưu đơn nhập hàng
+                            Cập nhật đơn hàng
                         </button>
                     </div>
                 </div>
