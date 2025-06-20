@@ -15,7 +15,6 @@ const props = defineProps<{
         payment_status: 'unpaid' | 'partially_paid' | 'paid';
         paid_amount: number;
         receipt_status: 'pending' | 'partially_received' | 'completed' | 'canceled';
-        is_partial_receipt: boolean;
         notes: string | null;
         created_at: string;
         updated_at: string;
@@ -100,11 +99,11 @@ console.log('Batch data in Vue:', props.batch);
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Quản lý lô hàng',
-        href: '/admin/product-batches',
+        href: '/admin/batches',
     },
     {
         title: 'Chi tiết lô hàng',
-        href: `/admin/product-batches/${props.batch.id}`,
+        href: `/admin/batches/${props.batch.id}`,
     },
 ];
 
@@ -176,7 +175,7 @@ function formatDateOnly(dateString: string | null): string {
 }
 
 function goBack() {
-    router.visit('/admin/product-batches');
+    router.visit('/admin/batches');
 }
 </script>
 
@@ -246,8 +245,6 @@ function goBack() {
                                         {{ getStatusDisplayName(props.batch.receipt_status) }}
                                     </span>
                                 </p>
-                                <!-- <p><strong>Nhận hàng một phần:</strong> {{ props.batch.is_partial_receipt ? 'Có' :
-                                    'Không' }}</p> -->
                             </div>
 
                             <!-- Cột 3 -->

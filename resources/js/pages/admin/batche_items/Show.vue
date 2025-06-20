@@ -34,7 +34,7 @@ const props = defineProps<{
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Quản lý lô hàng',
-        href: '/admin/product-batches',
+        href: '/admin/batches',
     },
     {
         title: 'Chi tiết lô hàng',
@@ -82,7 +82,7 @@ function formatDate(dateString: string | null): string {
 }
 
 function goBack() {
-    router.visit('/admin/product-batches');
+    router.visit('/admin/batches');
 }
 </script>
 

@@ -118,7 +118,7 @@ const paginatedBatches = computed(() => {
 
 
 function goToBatchDetails(id: number) {
-    router.visit(`/admin/product-batches/${id}`);
+    router.visit(`/admin/batches/${id}`);
 }
 
 function resetPagination() {
@@ -138,7 +138,7 @@ function resetAllFilters() {
 }
 
 function exportBatchesToExcel() {
-    window.location.href = '/admin/product-batches/export';
+    window.location.href = '/admin/batches/export';
 }
 
 function getPaymentStatusDisplayName(status: 'unpaid' | 'partially_paid' | 'paid') {
@@ -178,7 +178,7 @@ function formatCurrency(amount: number): string {
     }).format(amount);
 }
 function goToCreatePage() {
-    router.visit(route('admin.product-batches.create'));
+    router.visit(route('admin.batches.create'));
 }
 
 </script>

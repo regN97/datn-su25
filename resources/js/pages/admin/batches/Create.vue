@@ -55,6 +55,94 @@ interface Props {
     products?: ProductsResponse;
     suppliers?: Supplier[];
     users?: User[];
+    batch: {
+        id: number;
+        batch_number: string;
+        purchase_order_id: number;
+        supplier_id: number | null;
+        received_date: string;
+        invoice_number: string | null;
+        total_amount: number;
+        payment_status: 'unpaid' | 'partially_paid' | 'paid';
+        paid_amount: number;
+        receipt_status: 'pending' | 'partially_received' | 'completed' | 'canceled';
+        notes: string | null;
+        created_at: string;
+        updated_at: string;
+
+
+        created_by: {
+            id: number;
+            name: string;
+            email: string;
+        };
+        updated_by: {
+            id: number;
+            name: string;
+            email: string;
+        } | null;
+
+        supplier?: {
+            id: number;
+            name: string;
+            address?: string;
+            phone?: string;
+        };
+        purchase_order?: {
+            id: number;
+            po_number: string;
+            order_date?: string;
+            total_amount?: number;
+        };
+
+
+        batch_items: Array<{
+            id: number;
+            batch_id: number;
+            product_id: number;
+            purchase_order_item_id: number;
+            ordered_quantity: number;
+            received_quantity: number;
+            remaining_quantity: number;
+            current_quantity: number;
+            purchase_price: number;
+            total_amount: number;
+            manufacturing_date: string | null;
+            expiry_date: string | null;
+            inventory_status: 'active' | 'low_stock' | 'out_of_stock' | 'expired';
+            created_at: string;
+            updated_at: string;
+
+            created_by: {
+                id: number;
+                name: string;
+                email?: string;
+            };
+            updated_by: {
+                id: number;
+                name: string;
+                email?: string;
+            } | null;
+
+            product?: {
+                id: number;
+                name: string;
+                sku?: string;
+                image_url?: string;
+                unit?: {
+                    id: number;
+                    name: string;
+                };
+                description?: string;
+            };
+            purchaseOrderItem?: {
+                id: number;
+                quantity_ordered: number;
+                unit_cost: number;
+            };
+
+        }>;
+    };
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -69,7 +157,7 @@ const props = withDefaults(defineProps<Props>(), {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Tạo đơn nhập hàng',
-        href: '/admin/product-batches/create',
+        href: '/admin/batches/create',
     },
 ];
 
@@ -119,7 +207,7 @@ function fetchProducts(search: string = '') {
     isLoading.value = true;
 
     router.get(
-        route('admin.product-batches.create'),
+        route('admin.batches.create'),
         {
             search: search,
             per_page: 100, // hoặc số lớn để lấy hết sản phẩm
@@ -165,7 +253,7 @@ function selectProduct(product: Product) {
     closeDropdown();
 
     router.get(
-        route('admin.product-batches.create'),
+        route('admin.batches.create'),
         {},
         {
             preserveState: true,
@@ -384,7 +472,7 @@ function submitBatch() {
         supplierError.value = '';
     }
 
-    router.post(route('admin.product-batches.store'), {
+    router.post(route('admin.batches.store'), {
         products: selectedProducts.value.map((p) => ({
             id: p.id,
             name: p.name,
@@ -455,7 +543,7 @@ watch(paymentStatus, (newStatus) => {
                         <ChevronLeft class="mr-1 h-4 w-4" />
                         Quay lại
                     </button>
-                    <h1 class="text-3xl font-bold text-gray-900">Tạo đơn nhập hàng</h1>
+                    <h1 class="text-3xl font-bold text-gray-900">Tạo đơn nhập từ đơn đặt{{ props.batch.purchase_order?.po_number }}</h1>
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -463,7 +551,7 @@ watch(paymentStatus, (newStatus) => {
                     <div class="flex flex-col gap-6 lg:col-span-2">
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
-                                <h2 class="text-lg font-semibold">Tạo đơn nhập hàng</h2>
+                                <h2 class="text-lg font-semibold">Tạo đơn nhập tự đơn đặt {{ props.batch.purchase_order?.po_number }}</h2>
                             </div>
                             <div class="space-y-6 p-6">
                                 <!-- Selected Products -->

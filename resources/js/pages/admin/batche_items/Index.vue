@@ -9,7 +9,7 @@ import { computed, ref } from 'vue';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Quản lý lô hàng',
-        href: '/admin/product-batches',
+        href: '/admin/batches',
     },
 ];
 type Supplier = {
@@ -111,7 +111,7 @@ function changePerPage(event: Event) {
 }
 
 function goToBatchDetails(id: number) {
-    router.visit(`/admin/product-batches/${id}`);
+    router.visit(`/admin/batches/${id}`);
 }
 
 function getStatusDisplayName(status: string) {
@@ -143,7 +143,7 @@ function resetPagination() {
     currentPage.value = 1;
 }
 function exportBatchesToExcel() {
-    window.location.href = '/admin/product-batches';
+    window.location.href = '/admin/batches';
 }
 function formatDateTime(dateStr: string | null): string {
     if (!dateStr) return '—';

@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronLeft, CircleCheckBig, CircleX, PencilLine, Printer } from 'lucide-vue-next';
+import { ChevronLeft, CircleCheckBig, CircleX, PencilLine, Printer, ArchiveRestore } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { computed, ref } from 'vue';
 
@@ -184,6 +184,10 @@ function cancelOrder() {
 function printOrder() {
     window.open(route('admin.purchase-orders.print', { id: props.purchaseOrder[0].id }), '_blank');
 }
+
+function purchaseReceipt() {
+    window.open(route('admin.batches.create', props.purchaseOrder[0].id));
+}
 </script>
 
 <template>
@@ -233,6 +237,15 @@ function printOrder() {
                             <Printer class="mr-1 h-4 w-4" />
                             In đơn
                         </button>
+
+                        <button
+                            @click="purchaseReceipt"
+                            class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                        >
+                            <ArchiveRestore  class="mr-1 h-4 w-4" />
+                            Nhập hàng
+                        </button>
+                        
                     </div>
                 </div>
 
