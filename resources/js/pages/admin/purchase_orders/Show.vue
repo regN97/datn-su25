@@ -182,17 +182,9 @@ function approveOrder() {
 }
 
 function importOrder() {
-    router.post(
-        route('admin.purchase-orders.import', { id: props.purchaseOrder[0].id }),
+    router.get(
+        route('admin.batches.add', { id: props.purchaseOrder[0].id }),
         {},
-        {
-            onSuccess: () => {
-                Swal.fire('Thành công', 'Đơn hàng đã được nhập!', 'success');
-            },
-            onError: () => {
-                Swal.fire('Lỗi', 'Không thể nhập đơn hàng.', 'error');
-            },
-        },
     );
 }
 
@@ -224,6 +216,7 @@ function cancelOrder() {
 function printOrder() {
     window.open(route('admin.purchase-orders.print', { id: props.purchaseOrder[0].id }), '_blank');
 }
+
 </script>
 
 <template>

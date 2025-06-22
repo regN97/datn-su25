@@ -211,6 +211,7 @@ function toggleSidebar() {
     isSidebarOpen.value = !isSidebarOpen.value;
 }
 </script>
+
 <template>
     <Head title="Products" />
 

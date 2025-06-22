@@ -114,7 +114,7 @@ const paginatedBatches = computed(() => {
 });
 
 function goToBatchDetails(id: number) {
-    router.visit(`/admin/product-batches/${id}`);
+    router.visit(`/admin/batches/${id}`);
 }
 
 function resetPagination() {
@@ -134,7 +134,7 @@ function resetAllFilters() {
 }
 
 function exportBatchesToExcel() {
-    window.location.href = '/admin/product-batches/export';
+    window.location.href = '/admin/batches/export';
 }
 
 function getPaymentStatusDisplayName(status: 'unpaid' | 'partially_paid' | 'paid') {
@@ -182,9 +182,7 @@ function formatCurrency(amount: number): string {
         minimumFractionDigits: 0,
     }).format(amount);
 }
-function goToCreatePage() {
-    router.visit(route('admin.product-batches.create'));
-}
+
 </script>
 
 <template>
@@ -200,7 +198,6 @@ function goToCreatePage() {
                         <h1 class="text-3xl font-semibold text-gray-800">Quản lý đơn nhập hàng</h1>
                         <div class="ml-auto flex gap-4">
                             <button
-                                @click="goToCreatePage"
                                 class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600"
                             >
                                 <PackagePlus class="h-5 w-5" />
@@ -280,15 +277,13 @@ function goToCreatePage() {
                                     <td class="w-[10%] p-4 text-sm text-gray-700">
                                         {{ batch.batch_number }}
                                     </td>
-                                    <td class="w-[15%] p-4 text-sm text-gray-700">
+                                    <td class="w-[25%] p-4 text-sm text-gray-700">
                                         {{ batch.supplier?.name || 'N/A' }}
                                     </td>
                                     <td class="w-[10%] p-4 text-center text-sm text-gray-700">
                                         {{ formatDateTime(batch.received_date) }}
                                     </td>
-                                    <td class="w-[10%] p-4 text-right text-sm text-gray-700">
-                                        {{ formatCurrency(batch.total_amount) }}
-                                    </td>
+                                    
                                     <td class="w-[15%] p-4 text-center text-sm">
                                         <span
                                             :class="{

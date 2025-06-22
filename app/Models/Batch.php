@@ -22,9 +22,10 @@ class Batch extends Model
         'invoice_number',
         'total_amount',
         'payment_status',
+        'payment_method',
+        'payment_date',
         'paid_amount',
         'receipt_status',
-        'payment_date,',
         'notes',
         'created_by',
         'updated_by'

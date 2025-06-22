@@ -25,7 +25,7 @@ return new class extends Migration
              $table->date('payment_date')->nullable();
             $table->unsignedInteger('paid_amount')->default(0);
 
-            $table->enum('receipt_status', ['pending', 'partially_received', 'completed', 'cancelled'])->default('pending');
+            $table->enum('receipt_status', ['partially_received', 'completed', 'cancelled'])->default('completed');
 
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users');
