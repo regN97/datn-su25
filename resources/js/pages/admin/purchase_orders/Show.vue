@@ -182,17 +182,9 @@ function approveOrder() {
 }
 
 function importOrder() {
-    router.post(
-        route('admin.purchase-orders.import', { id: props.purchaseOrder[0].id }),
+    router.get(
+        route('admin.batches.add', { id: props.purchaseOrder[0].id }),
         {},
-        {
-            onSuccess: () => {
-                Swal.fire('Thành công', 'Đơn hàng đã được nhập!', 'success');
-            },
-            onError: () => {
-                Swal.fire('Lỗi', 'Không thể nhập đơn hàng.', 'error');
-            },
-        },
     );
 }
 
@@ -225,9 +217,6 @@ function printOrder() {
     window.open(route('admin.purchase-orders.print', { id: props.purchaseOrder[0].id }), '_blank');
 }
 
-function purchaseReceipt() {
-    window.open(route('admin.batches.create', props.purchaseOrder[0].id));
-}
 </script>
 
 <template>
@@ -298,15 +287,6 @@ function purchaseReceipt() {
                             <Printer class="mr-1 h-4 w-4" />
                             In đơn
                         </button>
-
-                        <button
-                            @click="purchaseReceipt"
-                            class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-                        >
-                            <ArchiveRestore  class="mr-1 h-4 w-4" />
-                            Nhập hàng
-                        </button>
-                        
                     </div>
                 </div>
 

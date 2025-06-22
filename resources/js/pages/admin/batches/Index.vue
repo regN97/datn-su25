@@ -182,9 +182,7 @@ function formatCurrency(amount: number): string {
         minimumFractionDigits: 0,
     }).format(amount);
 }
-function goToCreatePage() {
-    router.visit(route('admin.batches.create'));
-}
+
 </script>
 
 <template>
@@ -200,7 +198,6 @@ function goToCreatePage() {
                         <h1 class="text-3xl font-semibold text-gray-800">Quản lý đơn nhập hàng</h1>
                         <div class="ml-auto flex gap-4">
                             <button
-                                @click="goToCreatePage"
                                 class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600"
                             >
                                 <PackagePlus class="h-5 w-5" />

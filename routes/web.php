@@ -43,6 +43,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::resource('purchaseReturn', PurchaseReturnController::class);
 
+    Route::get('batches/add/{po_id}', [BatchController::class, 'add'])->name('batches.add');
+    Route::post('batches/save', [BatchController::class, 'save'])->name('batches.save');
     Route::resource('batches', BatchController::class);
 
     Route::resource('product-batches', ProductBatchController::class);
@@ -55,7 +57,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::resource('purchase-orders', PurchaseOrderController::class);
 
-    Route::post('inventory/{id}', [InventoryController::class, 'updateI'])->name('inventory.update');
     Route::resource('inventory', InventoryController::class);
     Route::resource('users', UserController::class);
 
