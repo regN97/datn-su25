@@ -13,8 +13,6 @@ use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\ProductBatchController;
 use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\PurchaseReturnController;
-use App\Http\Controllers\Admin\ProductSupplierController;
-use App\Http\Controllers\Admin\PurchaseReceiptController;
 use App\Http\Controllers\Admin\UserController;
 
 Route::get('/', function () {
