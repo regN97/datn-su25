@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up()
     {
         Schema::create('batch_items', function (Blueprint $table) {
@@ -15,10 +14,11 @@ return new class extends Migration
             $table->foreignId('purchase_order_item_id')->constrained('purchase_order_items')->onDelete('restrict');
 
             // Thông tin số lượng
-            $table->unsignedInteger('ordered_quantity');  // Số lượng đặt trong PO
-            $table->unsignedInteger('received_quantity'); // Số lượng đã nhận trong đợt này
+            $table->unsignedInteger('ordered_quantity');   // Số lượng đặt trong PO
+            $table->unsignedInteger('received_quantity');  // Số lượng đã nhận trong đợt này
+            $table->unsignedInteger('rejected_quantity')->default(0); // Số lượng từ chối nhận
             $table->unsignedInteger('remaining_quantity'); // Số lượng còn lại cần nhận
-            $table->unsignedInteger('current_quantity');  // Số lượng hiện tại còn trong kho
+            $table->unsignedInteger('current_quantity');   // Số lượng hiện tại còn trong kho
 
             // Thông tin giá
             $table->unsignedInteger('purchase_price');
@@ -46,10 +46,11 @@ return new class extends Migration
             $table->index(['product_id', 'expiry_date']);
             $table->index('inventory_status');
         });
+
     }
 
     public function down()
     {
-        Schema::dropIfExists('product_batches');
+        Schema::dropIfExists('batch_items');
     }
 };

@@ -19,13 +19,16 @@ return new class extends Migration
             $table->date('received_date');
             $table->string('invoice_number', 100)->nullable();
 
+             $table->unsignedInteger('discount_amount')->default(0)->nullable();
+            $table->enum('discount_type', ['percent', 'amount'])->nullable();
+
             $table->unsignedInteger('total_amount')->default(0);
             $table->enum('payment_status', ['unpaid', 'partially_paid', 'paid'])->default('unpaid');
              $table->enum('payment_method', ['cash', 'bank_transfer', 'credit_card'])->nullable();
              $table->date('payment_date')->nullable();
             $table->unsignedInteger('paid_amount')->default(0);
 
-            $table->enum('receipt_status', ['partially_received', 'completed', 'cancelled'])->default('completed');
+            $table->enum('receipt_status', ['partially_received', 'completed'])->default('completed');
 
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users');
