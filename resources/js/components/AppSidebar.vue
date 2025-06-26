@@ -43,6 +43,8 @@ const mainNavItems: NavItem[] = [
                     { label: 'Quản lý sản phẩm', href: route('admin.products.index'), icon: LayoutGrid },
                     { label: 'Quản lý danh mục', href: route('admin.categories.index'), icon: PackageSearch },
                     { label: 'Quản lý nhà cung cấp', href: route('admin.suppliers.index'), icon: Warehouse },
+
+                    { label: 'Quản lý đơn vị tính', href: route('admin.units.index'), icon: Boxes },
                 ]"
                 class="mt-4"
             />
@@ -54,7 +56,9 @@ const mainNavItems: NavItem[] = [
                 :items="[
                     { label: 'Quản lý đơn đặt hàng', href: route('admin.purchase-orders.index'), icon: Truck },
                     { label: 'Quản lý phiếu nhập hàng', href: route('admin.batches.index'), icon: FilePlus2 },
-                    { label: 'Quản lý phiếu trả hàng', href: route('admin.purchaseReturn.index'), icon: RotateCw },
+
+                    //{ label: 'Quản lý phiếu trả hàng', href: route('admin.purchaseReturn.index'), icon: RotateCw },
+
                     // { label: 'Quản lý lô hàng', href: route('admin.product-batches.index'), icon: Boxes },
                     { label: 'Quản lý tồn kho', href: route('admin.inventory.index'), icon: Layers3 },
                 ]"
