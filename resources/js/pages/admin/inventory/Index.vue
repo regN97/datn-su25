@@ -18,7 +18,7 @@ interface Product {
     sku: string;
     barcode: string;
     selling_price: number;
-    unit: ProductUnit
+    unit: ProductUnit;
     image_url?: string;
 }
 
@@ -42,9 +42,7 @@ const props = defineProps<{
     units: string[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Quản lý tồn kho', href: '/admin/inventory' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Quản lý tồn kho', href: '/admin/inventory' }];
 
 const items = ref([...props.inventory]);
 
@@ -138,198 +136,250 @@ function toggleSidebar() {
 }
 </script>
 <template>
-
     <Head title="Quản lý tồn kho" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 p-4 bg-gray-50 dark:bg-gray-900">
-            <div
-                class="relative flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+        <div class="flex h-full flex-1 flex-col gap-4 bg-gray-50 p-4 dark:bg-gray-900">
+            <div class="relative flex-1 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <div class="container mx-auto p-4 sm:p-6">
-                    <div
-                        class="mb-4 flex flex-wrap items-center gap-4 rounded-lg bg-white dark:bg-gray-800 p-4 shadow-sm">
+                    <div class="mb-4 flex flex-wrap items-center gap-4 rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800">
                         <div class="flex space-x-2">
-                            <button class="px-3 py-1 text-xs font-medium"
-                                :class="filterStatus === 'all' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'"
-                                @click="filterStatus = 'all'">
+                            <button
+                                class="px-3 py-1 text-xs font-medium"
+                                :class="
+                                    filterStatus === 'all'
+                                        ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                                        : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                                "
+                                @click="filterStatus = 'all'"
+                            >
                                 Tất cả
                             </button>
-                            <button class="px-3 py-1 text-xs font-medium"
-                                :class="filterStatus === 'in_stock' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'"
-                                @click="filterStatus = 'in_stock'">
+                            <button
+                                class="px-3 py-1 text-xs font-medium"
+                                :class="
+                                    filterStatus === 'in_stock'
+                                        ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                                        : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                                "
+                                @click="filterStatus = 'in_stock'"
+                            >
                                 Còn hàng
                             </button>
-                            <button class="px-3 py-1 text-xs font-medium"
-                                :class="filterStatus === 'low_stock' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'"
-                                @click="filterStatus = 'low_stock'">
+                            <button
+                                class="px-3 py-1 text-xs font-medium"
+                                :class="
+                                    filterStatus === 'low_stock'
+                                        ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                                        : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                                "
+                                @click="filterStatus = 'low_stock'"
+                            >
                                 Sắp hết hàng
                             </button>
-                            <button class="px-3 py-1 text-xs font-medium"
-                                :class="filterStatus === 'out_of_stock' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'"
-                                @click="filterStatus = 'out_of_stock'">
+                            <button
+                                class="px-3 py-1 text-xs font-medium"
+                                :class="
+                                    filterStatus === 'out_of_stock'
+                                        ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                                        : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                                "
+                                @click="filterStatus = 'out_of_stock'"
+                            >
                                 Hết hàng
                             </button>
                         </div>
                         <div class="flex-1">
-                            <input v-model="filterName" type="text" placeholder=""
-                                class="w-full sm:w-64 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:focus:border-blue-400 dark:focus:ring-blue-400" />
+                            <input
+                                v-model="filterName"
+                                type="text"
+                                placeholder=""
+                                class="focus:ring-opacity-50 w-full rounded-md border-gray-300 p-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-500 sm:w-64 dark:border-gray-600 dark:bg-gray-700 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                            />
                         </div>
                         <div class="relative">
-                            <button @click="toggleSidebar"
-                                class="relative flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-opacity-50"
+                            <button
+                                @click="toggleSidebar"
+                                class="focus:ring-opacity-50 relative flex items-center rounded-md bg-blue-500 px-4 py-2 text-white transition-colors duration-200 hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-400"
                                 :class="{ 'bg-blue-700 dark:bg-blue-800': isSidebarOpen }"
-                                :aria-expanded="isSidebarOpen" aria-controls="filter-sidebar"
-                                title="Mở hoặc đóng bộ lọc nâng cao">
-                                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                :aria-expanded="isSidebarOpen"
+                                aria-controls="filter-sidebar"
+                                title="Mở hoặc đóng bộ lọc nâng cao"
+                            >
+                                <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                                    />
                                 </svg>
                                 Bộ lọc
-                                <span v-if="activeFiltersCount"
-                                    class="absolute -top-2 -right-2 bg-red-500 text-xs text-white rounded-full h-5 w-5 flex items-center justify-center">
+                                <span
+                                    v-if="activeFiltersCount"
+                                    class="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+                                >
                                     {{ activeFiltersCount }}
                                 </span>
                             </button>
                         </div>
                     </div>
 
-                    <div :class="[
-                        'fixed inset-y-0 right-0 z-50 w-full sm:w-80 md:w-96 transform bg-white dark:bg-gray-800 p-6 shadow-xl transition-transform duration-300 ease-in-out',
-                        isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
-                    ]" id="filter-sidebar">
-                        <div
-                            class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4">
+                    <div
+                        :class="[
+                            'fixed inset-y-0 right-0 z-50 w-full transform bg-white p-6 shadow-xl transition-transform duration-300 ease-in-out sm:w-80 md:w-96 dark:bg-gray-800',
+                            isSidebarOpen ? 'translate-x-0' : 'translate-x-full',
+                        ]"
+                        id="filter-sidebar"
+                    >
+                        <div class="flex items-center justify-between border-b border-gray-200 pb-4 dark:border-gray-700">
                             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Bộ lọc nâng cao</h2>
-                            <button @click="toggleSidebar"
-                                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <button @click="toggleSidebar" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
                         <div class="mt-4 space-y-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tên sản
-                                    phẩm</label>
-                                <input v-model="filterName" type="text" placeholder="Nhập tên sản phẩm..."
-                                    class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:focus:border-blue-400 dark:focus:ring-blue-400" />
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tên sản phẩm</label>
+                                <input
+                                    v-model="filterName"
+                                    type="text"
+                                    placeholder="Nhập tên sản phẩm..."
+                                    class="focus:ring-opacity-50 mt-1 block w-full rounded-md border-gray-300 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                                />
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Đơn vị
-                                    tính</label>
-                                <select v-model="filterUnit"
-                                    class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:focus:border-blue-400 dark:focus:ring-blue-400">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Đơn vị tính</label>
+                                <select
+                                    v-model="filterUnit"
+                                    class="focus:ring-opacity-50 mt-1 block w-full rounded-md border-gray-300 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                                >
                                     <option :value="null">Tất cả đơn vị</option>
                                     <option v-for="unit in uniqueUnits" :key="unit" :value="unit">{{ unit }}</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Giá mua
-                                    (VNĐ)</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Giá mua (VNĐ)</label>
                                 <div class="flex gap-2">
-                                    <input v-model.number="filterMinPrice" type="number" placeholder="Từ"
-                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:focus:border-blue-400 dark:focus:ring-blue-400" />
-                                    <input v-model.number="filterMaxPrice" type="number" placeholder="Đến"
-                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:focus:border-blue-400 dark:focus:ring-blue-400" />
+                                    <input
+                                        v-model.number="filterMinPrice"
+                                        type="number"
+                                        placeholder="Từ"
+                                        class="focus:ring-opacity-50 mt-1 block w-full rounded-md border-gray-300 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                                    />
+                                    <input
+                                        v-model.number="filterMaxPrice"
+                                        type="number"
+                                        placeholder="Đến"
+                                        class="focus:ring-opacity-50 mt-1 block w-full rounded-md border-gray-300 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                                    />
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tồn
-                                    kho</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tồn kho</label>
                                 <div class="flex gap-2">
-                                    <input v-model.number="filterMinStock" type="number" placeholder="Từ"
-                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:focus:border-blue-400 dark:focus:ring-blue-400" />
-                                    <input v-model.number="filterMaxStock" type="number" placeholder="Đến"
-                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:focus:border-blue-400 dark:focus:ring-blue-400" />
+                                    <input
+                                        v-model.number="filterMinStock"
+                                        type="number"
+                                        placeholder="Từ"
+                                        class="focus:ring-opacity-50 mt-1 block w-full rounded-md border-gray-300 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                                    />
+                                    <input
+                                        v-model.number="filterMaxStock"
+                                        type="number"
+                                        placeholder="Đến"
+                                        class="focus:ring-opacity-50 mt-1 block w-full rounded-md border-gray-300 p-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                                    />
                                 </div>
                             </div>
                             <div class="flex justify-between gap-2">
-                                <button @click="resetFilters"
-                                    class="flex-1 rounded-md bg-gray-200 dark:bg-gray-600 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                                <button
+                                    @click="resetFilters"
+                                    class="flex-1 rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                                >
                                     Xóa bộ lọc
                                 </button>
-                                <button @click="toggleSidebar"
-                                    class="flex-1 rounded-md bg-blue-500 dark:bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                                <button
+                                    @click="toggleSidebar"
+                                    class="flex-1 rounded-md bg-blue-500 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
+                                >
                                     Áp dụng
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <div v-if="isSidebarOpen" class="fixed inset-0 z-40 bg-black bg-opacity-50 sm:hidden"
-                        @click="toggleSidebar"></div>
+                    <div v-if="isSidebarOpen" class="bg-opacity-50 fixed inset-0 z-40 bg-black sm:hidden" @click="toggleSidebar"></div>
 
-                    <div class="overflow-x-auto rounded-lg bg-white dark:bg-gray-800 shadow-md">
+                    <div class="overflow-x-auto rounded-lg bg-white shadow-md dark:bg-gray-800">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-gray-100 dark:bg-gray-700">
                                 <tr>
-                                    <th
-                                        class="w-[30%] p-3 font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs">
+                                    <th class="w-[30%] p-3 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
                                         Tên sản phẩm
                                     </th>
-                                    <th
-                                        class="w-[10%] p-3 font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs">
-                                        SKU
-                                    </th>
-                                    <th
-                                        class="w-[10%] p-3 font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs">
+                                    <th class="w-[10%] p-3 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">SKU</th>
+                                    <th class="w-[10%] p-3 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
                                         Barcode
                                     </th>
-                                    <th
-                                        class="w-[10%] p-3 font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs">
+                                    <th class="w-[10%] p-3 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
                                         Đơn vị tính
                                     </th>
 
                                     <th
-                                        class="w-[10%] p-3 text-center font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs">
+                                        class="w-[10%] p-3 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300"
+                                    >
                                         Tồn kho hiện tại
                                     </th>
                                     <th
-                                        class="w-[10%] p-3 text-center font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs">
+                                        class="w-[10%] p-3 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300"
+                                    >
                                         Số lượng bán
                                     </th>
                                     <th
-                                        class="w-[10%] p-3 text-center font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs">
+                                        class="w-[10%] p-3 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300"
+                                    >
                                         Giá bán
                                     </th>
                                     <th
-                                        class="w-[10%] p-3 text-center font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs">
+                                        class="w-[10%] p-3 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300"
+                                    >
                                         Giá mua
                                     </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="item in paginatedProducts" :key="item.id"
-                                    class="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                <tr
+                                    v-for="item in paginatedProducts"
+                                    :key="item.id"
+                                    class="border-t border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
                                     <td class="w-[30%] p-2">
-                                        <Link :href="route('admin.inventory.show', item.product.id)"
-                                            class="flex items-center gap-2 group">
-                                        <img :src="item.product.image_url || 'https://via.placeholder.com/30'"
-                                            alt="Product" class="h-8 w-8 rounded-full object-cover shadow-sm" />
-                                        <span
-                                            class="text-xs font-medium text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                                            {{ item.product.name }}
-                                        </span>
+                                        <Link :href="route('admin.inventory.show', item.product.id)" class="group flex items-center gap-2">
+                                            <img
+                                                :src="item.product.image_url || 'https://via.placeholder.com/30'"
+                                                alt="Product"
+                                                class="h-8 w-8 rounded-full object-cover shadow-sm"
+                                            />
+                                            <span
+                                                class="text-xs font-medium text-gray-800 group-hover:text-blue-600 dark:text-gray-200 dark:group-hover:text-blue-400"
+                                            >
+                                                {{ item.product.name }}
+                                            </span>
                                         </Link>
                                     </td>
                                     <td class="w-[10%] p-2 text-xs">{{ item.product.sku }}</td>
                                     <td class="w-[10%] p-2 text-xs">{{ item.product.barcode }}</td>
-                                    <td class="w-[10%] p-2 text-center text-xs">{{ item.product.unit?.name || 'N/A' }}
-                                    </td>
+                                    <td class="w-[10%] p-2 text-center text-xs">{{ item.product.unit?.name || 'N/A' }}</td>
                                     <td class="w-[10%] p-2 text-center text-xs">{{ item.current_quantity }}</td>
                                     <td class="w-[10%] p-2 text-center text-xs">
                                         {{ item.received_quantity - item.current_quantity }}
                                     </td>
-                                    <td class="w-[10%] p-2 text-center text-xs">
-                                        {{ (item.product.selling_price ?? 0).toLocaleString('vi-VN') }}đ
-                                    </td>
-                                    <td class="w-[10%] p-2 text-center text-xs">
-                                        {{ (item.purchase_price ?? 0).toLocaleString('vi-VN') }}đ
-                                    </td>
+                                    <td class="w-[10%] p-2 text-center text-xs">{{ (item.product.selling_price ?? 0).toLocaleString('vi-VN') }}đ</td>
+                                    <td class="w-[10%] p-2 text-center text-xs">{{ (item.purchase_price ?? 0).toLocaleString('vi-VN') }}đ</td>
                                 </tr>
                                 <tr v-if="!paginatedProducts.length">
-                                    <td colspan="9" class="p-4 text-center text-gray-500 dark:text-gray-400 text-xs">
-                                        Không có
-                                        dữ liệu</td>
+                                    <td colspan="9" class="p-4 text-center text-xs text-gray-500 dark:text-gray-400">Không có dữ liệu</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -343,25 +393,40 @@ function toggleSidebar() {
                         </p>
                         <div class="flex items-center gap-2">
                             <button
-                                class="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50"
-                                :disabled="currentPage === 1" @click="prevPage">
+                                class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-200"
+                                :disabled="currentPage === 1"
+                                @click="prevPage"
+                            >
                                 ← Trang trước
                             </button>
-                            <button v-for="page in totalPages" :key="page" class="px-3 py-1 text-sm rounded"
-                                :class="page === currentPage ? 'bg-blue-500 text-white font-semibold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'"
-                                @click="goToPage(page)">
+                            <button
+                                v-for="page in totalPages"
+                                :key="page"
+                                class="rounded px-3 py-1 text-sm"
+                                :class="
+                                    page === currentPage
+                                        ? 'bg-blue-500 font-semibold text-white'
+                                        : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                                "
+                                @click="goToPage(page)"
+                            >
                                 {{ page }}
                             </button>
                             <button
-                                class="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50"
-                                :disabled="currentPage === totalPages" @click="nextPage">
+                                class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-200"
+                                :disabled="currentPage === totalPages"
+                                @click="nextPage"
+                            >
                                 Trang sau →
                             </button>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-sm text-gray-600 dark:text-gray-400">Hiển thị</span>
-                            <select v-model="perPage" @change="changePerPage"
-                                class="rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-1 text-sm focus:ring-blue-500 dark:focus:ring-blue-400">
+                            <select
+                                v-model="perPage"
+                                @change="changePerPage"
+                                class="rounded border border-gray-300 p-1 text-sm focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-400"
+                            >
                                 <option v-for="opt in perPageOptions" :key="opt" :value="opt">{{ opt }}</option>
                             </select>
                             <span class="text-sm text-gray-600 dark:text-gray-400">kết quả</span>
@@ -372,8 +437,6 @@ function toggleSidebar() {
         </div>
     </AppLayout>
 </template>
-
-
 
 <style lang="css" scoped>
 table {

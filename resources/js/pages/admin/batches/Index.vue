@@ -182,7 +182,6 @@ function formatCurrency(amount: number): string {
         minimumFractionDigits: 0,
     }).format(amount);
 }
-
 </script>
 
 <template>
@@ -197,9 +196,7 @@ function formatCurrency(amount: number): string {
                     <div class="mb-6 flex flex-col items-center justify-between gap-4 md:flex-row">
                         <h1 class="text-3xl font-semibold text-gray-800">Quản lý đơn nhập hàng</h1>
                         <div class="ml-auto flex gap-4">
-                            <button
-                                class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600"
-                            >
+                            <button class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
                                 <PackagePlus class="h-5 w-5" />
                                 <span class="ml-2 hidden md:inline">Tạo Đơn Nhập Hàng</span>
                             </button>
@@ -256,9 +253,6 @@ function formatCurrency(amount: number): string {
                                     <th class="w-[10%] p-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
                                         Ngày nhận hàng
                                     </th>
-                                    <th class="w-[10%] p-4 text-right text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
-                                        Tổng tiền
-                                    </th>
                                     <th class="w-[15%] p-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
                                         Trạng thái thanh toán
                                     </th>
@@ -283,7 +277,7 @@ function formatCurrency(amount: number): string {
                                     <td class="w-[10%] p-4 text-center text-sm text-gray-700">
                                         {{ formatDateTime(batch.received_date) }}
                                     </td>
-                                    
+
                                     <td class="w-[15%] p-4 text-center text-sm">
                                         <span
                                             :class="{
