@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Route;
+use App\Http\Requests\Auth\LoginRequest;
+use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -27,15 +28,36 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
-    {
-        $request->authenticate();
+   public function store(Request $request)
+{
+    // Kiểm tra dữ liệu đầu vào
+    $credentials = $request->validate([
+        'email' => ['required', 'email'],
+        'password' => ['required'],
+    ]);
 
+    // Thử đăng nhập với thông tin đã validate
+    if (Auth::attempt($credentials)) {
+        // Kiểm tra role: chỉ cho phép nếu role_id === 1 (thu ngân)
+        if (Auth::user()->role_id !== 1) {
+            Auth::logout(); // Đăng xuất ngay nếu không đúng role
+            return back()->withErrors([
+                'email' => 'Bạn không phải là admin.',
+            ]);
+        }
+
+        // Tạo lại phiên làm việc (session)
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false))->with('success', 'Đăng nhập thành công!');
+        // Chuyển đến dashboard của thu ngân
+        return redirect()->intended(route('cashier.dashboard'));
     }
 
+    // Nếu thông tin không đúng, trả lỗi về lại form
+    return back()->withErrors([
+        'email' => 'Email hoặc mật khẩu không đúng.',
+    ]);
+}
     /**
      * Destroy an authenticated session.
      */
