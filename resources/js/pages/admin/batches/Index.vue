@@ -182,7 +182,6 @@ function formatCurrency(amount: number): string {
         minimumFractionDigits: 0,
     }).format(amount);
 }
-
 </script>
 
 <template>

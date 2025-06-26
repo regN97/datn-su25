@@ -1,36 +1,41 @@
 <script setup lang="ts">
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
+import TextLink from '@/components/TextLink.vue'; // Giả sử component này tồn tại
+import { Button } from '@/components/ui/button'; // Các component UI từ thư viện của bạn
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import AuthBase from '@/layouts/AuthLayout.vue';
+import AuthBase from '@/layouts/AuthLayout.vue'; // Layout cho trang Auth
 import { Head, useForm } from '@inertiajs/vue3';
-import { Eye, EyeOff, RefreshCw } from 'lucide-vue-next';
+import { Eye, EyeOff, RefreshCw } from 'lucide-vue-next'; // Icons
+
 import { ref } from 'vue';
 
-const showPassword = ref(false);
+const showPassword = ref(false); // State để ẩn/hiện mật khẩu
 
 function togglePasswordVisibility() {
     showPassword.value = !showPassword.value;
 }
+
+// Props cho component này (nếu có các thông báo status hoặc link reset password)
 defineProps<{
-    status?: string;
-    canResetPassword: boolean;
+    status?: string; // Thông báo trạng thái (ví dụ: "Bạn đã đăng ký thành công!")
+    canResetPassword: boolean; // Kiểm soát việc hiển thị link quên mật khẩu
 }>();
 
 const form = useForm({
     email: '',
     password: '',
-    remember: false,
+    remember: false, // Thêm trường remember cho chức năng "Ghi nhớ đăng nhập"
 });
 
 const submit = () => {
-    form.post(route('login'), {
-        onFinish: () => form.reset('password'),
+    // Thay đổi route từ 'login' (của admin) thành 'cashier.login'
+    form.post(route('cashier.login'), {
+        onFinish: () => form.reset('password'), // Xóa mật khẩu sau khi gửi form
     });
 };
 </script>
+
 <template>
     <div
         class="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4"
@@ -40,10 +45,10 @@ const submit = () => {
     >
         <AuthBase
             class="bg-opacity-95 relative z-10 w-full max-w-2xl rounded-3xl bg-white p-10 text-gray-900 shadow-xl"
-            title="Đăng nhập vào tài khoản của bạn"
-            description="Nhập email và mật khẩu bên dưới để đăng nhập G7 Mart"
+            title="Đăng nhập tài khoản Thu Ngân"
+            description="Nhập email và mật khẩu của nhân viên thu ngân để đăng nhập"
         >
-            <Head title="Đăng nhập" />
+            <Head title="Đăng nhập Thu Ngân" />
 
             <br />
 
@@ -52,7 +57,6 @@ const submit = () => {
             </div>
 
             <form @submit.prevent="submit" class="space-y-6">
-                <!-- Email -->
                 <div>
                     <Label for="email" class="mb-1 block font-semibold">Địa chỉ email</Label>
                     <Input
@@ -62,21 +66,19 @@ const submit = () => {
                         autofocus
                         autocomplete="email"
                         v-model="form.email"
-                        placeholder="vd: email@example.com"
+                        placeholder="vd: email@thungan.com"
                         class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-orange-400 focus:outline-none"
                         :tabindex="1"
                     />
                     <p v-if="form.errors.email" class="mt-1 text-sm text-red-600">{{ form.errors.email }}</p>
                 </div>
 
-                <!-- Password -->
                 <div>
                     <div class="mb-1 flex items-center justify-between">
                         <Label for="password" class="font-semibold">Mật khẩu</Label>
                         <TextLink
                             v-if="canResetPassword"
-                            :href="route('password.request')"
-                            class="text-sm text-orange-500 hover:underline"
+                            :href="route('cashier.password.request')" class="text-sm text-orange-500 hover:underline"
                             :tabindex="5"
                         >
                             Quên mật khẩu?
@@ -104,20 +106,18 @@ const submit = () => {
                             <Eye v-else class="h-5 w-5" />
                         </button>
                     </div>
+                    <p v-if="form.errors.password" class="mt-1 text-sm text-red-600">{{ form.errors.password }}</p>
                 </div>
 
-                <!-- Remember Me -->
                 <Label for="remember" class="flex cursor-pointer items-center space-x-2 text-gray-700 select-none">
                     <Checkbox
                         id="remember"
-                        v-model="form.remember"
-                        :tabindex="3"
+                        v-model:checked="form.remember" :tabindex="3"
                         class="form-checkbox h-5 w-5 border-gray-300 text-orange-500 focus:ring-orange-400"
                     />
                     <span>Ghi nhớ đăng nhập</span>
                 </Label>
 
-                <!-- Submit Button -->
                 <Button
                     type="submit"
                     :disabled="form.processing"
@@ -129,11 +129,6 @@ const submit = () => {
                 </Button>
             </form>
 
-            <!-- Register -->
-            <p class="mt-8 text-center text-gray-700">
-                Chưa có tài khoản?
-                <TextLink :href="route('register')" class="font-semibold text-orange-600 hover:underline" :tabindex="6"> Đăng ký ngay </TextLink>
-            </p>
-        </AuthBase>
+            </AuthBase>
     </div>
 </template>
