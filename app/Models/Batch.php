@@ -21,6 +21,8 @@ class Batch extends Model
         'received_date',
         'invoice_number',
         'total_amount',
+        'discount_type',
+        'discount_amount',
         'payment_status',
         'payment_method',
         'payment_date',
