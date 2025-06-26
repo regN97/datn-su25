@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { type BreadcrumbItem } from '@/types';
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { ChevronLeft, ChevronDown, ChevronUp, Search, X } from 'lucide-vue-next';
+import { type BreadcrumbItem } from '@/types';
+import { Head, router } from '@inertiajs/vue3';
+import { ChevronDown, ChevronLeft, ChevronUp, Search, X } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 interface Product {
     id: number;
@@ -89,9 +88,7 @@ interface Props {
 const props = defineProps<Props>();
 
 // Breadcrumbs
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Chỉnh sửa đơn đặt hàng', href: route('admin.purchase-orders.edit', props.purchaseOrder[0].id) },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Chỉnh sửa đơn đặt hàng', href: route('admin.purchase-orders.edit', props.purchaseOrder[0].id) }];
 
 // Lấy thông tin đơn hàng hiện tại
 const currentPurchaseOrder = ref<PurchaseOrder>(props.purchaseOrder[0]);
@@ -142,7 +139,7 @@ const discountError = ref<string>('');
 onMounted(() => {
     // Thêm event listener cho click outside
     document.addEventListener('click', handleClickOutside);
-    
+
     // Khởi tạo dữ liệu từ đơn hàng hiện tại
     initializeFromPurchaseOrder();
 });
@@ -154,7 +151,7 @@ onUnmounted(() => {
 // Hàm khởi tạo dữ liệu từ đơn hàng hiện tại
 function initializeFromPurchaseOrder() {
     // Khởi tạo danh sách sản phẩm đã chọn
-    selectedProducts.value = props.purchaseOrderItem.map(item => ({
+    selectedProducts.value = props.purchaseOrderItem.map((item) => ({
         id: item.product_id,
         name: item.product_name,
         sku: item.product_sku,
@@ -163,17 +160,17 @@ function initializeFromPurchaseOrder() {
         total: item.subtotal,
         sub_total: item.subtotal,
         image_url: item.product.image_url,
-        description: item.product.description
+        description: item.product.description,
     }));
 
     // Tìm và thiết lập nhà cung cấp
-    const supplier = props.suppliers.find(s => s.id === currentPurchaseOrder.value.supplier_id);
+    const supplier = props.suppliers.find((s) => s.id === currentPurchaseOrder.value.supplier_id);
     if (supplier) {
         selectedSupplier.value = supplier;
     }
 
     // Tìm và thiết lập người dùng phụ trách
-    const user = props.users.find(u => u.id === currentPurchaseOrder.value.created_by);
+    const user = props.users.find((u) => u.id === currentPurchaseOrder.value.created_by);
     if (user) {
         selectedUser.value = user;
     }
@@ -193,7 +190,7 @@ function initializeFromPurchaseOrder() {
     if (currentPurchaseOrder.value.discount_amount && currentPurchaseOrder.value.discount_type) {
         discount.value = {
             type: currentPurchaseOrder.value.discount_type,
-            value: currentPurchaseOrder.value.discount_amount
+            value: currentPurchaseOrder.value.discount_amount,
         };
         modalDiscountType.value = currentPurchaseOrder.value.discount_type as 'amount' | 'percent';
         modalDiscountInput.value = currentPurchaseOrder.value.discount_amount.toString();
@@ -203,12 +200,9 @@ function initializeFromPurchaseOrder() {
 // Computed properties
 const filteredProducts = computed(() => {
     if (!searchQuery.value.trim()) return props.products.data;
-    
+
     const query = searchQuery.value.toLowerCase();
-    return props.products.data.filter(product => 
-        product.name.toLowerCase().includes(query) || 
-        product.sku.toLowerCase().includes(query)
-    );
+    return props.products.data.filter((product) => product.name.toLowerCase().includes(query) || product.sku.toLowerCase().includes(query));
 });
 
 const subtotal = computed(() => {
@@ -221,7 +215,7 @@ const formattedSubtotal = computed(() => {
 
 const discountAmount = computed(() => {
     if (!discount.value) return 0;
-    
+
     if (discount.value.type === 'amount') {
         return discount.value.value;
     } else {
@@ -239,22 +233,21 @@ const totalAfterDiscount = computed(() => {
 
 const filteredSuppliers = computed(() => {
     if (!supplierSearchQuery.value.trim()) return props.suppliers;
-    
+
     const query = supplierSearchQuery.value.toLowerCase();
-    return props.suppliers.filter(supplier => 
-        supplier.name.toLowerCase().includes(query) || 
-        (supplier.email && supplier.email.toLowerCase().includes(query)) || 
-        (supplier.phone && supplier.phone.includes(query))
+    return props.suppliers.filter(
+        (supplier) =>
+            supplier.name.toLowerCase().includes(query) ||
+            (supplier.email && supplier.email.toLowerCase().includes(query)) ||
+            (supplier.phone && supplier.phone.includes(query)),
     );
 });
 
 const filteredUsers = computed(() => {
     if (!userSearchQuery.value.trim()) return props.users;
-    
+
     const query = userSearchQuery.value.toLowerCase();
-    return props.users.filter(user => 
-        user.name.toLowerCase().includes(query)
-    );
+    return props.users.filter((user) => user.name.toLowerCase().includes(query));
 });
 
 // Utility functions
@@ -268,16 +261,20 @@ function formatPrice(price: number) {
 
 function handleClickOutside(event: MouseEvent) {
     // Xử lý dropdown sản phẩm
-    if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node) && 
-        searchInputRef.value && !searchInputRef.value.contains(event.target as Node)) {
+    if (
+        dropdownRef.value &&
+        !dropdownRef.value.contains(event.target as Node) &&
+        searchInputRef.value &&
+        !searchInputRef.value.contains(event.target as Node)
+    ) {
         isDropdownOpen.value = false;
     }
-    
+
     // Xử lý dropdown nhà cung cấp
     if (supplierDropdownRef.value && !supplierDropdownRef.value.contains(event.target as Node)) {
         isSupplierDropdownOpen.value = false;
     }
-    
+
     // Xử lý dropdown người dùng
     if (userDropdownRef.value && !userDropdownRef.value.contains(event.target as Node)) {
         isUserDropdownOpen.value = false;
@@ -295,8 +292,8 @@ function closeDropdown() {
 
 function selectProduct(product: Product) {
     // Kiểm tra xem sản phẩm đã được chọn chưa
-    const existingProduct = selectedProducts.value.find(p => p.id === product.id);
-    
+    const existingProduct = selectedProducts.value.find((p) => p.id === product.id);
+
     if (existingProduct) {
         // Nếu đã chọn, tăng số lượng lên 1
         existingProduct.quantity += 1;
@@ -309,11 +306,11 @@ function selectProduct(product: Product) {
             quantity: 1,
             purchase_price: product.purchase_price || 0,
             total: product.purchase_price || 0,
-            sub_total: product.purchase_price || 0
+            sub_total: product.purchase_price || 0,
         };
         selectedProducts.value.push(newProduct);
     }
-    
+
     // Đóng dropdown
     closeDropdown();
     // Xóa query tìm kiếm
@@ -321,13 +318,13 @@ function selectProduct(product: Product) {
 }
 
 function removeProduct(productId: number) {
-    selectedProducts.value = selectedProducts.value.filter(p => p.id !== productId);
+    selectedProducts.value = selectedProducts.value.filter((p) => p.id !== productId);
 }
 
 function updateQuantity(productId: number, quantity: number) {
     if (quantity < 1) return;
-    
-    const product = selectedProducts.value.find(p => p.id === productId);
+
+    const product = selectedProducts.value.find((p) => p.id === productId);
     if (product) {
         product.quantity = quantity;
         product.total = product.quantity * product.purchase_price;
@@ -384,14 +381,14 @@ function closePriceModal() {
 
 function savePrice() {
     if (editingProductId.value === null) return;
-    
-    const product = selectedProducts.value.find(p => p.id === editingProductId.value);
+
+    const product = selectedProducts.value.find((p) => p.id === editingProductId.value);
     if (product && editingPrice.value >= 0) {
         product.purchase_price = editingPrice.value;
         product.total = product.quantity * product.purchase_price;
         product.sub_total = product.total;
     }
-    
+
     closePriceModal();
 }
 
@@ -404,7 +401,7 @@ function openDiscountModal() {
         modalDiscountType.value = 'amount';
         modalDiscountInput.value = '';
     }
-    
+
     isDiscountModalOpen.value = true;
 }
 
@@ -421,29 +418,29 @@ function setDiscountType(type: 'amount' | 'percent') {
 
 function saveDiscount() {
     discountError.value = '';
-    
+
     const value = parseFloat(modalDiscountInput.value);
-    
+
     if (isNaN(value) || value < 0) {
         discountError.value = 'Vui lòng nhập giá trị hợp lệ';
         return;
     }
-    
+
     if (modalDiscountType.value === 'percent' && value > 100) {
         discountError.value = 'Phần trăm chiết khấu không thể vượt quá 100%';
         return;
     }
-    
+
     if (modalDiscountType.value === 'amount' && value > subtotal.value) {
         discountError.value = 'Giá trị chiết khấu không thể vượt quá tổng tiền';
         return;
     }
-    
+
     discount.value = {
         type: modalDiscountType.value,
-        value: value
+        value: value,
     };
-    
+
     isDiscountModalOpen.value = false;
 }
 
@@ -465,17 +462,17 @@ function submitOrder() {
         supplierError.value = 'Vui lòng chọn nhà cung cấp';
         return;
     }
-    
+
     // Gửi dữ liệu cập nhật đơn hàng
     router.post(route('admin.purchase-orders.update', currentPurchaseOrder.value.id), {
         _method: 'PUT',
-        products: selectedProducts.value.map(product => ({
+        products: selectedProducts.value.map((product) => ({
             id: product.id,
             name: product.name,
             sku: product.sku,
             quantity: product.quantity,
             purchase_price: product.purchase_price,
-            sub_total: product.total
+            sub_total: product.total,
         })),
         supplier_id: selectedSupplier.value.id,
         discount: discount.value,
@@ -805,7 +802,10 @@ function submitOrder() {
                                 <div class="relative" ref="userDropdownRef">
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Nhân viên phụ trách</label>
                                     <!-- Hiển thị nhân viên đã chọn -->
-                                    <div v-if="selectedUser" class="mb-2 flex items-center justify-between rounded-md border border-gray-300 bg-blue-50 p-2">
+                                    <div
+                                        v-if="selectedUser"
+                                        class="mb-2 flex items-center justify-between rounded-md border border-gray-300 bg-blue-50 p-2"
+                                    >
                                         <div class="flex items-center">
                                             <span class="font-medium text-gray-900">{{ selectedUser.name }}</span>
                                         </div>

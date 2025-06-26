@@ -159,9 +159,7 @@ const filteredProducts = computed(() => {
 
 const filteredUsers = computed(() => {
     if (!userSearchQuery.value) return props.users;
-    return props.users.filter((user) =>
-        user.name.toLowerCase().includes(userSearchQuery.value.toLowerCase())
-    );
+    return props.users.filter((user) => user.name.toLowerCase().includes(userSearchQuery.value.toLowerCase()));
 });
 
 const discountAmount = computed(() => {
@@ -207,8 +205,6 @@ const formattedPaidAmount = computed(() => {
 const selectedUser = computed(() => props.users.find((u) => u.id === selectedUserId.value) || null);
 const selectedSupplier = computed(() => props.suppliers.find((s) => s.id === props.purchaseOrder?.supplier_id) || null);
 const expectedImportDate = ref('');
-;
-
 // Methods
 function goBack() {
     window.history.back();
@@ -269,8 +265,7 @@ function closeDropdown() {
 
 function selectProduct(product: Product) {
     const existingProduct = selectedProducts.value.find((p) => p.id === product.id);
-    const supplierPrice =
-        product.suppliers?.length > 0 ? product.suppliers[0].pivot.purchase_price : product.purchase_price;
+    const supplierPrice = product.suppliers?.length > 0 ? product.suppliers[0].pivot.purchase_price : product.purchase_price;
 
     if (existingProduct) {
         existingProduct.quantity += 1;
@@ -452,9 +447,12 @@ watch(searchQuery, (newQuery) => {
     }
 });
 
-watch(() => props.purchaseOrder?.created_by, (newUserId) => {
-    selectedUserId.value = newUserId || null;
-});
+watch(
+    () => props.purchaseOrder?.created_by,
+    (newUserId) => {
+        selectedUserId.value = newUserId || null;
+    },
+);
 
 watch(paymentStatus, (newStatus) => {
     if (newStatus === 'paid' || newStatus === 'partially_paid') {
@@ -476,11 +474,15 @@ watch(paymentStatus, (newStatus) => {
     }
 });
 
-watch(discount, () => {
-    if (discount.value.type === 'amount' && discount.value.value > subtotal.value) {
-        discount.value.value = subtotal.value;
-    }
-}, { deep: true });
+watch(
+    discount,
+    () => {
+        if (discount.value.type === 'amount' && discount.value.value > subtotal.value) {
+            discount.value.value = subtotal.value;
+        }
+    },
+    { deep: true },
+);
 
 watch(paidAmount, (newValue) => {
     if (isNaN(newValue) || newValue < 0) {
@@ -504,28 +506,24 @@ onUnmounted(() => {
 </script>
 
 <template>
-
     <Head title="Create Batch" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="min-h-screen bg-gray-50 p-4">
             <div class="mx-auto max-w-7xl">
                 <!-- Header -->
                 <div class="mb-6">
-                    <button @click="goBack"
-                        class="mb-4 flex cursor-pointer items-center text-gray-600 hover:text-gray-800">
+                    <button @click="goBack" class="mb-4 flex cursor-pointer items-center text-gray-600 hover:text-gray-800">
                         <ChevronLeft class="mr-1 h-4 w-4" />
                         Quay lại
                     </button>
-                    <h1 class="text-3xl font-bold text-gray-900">Tạo đơn nhập từ đơn đặt {{
-                        selectedPurchaseOrder?.po_number }}</h1>
+                    <h1 class="text-3xl font-bold text-gray-900">Tạo đơn nhập từ đơn đặt {{ selectedPurchaseOrder?.po_number }}</h1>
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <div class="flex flex-col gap-6 lg:col-span-2">
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
-                                <h2 class="text-lg font-semibold">Tạo đơn nhập từ đơn đặt {{
-                                    selectedPurchaseOrder?.po_number }}</h2>
+                                <h2 class="text-lg font-semibold">Tạo đơn nhập từ đơn đặt {{ selectedPurchaseOrder?.po_number }}</h2>
                             </div>
                             <div class="space-y-6 p-6">
                                 <!-- Selected Products -->
@@ -534,20 +532,28 @@ onUnmounted(() => {
                                     <table class="min-w-full divide-y divide-gray-200">
                                         <thead class="bg-gray-50">
                                             <tr>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                <th
+                                                    scope="col"
+                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                >
                                                     Sản phẩm
                                                 </th>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                <th
+                                                    scope="col"
+                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                >
                                                     Số lượng
                                                 </th>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                <th
+                                                    scope="col"
+                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                >
                                                     Đơn giá
                                                 </th>
-                                                <th scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                <th
+                                                    scope="col"
+                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                >
                                                     Thành tiền
                                                 </th>
                                                 <th scope="col" class="relative px-6 py-3">
@@ -559,12 +565,13 @@ onUnmounted(() => {
                                             <tr v-for="product in selectedProducts" :key="product.id">
                                                 <td class="px-6 py-4 whitespace-nowrap">
                                                     <div class="flex items-center space-x-4">
-                                                        <img :src="product.image_url || '/storage/piclumen-1747750187180.png'"
+                                                        <img
+                                                            :src="product.image_url || '/storage/piclumen-1747750187180.png'"
                                                             :alt="product.name"
-                                                            class="h-12 w-12 rounded-lg border border-gray-200 object-cover" />
+                                                            class="h-12 w-12 rounded-lg border border-gray-200 object-cover"
+                                                        />
                                                         <div>
-                                                            <h4 class="font-medium text-gray-900">{{ product.name }}
-                                                            </h4>
+                                                            <h4 class="font-medium text-gray-900">{{ product.name }}</h4>
                                                             <p class="text-sm text-gray-500">SKU: {{ product.sku }}</p>
                                                         </div>
                                                     </div>
@@ -573,18 +580,19 @@ onUnmounted(() => {
                                                     <span>{{ product.quantity }}</span>
                                                 </td>
                                                 <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                                    <button class="text-blue-600 underline hover:text-blue-800"
-                                                        @click="openPriceModal(product)" type="button">
+                                                    <button
+                                                        class="text-blue-600 underline hover:text-blue-800"
+                                                        @click="openPriceModal(product)"
+                                                        type="button"
+                                                    >
                                                         {{ formatPrice(product.purchase_price) }}
                                                     </button>
                                                 </td>
-                                                <td
-                                                    class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">
+                                                <td class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">
                                                     {{ formatPrice(product.total) }}
                                                 </td>
                                                 <td class="px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
-                                                    <button @click="removeProduct(product.id)"
-                                                        class="text-red-500 hover:text-red-700">
+                                                    <button @click="removeProduct(product.id)" class="text-red-500 hover:text-red-700">
                                                         <X class="h-4 w-4" />
                                                     </button>
                                                 </td>
@@ -596,59 +604,74 @@ onUnmounted(() => {
                                 <!-- Product Search -->
                                 <div class="relative" ref="dropdownRef">
                                     <div class="relative">
-                                        <Search
-                                            class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-                                        <input ref="searchInputRef" v-model="searchQuery" type="text"
-                                            placeholder="Tìm kiếm sản phẩm..." @focus="openDropdown"
+                                        <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+                                        <input
+                                            ref="searchInputRef"
+                                            v-model="searchQuery"
+                                            type="text"
+                                            placeholder="Tìm kiếm sản phẩm..."
+                                            @focus="openDropdown"
                                             @keydown.escape="closeDropdown"
-                                            class="h-12 w-full rounded-md border border-gray-300 pr-4 pl-10 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
-                                        <button v-if="isDropdownOpen" @click="closeDropdown"
-                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600">
+                                            class="h-12 w-full rounded-md border border-gray-300 pr-4 pl-10 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <button
+                                            v-if="isDropdownOpen"
+                                            @click="closeDropdown"
+                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+                                        >
                                             <ChevronUp class="h-4 w-4" />
                                         </button>
-                                        <button v-else @click="openDropdown"
-                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600">
+                                        <button
+                                            v-else
+                                            @click="openDropdown"
+                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+                                        >
                                             <ChevronDown class="h-4 w-4" />
                                         </button>
                                     </div>
 
                                     <!-- Dropdown -->
-                                    <div v-if="isDropdownOpen"
-                                        class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+                                    <div v-if="isDropdownOpen" class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
                                         <div class="max-h-80 overflow-y-auto">
                                             <!-- Loading state -->
                                             <div v-if="isLoading" class="p-4 text-center text-gray-500">
-                                                <div
-                                                    class="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-blue-500">
-                                                </div>
+                                                <div class="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-blue-500"></div>
                                                 <p class="mt-2 text-sm">Đang tải...</p>
                                             </div>
 
                                             <!-- Product list -->
                                             <div v-else-if="filteredProducts.length > 0">
-                                                <button v-for="product in filteredProducts" :key="product.id"
+                                                <button
+                                                    v-for="product in filteredProducts"
+                                                    :key="product.id"
                                                     @click="selectProduct(product)"
-                                                    class="w-full border-b border-gray-100 p-4 text-left last:border-b-0 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none">
+                                                    class="w-full border-b border-gray-100 p-4 text-left last:border-b-0 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                                                >
                                                     <div class="flex items-center space-x-4">
-                                                        <img :src="product.image_url || '/storage/piclumen-1747750187180.png'"
+                                                        <img
+                                                            :src="product.image_url || '/storage/piclumen-1747750187180.png'"
                                                             :alt="product.name"
-                                                            class="h-16 w-16 rounded-lg border border-gray-200 object-cover" />
+                                                            class="h-16 w-16 rounded-lg border border-gray-200 object-cover"
+                                                        />
                                                         <div class="flex-1">
                                                             <div class="flex items-center justify-between">
                                                                 <div>
-                                                                    <h4 class="font-medium text-gray-900">{{
-                                                                        product.name }}</h4>
-                                                                    <p class="text-sm text-gray-500">{{ product.sku }}
+                                                                    <h4 class="font-medium text-gray-900">{{ product.name }}</h4>
+                                                                    <p class="text-sm text-gray-500">{{ product.sku }}</p>
+                                                                    <p v-if="product.description" class="line-clamp-1 text-sm text-gray-400">
+                                                                        {{ product.description }}
                                                                     </p>
-                                                                    <p v-if="product.description"
-                                                                        class="line-clamp-1 text-sm text-gray-400">{{
-                                                                            product.description }}</p>
                                                                 </div>
                                                                 <div class="text-right">
-                                                                    <p class="font-semibold text-blue-600">{{
-                                                                        formatPrice(product.suppliers?.length > 0 ?
-                                                                            product.suppliers[0].pivot.purchase_price :
-                                                                            product.purchase_price) }}</p>
+                                                                    <p class="font-semibold text-blue-600">
+                                                                        {{
+                                                                            formatPrice(
+                                                                                product.suppliers?.length > 0
+                                                                                    ? product.suppliers[0].pivot.purchase_price
+                                                                                    : product.purchase_price,
+                                                                            )
+                                                                        }}
+                                                                    </p>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -678,12 +701,14 @@ onUnmounted(() => {
                                 </div>
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <button class="flex items-center text-sm text-blue-600 hover:text-blue-700"
-                                            @click="openDiscountModal" type="button">
+                                        <button
+                                            class="flex items-center text-sm text-blue-600 hover:text-blue-700"
+                                            @click="openDiscountModal"
+                                            type="button"
+                                        >
                                             Chiết khấu đơn
                                         </button>
-                                        <span class="min-w-[80px] text-right font-medium text-red-600">{{
-                                            formattedDiscount }}</span>
+                                        <span class="min-w-[80px] text-right font-medium text-red-600">{{ formattedDiscount }}</span>
                                     </div>
                                 </div>
                                 <div class="border-t pt-4">
@@ -698,95 +723,119 @@ onUnmounted(() => {
                                             <!-- Radio "Đã thanh toán" -->
                                             <div class="flex items-center space-x-6">
                                                 <label class="inline-flex items-center space-x-2">
-                                                    <input type="radio" value="paid" v-model="paymentStatus"
-                                                        class="form-radio text-blue-600" />
+                                                    <input type="radio" value="paid" v-model="paymentStatus" class="form-radio text-blue-600" />
                                                     <span class="font-medium text-gray-800">Đã thanh toán</span>
                                                 </label>
                                             </div>
-                                            <div v-if="paymentStatus === 'paid'"
-                                                class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                            <div v-if="paymentStatus === 'paid'" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Hình thức
-                                                        thanh toán</label>
-                                                    <select v-model="paymentMethod" name="payment_method"
-                                                        class="border-white-300 mt-1 w-full rounded-md bg-white p-2 shadow-sm">
+                                                    <label class="block text-sm font-medium text-gray-700">Hình thức thanh toán</label>
+                                                    <select
+                                                        v-model="paymentMethod"
+                                                        name="payment_method"
+                                                        class="border-white-300 mt-1 w-full rounded-md bg-white p-2 shadow-sm"
+                                                    >
                                                         <option value="cash">Tiền mặt</option>
                                                         <option value="bank_transfer">Chuyển khoản</option>
                                                         <option value="credit_card">Thẻ</option>
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Số tiền thanh
-                                                        toán</label>
+                                                    <label class="block text-sm font-medium text-gray-700">Số tiền thanh toán</label>
                                                     <div class="relative mt-1">
-                                                        <input type="text" :value="formattedPaidAmount"
+                                                        <input
+                                                            type="text"
+                                                            :value="formattedPaidAmount"
                                                             @input="handleFormattedInput"
-                                                            class="w-full rounded-md bg-white p-2 pr-10 shadow-sm" />
+                                                            class="w-full rounded-md bg-white p-2 pr-10 shadow-sm"
+                                                        />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Ngày ghi
-                                                        nhận</label>
-                                                    <input type="date" v-model="paymentDate" name="payment_date"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm" />
+                                                    <label class="block text-sm font-medium text-gray-700">Ngày ghi nhận</label>
+                                                    <input
+                                                        type="date"
+                                                        v-model="paymentDate"
+                                                        name="payment_date"
+                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
+                                                    />
                                                 </div>
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Tham
-                                                        chiếu</label>
-                                                    <input type="text" v-model="paymentReference"
+                                                    <label class="block text-sm font-medium text-gray-700">Tham chiếu</label>
+                                                    <input
+                                                        type="text"
+                                                        v-model="paymentReference"
                                                         placeholder="Nhập mã tham chiếu"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm" />
+                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
+                                                    />
                                                 </div>
                                             </div>
                                             <!-- Radio "Đã thanh toán một phần" -->
                                             <div class="flex items-center space-x-6">
                                                 <label class="inline-flex items-center space-x-2">
-                                                    <input type="radio" name="payment_status" value="partially_paid"
-                                                        v-model="paymentStatus" class="form-radio text-blue-600" />
-                                                    <span class="font-medium text-gray-800">Đã thanh toán một
-                                                        phần</span>
+                                                    <input
+                                                        type="radio"
+                                                        name="payment_status"
+                                                        value="partially_paid"
+                                                        v-model="paymentStatus"
+                                                        class="form-radio text-blue-600"
+                                                    />
+                                                    <span class="font-medium text-gray-800">Đã thanh toán một phần</span>
                                                 </label>
                                             </div>
-                                            <div v-if="paymentStatus === 'partially_paid'"
-                                                class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                            <div v-if="paymentStatus === 'partially_paid'" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Hình thức
-                                                        thanh toán</label>
-                                                    <select v-model="paymentMethod" name="payment_method"
-                                                        class="border-white-300 mt-1 w-full rounded-md bg-white p-2 shadow-sm">
+                                                    <label class="block text-sm font-medium text-gray-700">Hình thức thanh toán</label>
+                                                    <select
+                                                        v-model="paymentMethod"
+                                                        name="payment_method"
+                                                        class="border-white-300 mt-1 w-full rounded-md bg-white p-2 shadow-sm"
+                                                    >
                                                         <option value="cash">Tiền mặt</option>
                                                         <option value="bank_transfer">Chuyển khoản</option>
                                                         <option value="credit_card">Thẻ</option>
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Số tiền thanh
-                                                        toán</label>
+                                                    <label class="block text-sm font-medium text-gray-700">Số tiền thanh toán</label>
                                                     <div class="relative mt-1">
-                                                        <input type="text" :value="formattedPaidAmount"
+                                                        <input
+                                                            type="text"
+                                                            :value="formattedPaidAmount"
                                                             @input="handleFormattedInput"
-                                                            class="w-full rounded-md bg-white p-2 pr-10 shadow-sm" />
+                                                            class="w-full rounded-md bg-white p-2 pr-10 shadow-sm"
+                                                        />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Ngày ghi
-                                                        nhận</label>
-                                                    <input type="date" v-model="paymentDate" name="payment_date"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm" />
+                                                    <label class="block text-sm font-medium text-gray-700">Ngày ghi nhận</label>
+                                                    <input
+                                                        type="date"
+                                                        v-model="paymentDate"
+                                                        name="payment_date"
+                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
+                                                    />
                                                 </div>
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Tham
-                                                        chiếu</label>
-                                                    <input type="text" v-model="paymentReference"
+                                                    <label class="block text-sm font-medium text-gray-700">Tham chiếu</label>
+                                                    <input
+                                                        type="text"
+                                                        v-model="paymentReference"
                                                         placeholder="Nhập mã tham chiếu"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm" />
+                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
+                                                    />
                                                 </div>
                                             </div>
                                             <!-- Radio "Thanh toán sau" -->
                                             <div class="flex items-center space-x-6">
                                                 <label class="inline-flex items-center space-x-2">
-                                                    <input type="radio" name="payment_status" value="unpaid"
-                                                        v-model="paymentStatus" class="form-radio text-blue-600" />
+                                                    <input
+                                                        type="radio"
+                                                        name="payment_status"
+                                                        value="unpaid"
+                                                        v-model="paymentStatus"
+                                                        class="form-radio text-blue-600"
+                                                    />
                                                     <span class="font-medium text-gray-800">Thanh toán sau</span>
                                                 </label>
                                             </div>
@@ -810,12 +859,9 @@ onUnmounted(() => {
                                     </div>
                                     <div class="space-y-1 text-sm">
                                         <h3 class="text-black-900 font-bold">Thông tin nhà cung cấp</h3>
-                                        <p v-if="selectedSupplier.email" class="text-black-400">{{
-                                            selectedSupplier.email }}</p>
-                                        <p v-if="selectedSupplier.phone" class="text-black-400">{{
-                                            selectedSupplier.phone }}</p>
-                                        <p v-if="selectedSupplier.address" class="text-black-400">{{
-                                            selectedSupplier.address }}</p>
+                                        <p v-if="selectedSupplier.email" class="text-black-400">{{ selectedSupplier.email }}</p>
+                                        <p v-if="selectedSupplier.phone" class="text-black-400">{{ selectedSupplier.phone }}</p>
+                                        <p v-if="selectedSupplier.address" class="text-black-400">{{ selectedSupplier.address }}</p>
                                     </div>
                                 </div>
                                 <div v-else class="text-gray-500">Không có thông tin nhà cung cấp</div>
@@ -828,36 +874,48 @@ onUnmounted(() => {
                             </div>
                             <div class="space-y-4 p-4">
                                 <div class="relative" ref="userDropdownRef">
-                                    <label class="mb-1 block text-sm font-medium text-black-700">Nhân viên phụ
-                                        trách</label>
+                                    <label class="text-black-700 mb-1 block text-sm font-medium">Nhân viên phụ trách</label>
                                     <div class="relative">
-                                        <input v-model="userSearchQuery" type="text"
-                                            :placeholder="selectedUserId ? props.users.find(u => u.id === selectedUserId)?.name : 'Tìm kiếm nhân viên...'"
+                                        <input
+                                            v-model="userSearchQuery"
+                                            type="text"
+                                            :placeholder="
+                                                selectedUserId ? props.users.find((u) => u.id === selectedUserId)?.name : 'Tìm kiếm nhân viên...'
+                                            "
                                             @focus="isUserDropdownOpen = true"
-                                            @keydown.escape="isUserDropdownOpen = false" :class="[
-                                                'h-10 w-full rounded-md border border-black-300 pl-4 pr-10 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500',
-                                                selectedUserId ? 'text-black' : 'text-gray-500'
-                                            ]" />
+                                            @keydown.escape="isUserDropdownOpen = false"
+                                            :class="[
+                                                'border-black-300 h-10 w-full rounded-md border pr-10 pl-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500',
+                                                selectedUserId ? 'text-black' : 'text-gray-500',
+                                            ]"
+                                        />
 
-                                        <button @click="toggleUserDropdown"
-                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600">
+                                        <button
+                                            @click="toggleUserDropdown"
+                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+                                        >
                                             <ChevronDown v-if="!isUserDropdownOpen" class="h-4 w-4" />
                                             <ChevronUp v-else class="h-4 w-4" />
                                         </button>
                                     </div>
                                     <!-- Dropdown -->
-                                    <div v-if="isUserDropdownOpen"
-                                        class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+                                    <div
+                                        v-if="isUserDropdownOpen"
+                                        class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg"
+                                    >
                                         <div class="max-h-60 overflow-y-auto">
                                             <!-- No results -->
-                                            <div v-if="filteredUsers.length === 0"
-                                                class="p-4 text-center text-gray-500">
+                                            <div v-if="filteredUsers.length === 0" class="p-4 text-center text-gray-500">
                                                 <p class="text-sm">Không tìm thấy nhân viên nào</p>
                                             </div>
                                             <!-- User list -->
-                                            <button v-else v-for="user in filteredUsers" :key="user.id"
+                                            <button
+                                                v-else
+                                                v-for="user in filteredUsers"
+                                                :key="user.id"
                                                 @click="selectUser(user)"
-                                                class="w-full border-b border-gray-100 p-3 text-left last:border-b-0 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none">
+                                                class="w-full border-b border-gray-100 p-3 text-left last:border-b-0 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                                            >
                                                 <div class="flex items-center">
                                                     <span class="font-medium text-gray-900">{{ user.name }}</span>
                                                 </div>
@@ -866,32 +924,41 @@ onUnmounted(() => {
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập dự
-                                        kiến</label>
-                                    <input type="datetime-local" v-model="expectedImportDate"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập dự kiến</label>
+                                    <input
+                                        type="datetime-local"
+                                        v-model="expectedImportDate"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-sm font-medium text-gray-700">Trạng thái nhập
-                                        hàng</label>
-                                    <select v-model="receiptStatus"
-                                        class="h-10 w-full rounded-md border border-gray-300 bg-white px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500">
-
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Trạng thái nhập hàng</label>
+                                    <select
+                                        v-model="receiptStatus"
+                                        class="h-10 w-full rounded-md border border-gray-300 bg-white px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    >
                                         <option value="partially_received">Đã nhận một phần</option>
                                         <option value="completed">Hoàn thành</option>
                                         <option value="cancelled">Đã hủy</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng
-                                        nhập</label>
-                                    <input type="text" v-model="batchCode" placeholder="Nhập mã đơn nhập hàng"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng nhập</label>
+                                    <input
+                                        type="text"
+                                        v-model="batchCode"
+                                        placeholder="Nhập mã đơn nhập hàng"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Tham chiếu</label>
-                                    <input type="text" v-model="invoiceCode" placeholder="Mã nhập tham chiếu"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <input
+                                        type="text"
+                                        v-model="invoiceCode"
+                                        placeholder="Mã nhập tham chiếu"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -901,17 +968,28 @@ onUnmounted(() => {
                                 <h2 class="text-lg font-semibold">Ghi chú</h2>
                             </div>
                             <div class="p-4">
-                                <textarea v-model="notes" placeholder="Thêm ghi chú..." name="notes"
-                                    class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"></textarea>
+                                <textarea
+                                    v-model="notes"
+                                    placeholder="Thêm ghi chú..."
+                                    name="notes"
+                                    class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                ></textarea>
                             </div>
                         </div>
 
-                        <button class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600"
-                            @click="submitBatch" v-if="selectedProducts.length > 0">
+                        <button
+                            class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600"
+                            @click="submitBatch"
+                            v-if="selectedProducts.length > 0"
+                        >
                             Lưu đơn nhập hàng
                         </button>
-                        <button class="mt-4 h-12 w-full rounded-md bg-gray-500 font-medium text-white hover:bg-gray-600"
-                            @click="submitBatch" v-else disabled>
+                        <button
+                            class="mt-4 h-12 w-full rounded-md bg-gray-500 font-medium text-white hover:bg-gray-600"
+                            @click="submitBatch"
+                            v-else
+                            disabled
+                        >
                             Lưu đơn nhập hàng
                         </button>
                     </div>
@@ -925,13 +1003,10 @@ onUnmounted(() => {
             <div class="fixed inset-0 flex items-center justify-center p-4">
                 <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
                     <h3 class="mb-4 text-lg font-semibold">Chỉnh sửa đơn giá</h3>
-                    <input type="number" min="0" v-model.number="editingPrice"
-                        class="mb-4 w-full rounded border border-gray-300 px-3 py-2" />
+                    <input type="number" min="0" v-model.number="editingPrice" class="mb-4 w-full rounded border border-gray-300 px-3 py-2" />
                     <div class="flex justify-end space-x-2">
-                        <button @click="closePriceModal"
-                            class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
-                        <button @click="savePrice"
-                            class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Lưu</button>
+                        <button @click="closePriceModal" class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
+                        <button @click="savePrice" class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Lưu</button>
                     </div>
                 </div>
             </div>
@@ -947,22 +1022,36 @@ onUnmounted(() => {
                         <label class="font-medium whitespace-nowrap text-gray-700">Loại chiết khấu:</label>
                         <div class="flex items-center">
                             <button
-                                :class="['h-10 rounded-l border border-gray-300 px-4 whitespace-nowrap', modalDiscountType === 'amount' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700']"
-                                @click="setDiscountType('amount')" type="button">
+                                :class="[
+                                    'h-10 rounded-l border border-gray-300 px-4 whitespace-nowrap',
+                                    modalDiscountType === 'amount' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700',
+                                ]"
+                                @click="setDiscountType('amount')"
+                                type="button"
+                            >
                                 Giá trị
                             </button>
                             <button
-                                :class="['h-10 rounded-r border-t border-r border-b border-gray-300 px-4', modalDiscountType === 'percent' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700']"
-                                @click="setDiscountType('percent')" type="button">
+                                :class="[
+                                    'h-10 rounded-r border-t border-r border-b border-gray-300 px-4',
+                                    modalDiscountType === 'percent' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700',
+                                ]"
+                                @click="setDiscountType('percent')"
+                                type="button"
+                            >
                                 %
                             </button>
                         </div>
                         <div class="flex items-center">
-                            <input v-model="modalDiscountInput" placeholder="0" type="text" min="0"
+                            <input
+                                v-model="modalDiscountInput"
+                                placeholder="0"
+                                type="text"
+                                min="0"
                                 :max="modalDiscountType === 'percent' ? 100 : subtotal"
-                                class="h-10 w-32 rounded-l border border-r-0 border-gray-300 px-2 focus:outline-none" />
-                            <button class="h-10 w-[36px] rounded-r border border-l-0 border-gray-300 px-2"
-                                type="button">
+                                class="h-10 w-32 rounded-l border border-r-0 border-gray-300 px-2 focus:outline-none"
+                            />
+                            <button class="h-10 w-[36px] rounded-r border border-l-0 border-gray-300 px-2" type="button">
                                 <span v-if="modalDiscountType === 'amount'" class="text-gray-500">₫</span>
                                 <span v-else class="text-gray-500">%</span>
                             </button>
@@ -970,12 +1059,13 @@ onUnmounted(() => {
                     </div>
                     <div v-if="discountError" class="mb-2 text-sm text-red-600">{{ discountError }}</div>
                     <div class="flex justify-end space-x-2">
-                        <button @click="closeDiscountModal"
-                            class="bg-white-200 rounded border-1 border-red-500 px-4 py-1 font-semibold text-red-500 hover:bg-red-100">
+                        <button
+                            @click="closeDiscountModal"
+                            class="bg-white-200 rounded border-1 border-red-500 px-4 py-1 font-semibold text-red-500 hover:bg-red-100"
+                        >
                             Xóa
                         </button>
-                        <button @click="saveDiscount"
-                            class="rounded bg-blue-500 px-4 py-1 font-semibold text-white hover:bg-blue-400">Lưu</button>
+                        <button @click="saveDiscount" class="rounded bg-blue-500 px-4 py-1 font-semibold text-white hover:bg-blue-400">Lưu</button>
                     </div>
                 </div>
             </div>

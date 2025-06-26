@@ -182,10 +182,7 @@ function approveOrder() {
 }
 
 function importOrder() {
-    router.get(
-        route('admin.batches.add', { id: props.purchaseOrder[0].id }),
-        {},
-    );
+    router.get(route('admin.batches.add', { id: props.purchaseOrder[0].id }), {});
 }
 
 function cancelOrder() {
@@ -216,7 +213,6 @@ function cancelOrder() {
 function printOrder() {
     window.open(route('admin.purchase-orders.print', { id: props.purchaseOrder[0].id }), '_blank');
 }
-
 </script>
 
 <template>
