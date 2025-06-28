@@ -28,36 +28,35 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-   public function store(Request $request)
-{
-    // Kiểm tra dữ liệu đầu vào
-    $credentials = $request->validate([
-        'email' => ['required', 'email'],
-        'password' => ['required'],
-    ]);
+    public function store(Request $request)
+    {
+        // Kiểm tra dữ liệu đầu vào
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
 
-    // Thử đăng nhập với thông tin đã validate
-    if (Auth::attempt($credentials)) {
-        // Kiểm tra role: chỉ cho phép nếu role_id === 1 (thu ngân)
-        if (Auth::user()->role_id !== 1) {
-            Auth::logout(); // Đăng xuất ngay nếu không đúng role
-            return back()->withErrors([
-                'email' => 'Bạn không phải là admin.',
-            ]);
+        // Thử đăng nhập với thông tin đã validate
+        if (Auth::attempt($credentials)) {
+            // Kiểm tra role: chỉ cho phép nếu role_id === 1 (thu ngân)
+            if (Auth::user()->role_id !== 1) {
+                Auth::logout(); // Đăng xuất ngay nếu không đúng role
+                return back()->withErrors([
+                    'email' => 'Bạn không phải là admin.',
+                ]);
+            }
+
+            // Tạo lại phiên làm việc (session)
+            $request->session()->regenerate();
+
+            return to_route('dashboard')->with('reload', true);
         }
 
-        // Tạo lại phiên làm việc (session)
-        $request->session()->regenerate();
-
-        // Chuyển đến dashboard của thu ngân
-        return redirect()->intended(route('cashier.dashboard'));
+        // Nếu thông tin không đúng, trả lỗi về lại form
+        return back()->withErrors([
+            'email' => 'Email hoặc mật khẩu không đúng.',
+        ]);
     }
-
-    // Nếu thông tin không đúng, trả lỗi về lại form
-    return back()->withErrors([
-        'email' => 'Email hoặc mật khẩu không đúng.',
-    ]);
-}
     /**
      * Destroy an authenticated session.
      */
@@ -69,6 +68,6 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/')
-        ->with('success', 'Đăng xuất thành công!');
+            ->with('success', 'Đăng xuất thành công!');
     }
 }

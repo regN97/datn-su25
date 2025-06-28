@@ -9,9 +9,11 @@ use Inertia\Inertia;
 
 class AuthenticatedSessionController extends Controller
 {
-    public function create()
+    public function create(Request $request)
     {
-        return Inertia::render('cashier/Login');
+        return Inertia::render('cashier/Login', [
+            'status' => $request->session()->get('status'),
+        ]);
     }
 
     public function store(Request $request)
@@ -40,9 +42,12 @@ class AuthenticatedSessionController extends Controller
 
     public function destroy(Request $request)
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect()->route('cashier.login');
+
+        return redirect('/')
+            ->with('success', 'Đăng xuất thành công!');
     }
 }
