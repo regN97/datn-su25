@@ -18,8 +18,7 @@ function togglePasswordVisibility() {
 
 // Props cho component này (nếu có các thông báo status hoặc link reset password)
 defineProps<{
-    status?: string; // Thông báo trạng thái (ví dụ: "Bạn đã đăng ký thành công!")
-    canResetPassword: boolean; // Kiểm soát việc hiển thị link quên mật khẩu
+    status?: string;
 }>();
 
 const form = useForm({
@@ -76,13 +75,6 @@ const submit = () => {
                 <div>
                     <div class="mb-1 flex items-center justify-between">
                         <Label for="password" class="font-semibold">Mật khẩu</Label>
-                        <TextLink
-                            v-if="canResetPassword"
-                            :href="route('cashier.password.request')" class="text-sm text-orange-500 hover:underline"
-                            :tabindex="5"
-                        >
-                            Quên mật khẩu?
-                        </TextLink>
                     </div>
 
                     <div class="relative">
