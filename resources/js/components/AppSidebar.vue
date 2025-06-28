@@ -4,7 +4,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { FilePlus2, KeyRound, Layers3, LayoutGrid, PackageSearch, RotateCw, Truck, User, UserCog, Users, Warehouse } from 'lucide-vue-next';
+import { FilePlus2, KeyRound, Layers3, LayoutGrid, PackageSearch, RotateCw, Truck, User, UserCog, Users, Warehouse, PencilRuler  } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import SidebarDropdown from './SideBarDropdown.vue';
 
@@ -44,7 +44,7 @@ const mainNavItems: NavItem[] = [
                     { label: 'Quản lý danh mục', href: route('admin.categories.index'), icon: PackageSearch },
                     { label: 'Quản lý nhà cung cấp', href: route('admin.suppliers.index'), icon: Warehouse },
 
-                    { label: 'Quản lý đơn vị tính', href: route('admin.units.index'), icon: Boxes },
+                    { label: 'Quản lý đơn vị tính', href: route('admin.units.index'), icon: PencilRuler  },
                 ]"
                 class="mt-4"
             />

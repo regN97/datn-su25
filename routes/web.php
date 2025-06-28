@@ -35,10 +35,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
 
     // Purchase
     Route::resource('purchaseReturn', PurchaseReturnController::class);
+
+
     Route::get('purchase-orders/trashed', [PurchaseOrderController::class, 'trashed'])->name('purchase-orders.trashed');
     Route::post('purchase-orders/{supplier}/restore', [PurchaseOrderController::class, 'restore'])->name('purchase-orders.restore');
     Route::delete('purchase-orders/{supplier}/force-delete', [PurchaseOrderController::class, 'forceDelete'])->name('purchase-orders.forceDelete');
     Route::post('purchase-orders/{po_id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
+    Route::get('/purchase-orders/{id}/status', [PurchaseOrderController::class, 'getStatus'])->name('purchase-orders.status');
+    Route::get('/purchase-orders/{id}/imported-quantities', [PurchaseOrderController::class, 'getImportedQuantities'])->name('purchase-orders.imported-quantities');
     Route::post('purchase-orders/{po_id}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-orders.approve');
     Route::resource('purchase-orders', PurchaseOrderController::class);
 

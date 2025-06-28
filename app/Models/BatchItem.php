@@ -21,6 +21,7 @@ class BatchItem extends Model
         'purchase_order_item_id',
         'ordered_quantity',
         'received_quantity',
+        'rejected_quantity',
         'remaining_quantity',
         'current_quantity',
         'purchase_price',
