@@ -45,4 +45,12 @@ class PurchaseOrderItem extends Model
     {
         return $this->quantity - $this->getReceivedQuantity();
     }
+
+    public function updateReceivedQuantity()
+    {
+        $this->received_quantity = BatchItem::where('purchase_order_item_id', $this->id)
+            ->sum('current_quantity');
+
+        $this->save();
+    }
 }

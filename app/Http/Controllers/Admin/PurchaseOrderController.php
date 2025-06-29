@@ -102,7 +102,7 @@ class PurchaseOrderController extends Controller
 
             if ($lastPo) {
                 // Tách số thứ tự cuối cùng
-                $lastNumber = (int)substr($lastPo->po_number, -3);
+                $lastNumber = (int) substr($lastPo->po_number, -3);
                 $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
             } else {
                 $nextNumber = '001';
@@ -316,13 +316,13 @@ class PurchaseOrderController extends Controller
         // Lấy thông tin đơn hàng và các sản phẩm trong đơn hàng
         $purchaseOrderItem = PurchaseOrderItem::where('purchase_order_id', '=', $id)->with('product')->get();
         $purchaseOrder = PurchaseOrder::where('id', '=', $id)->with('status')->get();
-        
+
         // Kiểm tra trạng thái đơn hàng, chỉ cho phép chỉnh sửa nếu đơn hàng chưa được duyệt
         if ($purchaseOrder[0]->status_id != 1 && $purchaseOrder[0]->status_id != 2) {
             return redirect()->route('admin.purchase-orders.show', $id)
                 ->with('error', 'Không thể chỉnh sửa đơn hàng đã được duyệt, đã nhập hàng hoặc đã hủy!');
         }
-        
+
         // Lấy danh sách sản phẩm, nhà cung cấp và người dùng
         $productQuery = Product::query();
         $products = ['data' => $productQuery->get()];
@@ -343,17 +343,17 @@ class PurchaseOrderController extends Controller
     {
         // Bắt đầu transaction để đảm bảo tính toàn vẹn dữ liệu
         DB::beginTransaction();
-        
+
         try {
             // Lấy thông tin đơn hàng hiện tại
             $purchaseOrder = PurchaseOrder::findOrFail($id);
-            
+
             // Kiểm tra trạng thái đơn hàng, chỉ cho phép cập nhật nếu đơn hàng chưa được duyệt hoặc đã duyệt
             if ($purchaseOrder->status_id != 1 && $purchaseOrder->status_id != 2) {
                 return redirect()->route('admin.purchase-orders.show', $id)
                     ->with('error', 'Không thể cập nhật đơn hàng đã nhập hàng hoặc đã hủy!');
             }
-            
+
             // Cập nhật thông tin đơn hàng
             $purchaseOrder->po_number = $request->order_code ?? $purchaseOrder->po_number;
             $purchaseOrder->supplier_id = $request->supplier_id;
@@ -364,10 +364,10 @@ class PurchaseOrderController extends Controller
             $purchaseOrder->created_by = $request->user_id ?? Auth::id();
             $purchaseOrder->notes = $request->note;
             $purchaseOrder->save();
-            
+
             // Xóa tất cả các item hiện tại của đơn hàng
             PurchaseOrderItem::where('purchase_order_id', $id)->delete();
-            
+
             // Thêm lại các item mới
             $po_items_data = [];
             foreach ($request->products as $product) {
@@ -386,24 +386,41 @@ class PurchaseOrderController extends Controller
                     'notes'             => null,
                 ];
             }
-            
+
             // Insert nhiều bản ghi vào bảng purchase_order_items
             PurchaseOrderItem::insert($po_items_data);
-            
+
             // Commit transaction
             DB::commit();
-            
+
             // Redirect về trang chi tiết đơn hàng với thông báo thành công
             return redirect()->route('admin.purchase-orders.show', $id)
                 ->with('success', 'Cập nhật đơn hàng thành công!');
-                
+
         } catch (\Exception $e) {
             // Rollback transaction nếu có lỗi
             DB::rollBack();
-            
+
             // Redirect về trang chỉnh sửa với thông báo lỗi
             return redirect()->route('admin.purchase-orders.edit', $id)
                 ->with('error', 'Đã xảy ra lỗi khi cập nhật đơn hàng: ' . $e->getMessage());
         }
+    }
+
+    public function getStatus($id)
+    {
+        $purchaseOrder = PurchaseOrder::with('status')->findOrFail($id);
+        return response()->json([
+            'status_id' => $purchaseOrder->status_id,
+            'status_name' => $purchaseOrder->status->name,
+            'status_code' => $purchaseOrder->status->code,
+        ]);
+    }
+
+    public function getImportedQuantities($id)
+    {
+        $purchaseOrder = PurchaseOrder::findOrFail($id);
+        $quantities = $purchaseOrder->items()->get(['id', 'product_id', 'product_name', 'ordered_quantity', 'received_quantity']);
+        return response()->json($quantities);
     }
 }

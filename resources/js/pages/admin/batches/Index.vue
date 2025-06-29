@@ -186,7 +186,7 @@ function formatCurrency(amount: number): string {
 
 <template>
 
-    <Head title="Quản lý đơn nhập hàng" />
+    <Head title="Purchase Receipts" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">

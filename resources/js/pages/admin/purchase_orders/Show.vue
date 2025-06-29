@@ -2,6 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
+import type { Page } from '@inertiajs/core';
 import { ChevronLeft, CircleCheckBig, CircleX, PackagePlus, PencilLine, Printer } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { computed, ref } from 'vue';
@@ -51,6 +52,7 @@ interface PurchaseOrderItem {
     product_name: string;
     product_sku: string;
     ordered_quantity: number;
+    received_quantity: number;
     unit_cost: number;
     subtotal: number;
     discount_amount: number;
@@ -82,6 +84,20 @@ interface Props {
     purchaseOrderItem: PurchaseOrderItem[];
 }
 
+interface Flash {
+    success?: string;
+    error?: string;
+}
+
+interface PageProps {
+    flash?: Flash;
+    status_id?: number;
+    status_name?: string;
+    status_code?: string;
+    items?: PurchaseOrderItem[];
+    [key: string]: any;
+}
+
 const props = withDefaults(defineProps<Props>(), {
     suppliers: () => [],
     users: () => [],
@@ -96,7 +112,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const po_products = ref<PurchaseOrderItem[]>(props.purchaseOrderItem);
+const po_products = ref<PurchaseOrderItem[]>(props.purchaseOrderItem.map(item => ({
+    ...item,
+    received_quantity: item.received_quantity || 0
+})));
 const purchase_order = ref<PurchaseOrder[]>(props.purchaseOrder);
 
 function getStatusClass(status_id: number) {
@@ -182,7 +201,68 @@ function approveOrder() {
 }
 
 function importOrder() {
-    router.get(route('admin.batches.add', { id: props.purchaseOrder[0].id }), {});
+    if (!props.purchaseOrder[0]?.id) {
+        Swal.fire('Lỗi', 'Không tìm thấy đơn đặt hàng.', 'error');
+        return;
+    }
+
+    router.get(
+        route('admin.batches.add', { id: props.purchaseOrder[0].id }),
+        {},
+        {
+            onSuccess: (page: Page<PageProps>) => {
+                if (page.props.flash?.success) {
+                    // Gọi API để lấy trạng thái mới
+                    router.get(
+                        route('purchase-orders.status', { id: props.purchaseOrder[0].id }),
+                        {},
+                        {
+                            preserveState: true,
+                            onSuccess: (statusPage: Page<PageProps>) => {
+                                if (purchase_order.value[0]) {
+                                    purchase_order.value[0].status_id = statusPage.props.status_id ?? purchase_order.value[0].status_id;
+                                    purchase_order.value[0].status.name = statusPage.props.status_name ?? purchase_order.value[0].status.name;
+                                    purchase_order.value[0].status.code = statusPage.props.status_code ?? purchase_order.value[0].status.code;
+                                    Swal.fire('Thành công', `Trạng thái đơn hàng đã được cập nhật thành "${statusPage.props.status_name}"`, 'success');
+                                }
+                            },
+                            onError: () => {
+                                Swal.fire('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.', 'error');
+                            },
+                        }
+                    );
+
+                    // Gọi API để lấy số lượng nhập
+                    router.get(
+                        route('purchase-orders.imported-quantities', { id: props.purchaseOrder[0].id }),
+                        {},
+                        {
+                            preserveState: true,
+                            onSuccess: (quantitiesPage: Page<PageProps>) => {
+                                if (!quantitiesPage.props.items) {
+                                    Swal.fire('Lỗi', 'Không có dữ liệu số lượng nhập.', 'error');
+                                    return;
+                                }
+                                po_products.value = po_products.value.map((product) => {
+                                    const imported = quantitiesPage.props.items!.find((q: PurchaseOrderItem) => q.id === product.id);
+                                    return {
+                                        ...product,
+                                        received_quantity: imported ? imported.received_quantity : product.received_quantity || 0,
+                                    };
+                                });
+                            },
+                            onError: () => {
+                                Swal.fire('Lỗi', 'Không thể lấy thông tin số lượng nhập.', 'error');
+                            },
+                        }
+                    );
+                }
+            },
+            onError: () => {
+                Swal.fire('Lỗi', 'Không thể nhập hàng.', 'error');
+            },
+        }
+    );
 }
 
 function cancelOrder() {
@@ -233,8 +313,8 @@ function printOrder() {
                         <h1 class="ml-4 text-3xl font-bold text-gray-900">{{ orderCode }}</h1>
                         <span
                             :class="[
-                                'text-1xl font-regular ml-3 inline-flex rounded-full px-3.5 py-1 leading-5',
-                                getStatusClass(purchase_order[0].status_id),
+                            'text-1xl font-regular ml-3 inline-flex rounded-full px-3.5 py-1 leading-5',
+                            getStatusClass(purchase_order[0].status_id),
                             ]"
                             >{{ purchase_order[0].status.name }}</span
                         >
@@ -366,7 +446,7 @@ function printOrder() {
                                         <span>Tiền cần trả NCC</span>
                                         <span class="ml-2">{{
                                             new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAfterDiscount)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                 </div>
                             </div>

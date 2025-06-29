@@ -647,7 +647,8 @@ onUnmounted(() => {
                                                         {{ formatPrice(product.purchase_price) }}
                                                     </button>
                                                 </td>
-                                                <td class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">
+                                                <td
+                                                    class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">
                                                     {{ formatPrice(product.total) }}
                                                 </td>
                                             </tr>
