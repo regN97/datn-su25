@@ -256,19 +256,24 @@ class PurchaseReturnController extends Controller
         // Tạo PurchaseReturnItems
         foreach ($validatedData['items'] as $item) {
             $batch = null;
-            // Chỉ tìm batch nếu batch_id được cung cấp và tồn tại
+            $batchItem = null;
+
             if (!empty($item['batch_id'])) {
                 $batch = Batch::find($item['batch_id']);
-
+                $batchItem = BatchItem::where('batch_id', $item['batch_id'])
+                    ->where('product_id', $item['product_id'])
+                    ->first();
             }
 
-            $batchNumberToSave = $batch->batch_number ?? ($item['batch_number'] ?? null);
-            $manufacturingDateToSave = $batch->manufacturing_date ?? ($item['manufacturing_date'] ?? null);
-            $expiryDateToSave = $batch->expiry_date ?? ($item['expiry_date'] ?? null);
+            $manufacturingDateToSave = $batchItem->manufacturing_date ?? ($item['manufacturing_date'] ?? null);
+            $expiryDateToSave = $batchItem->expiry_date ?? ($item['expiry_date'] ?? null);
 
+            // Lý do trả hàng chỉ lấy từ request
+            $itemReasonToSave = $item['reason'] ?? null;
+
+            $batchNumberToSave = $batch->batch_number ?? ($item['batch_number'] ?? null);
             $productNameToSave = $item['product_name'] ?? '';
             $productSkuToSave = $item['product_sku'] ?? '';
-            $itemReasonToSave = $item['reason'] ?? null;
 
             $purchaseReturn->items()->create([
                 'product_id' => $item['product_id'],

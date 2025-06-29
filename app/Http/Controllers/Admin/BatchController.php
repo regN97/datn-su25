@@ -22,22 +22,19 @@ class BatchController extends Controller
 {
     public function index()
     {
-        $batches = Batch::with([
-            'purchaseOrder', // Load related purchase order
-            'supplier:id,name', // Load supplier with only id and name
-            'creator:id,name', // Load creator with only id and name
-            'batchItems' => function ($query) {
-                // Load batch items with their related product and unit
-                $query->with([
-                    'product' => function ($productQuery) {
-                    $productQuery->select('id', 'unit_id', 'name', 'sku') // Select necessary fields
-                        ->with('unit:id,name'); // Load unit with only id and name
-                }
-                ]);
-            }
-        ])->orderBy('id', 'desc')
-            ->get();
+        $emptyBatchIds = Batch::whereDoesntHave('batchItems', function ($q) {
+            $q->where('current_quantity', '>', 0);
+        })->pluck('id');
 
+
+        if ($emptyBatchIds->count() > 0) {
+            // Nếu chưa có ON DELETE CASCADE thì xóa batchItems trước
+            BatchItem::whereIn('batch_id', $emptyBatchIds)->delete();
+            Batch::whereIn('id', $emptyBatchIds)->delete();
+            Log::info('Deleted batches:', $emptyBatchIds->toArray());
+        }
+
+        $batches = Batch::with(['purchaseOrder', 'supplier', 'createdBy'])->get();
         return Inertia::render('admin/batches/Index', [
             'batches' => $batches,
         ]);
@@ -45,6 +42,96 @@ class BatchController extends Controller
 
     public function show($id)
     {
+        $batch = Batch::with([
+            'batchItems' => function ($query) {
+                $query->with([
+                    'product' => function ($productQuery) {
+                        $productQuery->select(
+                            'id',
+                            'name',
+                            'sku',
+                            'barcode',
+                            'unit_id',
+                            'description',
+                            'selling_price',
+                            'image_url'
+                        );
+                    },
+                    'product.unit' => function ($unitQuery) {
+                        $unitQuery->select('id', 'name');
+                    },
+                    'createdBy' => function ($userQuery) {
+                        $userQuery->select('id', 'name', 'email');
+                    },
+                    'updatedBy' => function ($userQuery) {
+                        $userQuery->select('id', 'name', 'email');
+                    },
+                    'purchaseOrderItem' => function ($poItemQuery) {
+                        $poItemQuery->select(
+                            'id',
+                            'ordered_quantity',
+                            'unit_cost'
+                        );
+                    }
+                ])->select(
+                        'id',
+                        'batch_id',
+                        'product_id',
+                        'purchase_order_item_id',
+                        'ordered_quantity',
+                        'received_quantity',
+                        'rejected_quantity',
+                        'remaining_quantity',
+                        'current_quantity',
+                        'purchase_price',
+                        'total_amount',
+                        'manufacturing_date',
+                        'expiry_date',
+                        'inventory_status',
+                        'created_by',
+                        'updated_by',
+                        'created_at',
+                        'updated_at'
+                    );
+            },
+            'supplier' => function ($query) {
+                $query->select('id', 'name', 'contact_person', 'email', 'phone', 'address');
+            },
+            'purchaseOrder' => function ($query) {
+                $query->select(
+                    'id',
+                    'po_number',
+                    'order_date',
+                    'expected_delivery_date',
+                    'actual_delivery_date',
+                    'total_amount'
+                );
+            },
+            'createdBy' => function ($query) {
+                $query->select('id', 'name', 'email');
+            },
+            'updatedBy' => function ($query) {
+                $query->select('id', 'name', 'email');
+            },
+        ])->select(
+                'id',
+                'batch_number',
+                'purchase_order_id',
+                'supplier_id',
+                'received_date',
+                'invoice_number',
+                'total_amount',
+                'discount_type',
+                'discount_amount',
+                'payment_status',
+                'paid_amount',
+                'receipt_status',
+                'notes',
+                'created_by',
+                'updated_by',
+                'created_at',
+                'updated_at'
+            )->findOrFail($id);
 
     }
 

@@ -262,6 +262,7 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                                     <th class="py-2 px-2 text-center">Số lượng</th>
                                     <th class="py-2 px-2 text-center">Đơn giá</th>
                                     <th class="py-2 px-2 text-right">Thành tiền</th>
+                                    <th class="py-2 px-2 text-center">Lý do trả</th> <!-- Thêm dòng này -->
                                     <th class="py-2 px-2 w-10"></th>
                                 </tr>
                             </thead>
@@ -306,6 +307,14 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                                     </td>
                                     <td class="px-2 text-right font-medium text-gray-800">
                                         {{ formatMoney(item.quantity_to_return * item.unit_cost) }}
+                                    </td>
+                                    <td class="px-2 text-center">
+                                        <input
+                                            v-model="item.reason"
+                                            type="text"
+                                            placeholder="Nhập lý do trả"
+                                            class="w-32 p-1 border border-gray-300 rounded-md text-sm"
+                                        />
                                     </td>
                                     <td class="px-2">
                                         <button v-if="returnForm.return_items.length > 1"
