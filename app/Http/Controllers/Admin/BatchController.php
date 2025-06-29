@@ -22,22 +22,31 @@ class BatchController extends Controller
 {
     public function index()
     {
-        $batches = Batch::with([
-            'purchaseOrder', // Load related purchase order
-            'supplier:id,name', // Load supplier with only id and name
-            'creator:id,name', // Load creator with only id and name
-            'batchItems' => function ($query) {
-                // Load batch items with their related product and unit
-                $query->with([
-                    'product' => function ($productQuery) {
-                    $productQuery->select('id', 'unit_id', 'name', 'sku') // Select necessary fields
-                        ->with('unit:id,name'); // Load unit with only id and name
-                }
-                ]);
-            }
-        ])->orderBy('id', 'desc')
-            ->get();
+        $emptyBatchIds = Batch::whereDoesntHave('batchItems', function ($q) {
+            $q->where('current_quantity', '>', 0);
+        })->pluck('id');
 
+
+        if ($emptyBatchIds->count() > 0) {
+            // Nếu chưa có ON DELETE CASCADE thì xóa batchItems trước
+            BatchItem::whereIn('batch_id', $emptyBatchIds)->delete();
+            Batch::whereIn('id', $emptyBatchIds)->delete();
+            Log::info('Deleted batches:', $emptyBatchIds->toArray());
+        }
+
+        $batches = Batch::with([
+            'purchaseOrder',
+            'supplier',
+            'creator:id,name',
+            'batchItems' => function ($query) {
+                $query->with('product', function ($productQuery) {        
+                    $productQuery->select('id','name', 'sku', 'unit_id')
+                        ->with('unit:id,name'); 
+                });
+            }
+        ])
+            ->orderBy('id', 'desc')
+            ->get();
         return Inertia::render('admin/batches/Index', [
             'batches' => $batches,
         ]);
