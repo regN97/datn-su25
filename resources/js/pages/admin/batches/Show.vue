@@ -185,39 +185,62 @@ function formatDateOnly(dateString: string | null): string {
 function goBack() {
     router.visit('/admin/batches');
 }
+function goReturn() {
+    router.visit(`/admin/purchaseReturn/create?batch_id=${props.batch.id}`);
+}
 </script>
 
 <template>
+
     <Head title="Chi tiết Lô hàng" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div class="container mx-auto p-6">
                 <div
-                    class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border bg-white shadow-lg md:min-h-min"
-                >
+                    class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border bg-white shadow-lg md:min-h-min">
                     <div class="container mx-auto p-6">
                         <div class="mb-6 flex items-center justify-between">
-                            <h2 class="text-2xl font-bold text-gray-800">Thông tin lô hàng - {{ props.batch.batch_number }}</h2>
-                            <button
-                                @click="goBack"
-                                class="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
-                            >
-                                Quay lại
-                            </button>
+                            <h2 class="text-2xl font-bold text-gray-800">Thông tin lô hàng - {{ props.batch.batch_number
+                                }}</h2>
+                            <div class="flex items-center gap-2">
+                                <!-- Nút Hoàn trả chỉ hiển thị khi receipt_status là 'completed' -->
+                                <button v-if="props.batch.receipt_status === 'completed'" @click="goReturn"
+                                    class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-800 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 hover:shadow-md hover:scale-105 transition-all duration-200 ease-in-out"
+                                    title="Tạo đơn hoàn trả">
+                                    <!-- Updated SVG Icon (Box with return arrow) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M6 12h3m-3 0v3m0-3v-3" />
+                                    </svg>
+                                    <span>Hoàn trả</span>
+                                </button>
+
+                                <!-- Nút Quay lại -->
+                                <button @click="goBack"
+                                    class="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none">
+                                    Quay lại
+                                </button>
+                            </div>
                         </div>
 
                         <div
-                            class="mb-8 grid grid-cols-1 gap-6 rounded-md border border-gray-200 bg-white p-4 font-sans text-sm leading-relaxed text-gray-700 md:grid-cols-3"
-                        >
+                            class="mb-8 grid grid-cols-1 gap-6 rounded-md border border-gray-200 bg-white p-4 font-sans text-sm leading-relaxed text-gray-700 md:grid-cols-3">
                             <!-- Cột 1 -->
                             <div class="space-y-1.5">
                                 <p>
-                                    <strong>Mã lô hàng:</strong> <span class="font-semibold text-gray-900">{{ props.batch.batch_number }}</span>
+                                    <strong>Mã lô hàng:</strong> <span class="font-semibold text-gray-900">{{
+                                        props.batch.batch_number }}</span>
                                 </p>
                                 <p><strong>Nhà cung cấp:</strong> {{ props.batch.supplier?.name || 'N/A' }}</p>
-                                <p class="ml-4 text-gray-600" v-if="props.batch.supplier?.address">Địa chỉ: {{ props.batch.supplier.address }}</p>
-                                <p class="ml-4 text-gray-600" v-if="props.batch.supplier?.phone">SĐT: {{ props.batch.supplier.phone }}</p>
-                                <p><strong>Đơn hàng mua:</strong> {{ props.batch.purchase_order?.po_number || 'N/A' }}</p>
+                                <p class="ml-4 text-gray-600" v-if="props.batch.supplier?.address">Địa chỉ: {{
+                                    props.batch.supplier.address }}</p>
+                                <p class="ml-4 text-gray-600" v-if="props.batch.supplier?.phone">SĐT: {{
+                                    props.batch.supplier.phone }}</p>
+                                <p><strong>Đơn hàng mua:</strong> {{ props.batch.purchase_order?.po_number || 'N/A' }}
+                                </p>
                                 <p class="ml-4 text-gray-600" v-if="props.batch.purchase_order?.order_date">
                                     Ngày đặt: {{ formatDateOnly(props.batch.purchase_order.order_date) }}
                                 </p>
@@ -232,31 +255,29 @@ function goBack() {
                             <div class="space-y-1.5">
                                 <p>
                                     <strong>Tổng giá trị lô hàng:</strong>
-                                    <span class="font-semibold text-indigo-700">{{ formatCurrency(props.batch.total_amount) }}</span>
+                                    <span class="font-semibold text-indigo-700">{{
+                                        formatCurrency(props.batch.total_amount) }}</span>
                                 </p>
                                 <p>
                                     <strong>Trạng thái thanh toán:</strong>
-                                    <span
-                                        :class="{
-                                            'font-medium text-green-600': props.batch.payment_status === 'paid',
-                                            'font-medium text-yellow-600': props.batch.payment_status === 'partially_paid',
-                                            'font-medium text-red-600': props.batch.payment_status === 'unpaid',
-                                        }"
-                                    >
+                                    <span :class="{
+                                        'font-medium text-green-600': props.batch.payment_status === 'paid',
+                                        'font-medium text-yellow-600': props.batch.payment_status === 'partially_paid',
+                                        'font-medium text-red-600': props.batch.payment_status === 'unpaid',
+                                    }">
                                         {{ getStatusDisplayName(props.batch.payment_status) }}
                                     </span>
                                 </p>
-                                <p><strong>Số tiền đã thanh toán:</strong> {{ formatCurrency(props.batch.paid_amount) }}</p>
+                                <p><strong>Số tiền đã thanh toán:</strong> {{ formatCurrency(props.batch.paid_amount) }}
+                                </p>
                                 <p>
                                     <strong>Trạng thái nhập hàng:</strong>
-                                    <span
-                                        :class="{
-                                            'font-medium text-green-600': props.batch.receipt_status === 'completed',
-                                            'font-medium text-yellow-600': props.batch.receipt_status === 'partially_received',
-                                            'font-medium text-blue-600': props.batch.receipt_status === 'pending',
-                                            'font-medium text-red-600': props.batch.receipt_status === 'canceled',
-                                        }"
-                                    >
+                                    <span :class="{
+                                        'font-medium text-green-600': props.batch.receipt_status === 'completed',
+                                        'font-medium text-yellow-600': props.batch.receipt_status === 'partially_received',
+                                        'font-medium text-blue-600': props.batch.receipt_status === 'pending',
+                                        'font-medium text-red-600': props.batch.receipt_status === 'canceled',
+                                    }">
                                         {{ getStatusDisplayName(props.batch.receipt_status) }}
                                     </span>
                                 </p>
@@ -265,15 +286,18 @@ function goBack() {
                             <!-- Cột 3 -->
                             <div class="space-y-1.5">
                                 <p><strong>Tạo bởi:</strong> {{ props.batch.created_by?.name || 'N/A' }}</p>
-                                <p class="ml-4 text-gray-600" v-if="props.batch.created_by?.email">Email: {{ props.batch.created_by.email }}</p>
+                                <p class="ml-4 text-gray-600" v-if="props.batch.created_by?.email">Email: {{
+                                    props.batch.created_by.email }}</p>
                                 <p><strong>Ngày tạo:</strong> {{ formatDateTime(props.batch.created_at) }}</p>
                                 <p><strong>Cập nhật bởi:</strong> {{ props.batch.updated_by?.name || 'N/A' }}</p>
-                                <p class="ml-4 text-gray-600" v-if="props.batch.updated_by?.email">Email: {{ props.batch.updated_by.email }}</p>
+                                <p class="ml-4 text-gray-600" v-if="props.batch.updated_by?.email">Email: {{
+                                    props.batch.updated_by.email }}</p>
                                 <p><strong>Ngày cập nhật:</strong> {{ formatDateTime(props.batch.updated_at) }}</p>
                             </div>
                         </div>
 
-                        <div v-if="props.batch.notes" class="mt-4 mb-8 rounded-lg border border-blue-200 bg-blue-50 p-6 shadow-sm">
+                        <div v-if="props.batch.notes"
+                            class="mt-4 mb-8 rounded-lg border border-blue-200 bg-blue-50 p-6 shadow-sm">
                             <p class="text-blue-800"><strong>Ghi chú:</strong> {{ props.batch.notes }}</p>
                         </div>
 
@@ -298,43 +322,42 @@ function goBack() {
                                 </thead>
                                 <tbody>
                                     <template v-if="props.batch.batch_items.length > 0">
-                                        <tr
-                                            v-for="item in props.batch.batch_items"
-                                            :key="item.id"
-                                            class="text-xs text-gray-800 transition-colors duration-150 hover:bg-gray-50"
-                                        >
+                                        <tr v-for="item in props.batch.batch_items" :key="item.id"
+                                            class="text-xs text-gray-800 transition-colors duration-150 hover:bg-gray-50">
                                             <td class="border border-gray-200 px-4 py-3">{{ item.product?.name }}</td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.product?.sku || 'N/A' }}</td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ formatDateOnly(item.manufacturing_date) }}</td>
+                                            <td class="border border-gray-200 px-4 py-3">{{ item.product?.sku || 'N/A'
+                                                }}</td>
+                                            <td class="border border-gray-200 px-4 py-3">{{
+                                                formatDateOnly(item.manufacturing_date) }}</td>
                                             <td class="border border-gray-200 px-4 py-3">
-                                                <span
-                                                    :class="{
-                                                        'font-medium text-red-600': item.expiry_date && new Date(item.expiry_date) < new Date(),
-                                                        'font-medium text-orange-500':
-                                                            item.expiry_date &&
-                                                            new Date(item.expiry_date) >= new Date() &&
-                                                            new Date(item.expiry_date) <= new Date(new Date().setMonth(new Date().getMonth() + 1)),
-                                                    }"
-                                                >
+                                                <span :class="{
+                                                    'font-medium text-red-600': item.expiry_date && new Date(item.expiry_date) < new Date(),
+                                                    'font-medium text-orange-500':
+                                                        item.expiry_date &&
+                                                        new Date(item.expiry_date) >= new Date() &&
+                                                        new Date(item.expiry_date) <= new Date(new Date().setMonth(new Date().getMonth() + 1)),
+                                                }">
                                                     {{ formatDateOnly(item.expiry_date) }}
                                                 </span>
                                             </td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.product?.unit?.name || 'N/A' }}</td>
+                                            <td class="border border-gray-200 px-4 py-3">{{ item.product?.unit?.name ||
+                                                'N/A' }}</td>
                                             <td class="border border-gray-200 px-4 py-3">
                                                 {{ formatCurrency(item.purchase_price) }}
                                             </td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.ordered_quantity }}</td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.received_quantity }}</td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.current_quantity }}</td>
+                                            <td class="border border-gray-200 px-4 py-3">{{ item.ordered_quantity }}
+                                            </td>
+                                            <td class="border border-gray-200 px-4 py-3">{{ item.received_quantity }}
+                                            </td>
+                                            <td class="border border-gray-200 px-4 py-3">{{ item.current_quantity }}
+                                            </td>
                                             <td class="border border-gray-200 px-4 py-3">
-                                                <span
-                                                    :class="{
-                                                        'font-medium text-green-600': item.inventory_status === 'active',
-                                                        'font-medium text-yellow-600': item.inventory_status === 'low_stock',
-                                                        'font-medium text-red-600':
-                                                            item.inventory_status === 'out_of_stock' || item.inventory_status === 'expired',
-                                                    }"
-                                                >
+                                                <span :class="{
+                                                    'font-medium text-green-600': item.inventory_status === 'active',
+                                                    'font-medium text-yellow-600': item.inventory_status === 'low_stock',
+                                                    'font-medium text-red-600':
+                                                        item.inventory_status === 'out_of_stock' || item.inventory_status === 'expired',
+                                                }">
                                                     {{ getStatusDisplayName(item.inventory_status) }}
                                                 </span>
                                             </td>
@@ -345,7 +368,8 @@ function goBack() {
                                     </template>
                                     <template v-else>
                                         <tr>
-                                            <td colspan="13" class="border border-gray-200 px-4 py-3 text-center text-gray-500 italic">
+                                            <td colspan="13"
+                                                class="border border-gray-200 px-4 py-3 text-center text-gray-500 italic">
                                                 Lô hàng này không có sản phẩm nào được liên kết.
                                             </td>
                                         </tr>

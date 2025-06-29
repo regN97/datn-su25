@@ -23,7 +23,12 @@ class PurchaseReturnItem extends Model
         'reason',
     ];
     public function product()
-{
-    return $this->belongsTo(Product::class);
-}
+    {
+        return $this->belongsTo(Product::class);
+    }
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class, 'batch_id');
+    }
+
 }
