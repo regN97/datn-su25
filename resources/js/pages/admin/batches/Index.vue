@@ -129,7 +129,7 @@ const filteredAndSortedBatches = computed(() => {
     if (filterStartDate.value) {
         const start = new Date(filterStartDate.value + "T00:00:00");
         currentBatches = currentBatches.filter((batch) => {
-            const batchDate = new Date(batch.received_date);
+const batchDate = new Date(batch.received_date);
             return batchDate >= start;
         });
     }
