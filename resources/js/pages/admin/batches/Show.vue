@@ -3,183 +3,40 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 
-const props = defineProps<{
-    batch: {
-        id: number;
-        batch_number: string;
-        purchase_order_id: number;
-        supplier_id: number | null;
-        received_date: string;
-        invoice_number: string | null;
-        total_amount: number;
-        payment_status: 'unpaid' | 'partially_paid' | 'paid';
-        paid_amount: number;
-        receipt_status: 'pending' | 'partially_received' | 'completed' | 'canceled';
-        notes: string | null;
-        created_at: string;
-        updated_at: string;
-
-        created_by: {
-            id: number;
-            name: string;
-            email: string;
-        };
-        updated_by: {
-            id: number;
-            name: string;
-            email: string;
-        } | null;
-
-        supplier?: {
-            id: number;
-            name: string;
-            address?: string;
-            phone?: string;
-        };
-        purchase_order?: {
-            id: number;
-            po_number: string;
-            order_date?: string;
-            total_amount?: number;
-        };
-
-        batch_items: Array<{
-            id: number;
-            batch_id: number;
-            product_id: number;
-            purchase_order_item_id: number;
-            ordered_quantity: number;
-            received_quantity: number;
-            remaining_quantity: number;
-            current_quantity: number;
-            purchase_price: number;
-            total_amount: number;
-            manufacturing_date: string | null;
-            expiry_date: string | null;
-            inventory_status: 'active' | 'low_stock' | 'out_of_stock' | 'expired';
-            created_at: string;
-            updated_at: string;
-
-            created_by: {
-                id: number;
-                name: string;
-                email?: string;
-            };
-            updated_by: {
-                id: number;
-                name: string;
-                email?: string;
-            } | null;
-
-            product?: {
-                id: number;
-                name: string;
-                sku?: string;
-                image_url?: string;
-                unit?: {
-                    id: number;
-                    name: string;
-                };
-                description?: string;
-            };
-            purchaseOrderItem?: {
-                id: number;
-                quantity_ordered: number;
-                unit_cost: number;
-            };
-        }>;
-    };
-}>();
-
-console.log('Batch data in Vue:', props.batch);
+const props = defineProps<{ batch: any }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Quản lý lô hàng',
-        href: '/admin/batches',
-    },
-    {
-        title: 'Chi tiết lô hàng',
-        href: `/admin/batches/${props.batch.id}`,
-    },
+    { title: 'Quản lý lô hàng', href: '/admin/batches' },
+    { title: 'Chi tiết lô hàng', href: `/admin/batches/${props.batch.id}` },
 ];
 
-// Hàm định dạng tiền tệ sang VND
 function formatCurrency(value: number | null): string {
-    if (value === null || isNaN(value)) {
-        return 'N/A';
-    }
-    return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND',
-    }).format(value);
+    if (value === null || isNaN(value)) return 'N/A';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 }
 
 function getStatusDisplayName(status: string): string {
-    switch (status) {
-        case 'active':
-            return 'Còn hàng';
-        case 'low_stock':
-            return 'Sắp hết hàng';
-        case 'out_of_stock':
-            return 'Hết hàng';
-        case 'expired':
-            return 'Hết hạn';
-        case 'unpaid':
-            return 'Chưa thanh toán';
-        case 'partially_paid':
-            return 'Đã thanh toán một phần';
-        case 'paid':
-            return 'Đã thanh toán';
-        case 'pending':
-            return 'Đang chờ xử lý';
-        case 'partially_received':
-            return 'Đã nhận một phần';
-        case 'completed':
-            return 'Đã hoàn thành';
-        case 'canceled':
-            return 'Đã hủy';
-        default:
-            return 'Không xác định';
-    }
+    const map: Record<string, string> = {
+        active: 'Còn hàng', low_stock: 'Sắp hết hàng', out_of_stock: 'Hết hàng', expired: 'Hết hạn',
+        unpaid: 'Chưa thanh toán', partially_paid: 'Đã thanh toán một phần', paid: 'Đã thanh toán',
+        pending: 'Đang chờ xử lý', partially_received: 'Đã nhận một phần', completed: 'Đã hoàn thành',
+        canceled: 'Đã hủy',
+    };
+    return map[status] || 'Không xác định';
 }
 
-function formatDateTime(dateString: string | null): string {
-    if (!dateString) {
-        return 'N/A';
-    }
-    try {
-        const date = new Date(dateString);
-        return new Intl.DateTimeFormat('vi-VN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false,
-        }).format(date);
-    } catch (e) {
-        console.error('Lỗi định dạng ngày/giờ:', dateString, e);
-        return dateString;
-    }
+function formatDateTime(date: string | null): string {
+    if (!date) return 'N/A';
+    return new Intl.DateTimeFormat('vi-VN', {
+        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    }).format(new Date(date));
 }
 
-function formatDateOnly(dateString: string | null): string {
-    if (!dateString) {
-        return 'N/A';
-    }
-    try {
-        const date = new Date(dateString);
-        return new Intl.DateTimeFormat('vi-VN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-        }).format(date);
-    } catch (e) {
-        console.error('Lỗi định dạng ngày:', dateString, e);
-        return dateString;
-    }
+function formatDateOnly(date: string | null): string {
+    if (!date) return 'N/A';
+    return new Intl.DateTimeFormat('vi-VN', {
+        year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(new Date(date));
 }
 
 function goBack() {
@@ -191,197 +48,135 @@ function goReturn() {
 </script>
 
 <template>
-
-    <Head title="Chi tiết Lô hàng" />
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-            <div class="container mx-auto p-6">
-                <div
-                    class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border bg-white shadow-lg md:min-h-min">
-                    <div class="container mx-auto p-6">
-                        <div class="mb-6 flex items-center justify-between">
-                            <h2 class="text-2xl font-bold text-gray-800">Thông tin lô hàng - {{ props.batch.batch_number
-                                }}</h2>
-                            <div class="flex items-center gap-2">
-                                <!-- Nút Hoàn trả chỉ hiển thị khi receipt_status là 'completed' -->
-                                <button v-if="props.batch.receipt_status === 'completed'" @click="goReturn"
-                                    class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-800 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 hover:shadow-md hover:scale-105 transition-all duration-200 ease-in-out"
-                                    title="Tạo đơn hoàn trả">
-                                    <!-- Updated SVG Icon (Box with return arrow) -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M6 12h3m-3 0v3m0-3v-3" />
-                                    </svg>
-                                    <span>Hoàn trả</span>
-                                </button>
-
-                                <!-- Nút Quay lại -->
-                                <button @click="goBack"
-                                    class="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none">
-                                    Quay lại
-                                </button>
-                            </div>
-                        </div>
-
-                        <div
-                            class="mb-8 grid grid-cols-1 gap-6 rounded-md border border-gray-200 bg-white p-4 font-sans text-sm leading-relaxed text-gray-700 md:grid-cols-3">
-                            <!-- Cột 1 -->
-                            <div class="space-y-1.5">
-                                <p>
-                                    <strong>Mã lô hàng:</strong> <span class="font-semibold text-gray-900">{{
-                                        props.batch.batch_number }}</span>
-                                </p>
-                                <p><strong>Nhà cung cấp:</strong> {{ props.batch.supplier?.name || 'N/A' }}</p>
-                                <p class="ml-4 text-gray-600" v-if="props.batch.supplier?.address">Địa chỉ: {{
-                                    props.batch.supplier.address }}</p>
-                                <p class="ml-4 text-gray-600" v-if="props.batch.supplier?.phone">SĐT: {{
-                                    props.batch.supplier.phone }}</p>
-                                <p><strong>Đơn hàng mua:</strong> {{ props.batch.purchase_order?.po_number || 'N/A' }}
-                                </p>
-                                <p class="ml-4 text-gray-600" v-if="props.batch.purchase_order?.order_date">
-                                    Ngày đặt: {{ formatDateOnly(props.batch.purchase_order.order_date) }}
-                                </p>
-                                <p class="ml-4 text-gray-600" v-if="props.batch.purchase_order?.total_amount">
-                                    Tổng đơn: {{ formatCurrency(props.batch.purchase_order.total_amount) }}
-                                </p>
-                                <p><strong>Ngày nhận hàng:</strong> {{ formatDateOnly(props.batch.received_date) }}</p>
-                                <p><strong>Số hóa đơn:</strong> {{ props.batch.invoice_number || 'N/A' }}</p>
-                            </div>
-
-                            <!-- Cột 2 -->
-                            <div class="space-y-1.5">
-                                <p>
-                                    <strong>Tổng giá trị lô hàng:</strong>
-                                    <span class="font-semibold text-indigo-700">{{
-                                        formatCurrency(props.batch.total_amount) }}</span>
-                                </p>
-                                <p>
-                                    <strong>Trạng thái thanh toán:</strong>
-                                    <span :class="{
-                                        'font-medium text-green-600': props.batch.payment_status === 'paid',
-                                        'font-medium text-yellow-600': props.batch.payment_status === 'partially_paid',
-                                        'font-medium text-red-600': props.batch.payment_status === 'unpaid',
-                                    }">
-                                        {{ getStatusDisplayName(props.batch.payment_status) }}
-                                    </span>
-                                </p>
-                                <p><strong>Số tiền đã thanh toán:</strong> {{ formatCurrency(props.batch.paid_amount) }}
-                                </p>
-                                <p>
-                                    <strong>Trạng thái nhập hàng:</strong>
-                                    <span :class="{
-                                        'font-medium text-green-600': props.batch.receipt_status === 'completed',
-                                        'font-medium text-yellow-600': props.batch.receipt_status === 'partially_received',
-                                        'font-medium text-blue-600': props.batch.receipt_status === 'pending',
-                                        'font-medium text-red-600': props.batch.receipt_status === 'canceled',
-                                    }">
-                                        {{ getStatusDisplayName(props.batch.receipt_status) }}
-                                    </span>
-                                </p>
-                            </div>
-
-                            <!-- Cột 3 -->
-                            <div class="space-y-1.5">
-                                <p><strong>Tạo bởi:</strong> {{ props.batch.created_by?.name || 'N/A' }}</p>
-                                <p class="ml-4 text-gray-600" v-if="props.batch.created_by?.email">Email: {{
-                                    props.batch.created_by.email }}</p>
-                                <p><strong>Ngày tạo:</strong> {{ formatDateTime(props.batch.created_at) }}</p>
-                                <p><strong>Cập nhật bởi:</strong> {{ props.batch.updated_by?.name || 'N/A' }}</p>
-                                <p class="ml-4 text-gray-600" v-if="props.batch.updated_by?.email">Email: {{
-                                    props.batch.updated_by.email }}</p>
-                                <p><strong>Ngày cập nhật:</strong> {{ formatDateTime(props.batch.updated_at) }}</p>
-                            </div>
-                        </div>
-
-                        <div v-if="props.batch.notes"
-                            class="mt-4 mb-8 rounded-lg border border-blue-200 bg-blue-50 p-6 shadow-sm">
-                            <p class="text-blue-800"><strong>Ghi chú:</strong> {{ props.batch.notes }}</p>
-                        </div>
-
-                        <h3 class="mb-4 text-xl font-bold text-gray-800">Thông tin sản phẩm trong lô</h3>
-
-                        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                            <table class="min-w-full table-auto border-collapse">
-                                <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
-                                    <tr>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">Tên sản phẩm</th>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">Mã SKU</th>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">Ngày SX</th>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">Hạn SD</th>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">Đơn vị</th>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">Giá nhập</th>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">SL đặt (Batch)</th>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">SL đã nhận</th>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">SL hiện tại</th>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">Trạng thái tồn kho</th>
-                                        <th class="border border-gray-200 px-4 py-3 text-left">Tổng tiền SP</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template v-if="props.batch.batch_items.length > 0">
-                                        <tr v-for="item in props.batch.batch_items" :key="item.id"
-                                            class="text-xs text-gray-800 transition-colors duration-150 hover:bg-gray-50">
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.product?.name }}</td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.product?.sku || 'N/A'
-                                                }}</td>
-                                            <td class="border border-gray-200 px-4 py-3">{{
-                                                formatDateOnly(item.manufacturing_date) }}</td>
-                                            <td class="border border-gray-200 px-4 py-3">
-                                                <span :class="{
-                                                    'font-medium text-red-600': item.expiry_date && new Date(item.expiry_date) < new Date(),
-                                                    'font-medium text-orange-500':
-                                                        item.expiry_date &&
-                                                        new Date(item.expiry_date) >= new Date() &&
-                                                        new Date(item.expiry_date) <= new Date(new Date().setMonth(new Date().getMonth() + 1)),
-                                                }">
-                                                    {{ formatDateOnly(item.expiry_date) }}
-                                                </span>
-                                            </td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.product?.unit?.name ||
-                                                'N/A' }}</td>
-                                            <td class="border border-gray-200 px-4 py-3">
-                                                {{ formatCurrency(item.purchase_price) }}
-                                            </td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.ordered_quantity }}
-                                            </td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.received_quantity }}
-                                            </td>
-                                            <td class="border border-gray-200 px-4 py-3">{{ item.current_quantity }}
-                                            </td>
-                                            <td class="border border-gray-200 px-4 py-3">
-                                                <span :class="{
-                                                    'font-medium text-green-600': item.inventory_status === 'active',
-                                                    'font-medium text-yellow-600': item.inventory_status === 'low_stock',
-                                                    'font-medium text-red-600':
-                                                        item.inventory_status === 'out_of_stock' || item.inventory_status === 'expired',
-                                                }">
-                                                    {{ getStatusDisplayName(item.inventory_status) }}
-                                                </span>
-                                            </td>
-                                            <td class="border border-gray-200 px-4 py-3">
-                                                {{ formatCurrency(item.total_amount) }}
-                                            </td>
-                                        </tr>
-                                    </template>
-                                    <template v-else>
-                                        <tr>
-                                            <td colspan="13"
-                                                class="border border-gray-200 px-4 py-3 text-center text-gray-500 italic">
-                                                Lô hàng này không có sản phẩm nào được liên kết.
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<Head title="Chi tiết Lô hàng" />
+<AppLayout :breadcrumbs="breadcrumbs">
+  <div class="min-h-screen bg-gray-50 p-4">
+    <div class="mx-auto max-w-7xl">
+      <div class="mb-4 flex items-center justify-between">
+        <div class="flex items-center">
+          <button @click="goBack" class="flex h-10 w-10 items-center justify-center rounded border border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:text-gray-800">
+            ←
+          </button>
+          <h1 class="ml-4 text-3xl font-bold text-gray-900">{{ props.batch.batch_number }}</h1>
         </div>
-    </AppLayout>
-</template>
+      </div>
 
-<style scoped></style>
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <!-- Left Content -->
+        <div class="flex flex-col gap-6 lg:col-span-2">
+          <!-- Product Table -->
+          <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-200 p-4">
+              <h2 class="text-lg font-semibold">Sản phẩm trong lô hàng</h2>
+            </div>
+            <div class="p-4 overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Sản phẩm</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">SKU</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Ngày SX</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Hạn SD</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Đơn vị</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Giá nhập</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">SL đặt</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">SL nhận</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">SL hiện tại</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Tồn kho</th>
+                    <th class="px-4 py-2 text-left font-medium text-gray-500">Tổng tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in props.batch.batch_items" :key="item.id" class="bg-white hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ item.product?.name }}</td>
+                    <td class="px-4 py-2">{{ item.product?.sku || 'N/A' }}</td>
+                    <td class="px-4 py-2">{{ formatDateOnly(item.manufacturing_date) }}</td>
+                    <td class="px-4 py-2">
+                      <span :class="{
+                        'text-red-600 font-medium': item.expiry_date && new Date(item.expiry_date) < new Date(),
+                        'text-orange-500 font-medium': item.expiry_date && new Date(item.expiry_date) <= new Date(new Date().setMonth(new Date().getMonth() + 1))
+                      }">
+                        {{ formatDateOnly(item.expiry_date) }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-2">{{ item.product?.unit?.name || 'N/A' }}</td>
+                    <td class="px-4 py-2">{{ formatCurrency(item.purchase_price) }}</td>
+                    <td class="px-4 py-2">{{ item.ordered_quantity }}</td>
+                    <td class="px-4 py-2">{{ item.received_quantity }}</td>
+                    <td class="px-4 py-2">{{ item.current_quantity }}</td>
+                    <td class="px-4 py-2">
+                      <span :class="{
+                        'text-green-600 font-medium': item.inventory_status === 'active',
+                        'text-yellow-600 font-medium': item.inventory_status === 'low_stock',
+                        'text-red-600 font-medium': item.inventory_status === 'out_of_stock' || item.inventory_status === 'expired'
+                      }">
+                        {{ getStatusDisplayName(item.inventory_status) }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-2">{{ formatCurrency(item.total_amount) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div v-if="props.batch.notes" class="rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-200 p-4">
+              <h2 class="text-lg font-semibold">Ghi chú</h2>
+            </div>
+            <div class="p-4">
+              <textarea disabled :value="props.batch.notes" class="w-full min-h-[80px] rounded-md border border-gray-300 p-2 text-sm"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="space-y-6">
+          <!-- Supplier Info -->
+          <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-200 p-4">
+              <h2 class="text-lg font-semibold">Nhà cung cấp</h2>
+            </div>
+            <div class="p-4 space-y-1.5 text-sm">
+              <p><strong>Tên:</strong> {{ props.batch.supplier?.name || 'N/A' }}</p>
+              <p><strong>Địa chỉ:</strong> {{ props.batch.supplier?.address || 'N/A' }}</p>
+              <p><strong>SĐT:</strong> {{ props.batch.supplier?.phone || 'N/A' }}</p>
+            </div>
+          </div>
+
+          <!-- Payment Info -->
+          <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-200 p-4">
+              <h2 class="text-lg font-semibold">Thanh toán</h2>
+            </div>
+            <div class="p-4 space-y-2 text-sm">
+              <p><strong>Tổng tiền:</strong> {{ formatCurrency(props.batch.total_amount) }}</p>
+              <p><strong>Đã thanh toán:</strong> {{ formatCurrency(props.batch.paid_amount) }}</p>
+              <p><strong>Trạng thái:</strong> {{ getStatusDisplayName(props.batch.payment_status) }}</p>
+              <p><strong>Nhập hàng:</strong> {{ getStatusDisplayName(props.batch.receipt_status) }}</p>
+              <p><strong>Ngày nhận:</strong> {{ formatDateOnly(props.batch.received_date) }}</p>
+              <p><strong>Số hóa đơn:</strong> {{ props.batch.invoice_number || 'N/A' }}</p>
+            </div>
+          </div>
+
+          <!-- Info -->
+          <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-200 p-4">
+              <h2 class="text-lg font-semibold">Thông tin bổ sung</h2>
+            </div>
+            <div class="p-4 space-y-1.5 text-sm">
+              <p><strong>Tạo bởi:</strong> {{ props.batch.created_by?.name || 'N/A' }}</p>
+              <p><strong>Email:</strong> {{ props.batch.created_by?.email || 'N/A' }}</p>
+              <p><strong>Ngày tạo:</strong> {{ formatDateTime(props.batch.created_at) }}</p>
+              <p><strong>Cập nhật bởi:</strong> {{ props.batch.updated_by?.name || 'N/A' }}</p>
+              <p><strong>Email:</strong> {{ props.batch.updated_by?.email || 'N/A' }}</p>
+              <p><strong>Ngày cập nhật:</strong> {{ formatDateTime(props.batch.updated_at) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</AppLayout>
+</template>
