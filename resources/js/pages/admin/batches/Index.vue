@@ -142,7 +142,7 @@ function getPaymentStatusDisplayName(status: 'unpaid' | 'partially_paid' | 'paid
         case 'unpaid':
             return 'Chưa thanh toán';
         case 'partially_paid':
-            return 'Đã thanh toán một phần';
+            return 'Thanh toán một phần';
         case 'paid':
             return 'Đã thanh toán';
         default:
@@ -247,23 +247,23 @@ function formatCurrency(amount: number): string {
                                         Nhà cung cấp
                                     </th>
                                     <th
-                                        class="w-[15%] p-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
+                                        class="w-[15%] p-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
                                         Ngày nhận hàng
                                     </th>
                                     <th
-                                        class="w-[10%] p-4 text-right text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
+                                        class="w-[10%] p-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
                                         Tổng tiền
                                     </th>
                                     <th
-                                        class="w-[15%] p-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
+                                        class="w-[20%] p-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
                                         Trạng thái thanh toán
                                     </th>
                                     <th
-                                        class="w-[10%] p-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
+                                        class="w-[10%] p-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase select-none">
                                         Trạng thái nhận hàng
                                     </th>
                                     <th
-                                        class="w-[10%] p-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase">
+                                        class="w-[10%] p-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase">
                                         Thao tác</th>
                                 </tr>
                             </thead>
@@ -276,13 +276,13 @@ function formatCurrency(amount: number): string {
                                     <td class="w-[25%] p-4 text-sm text-gray-700">
                                         {{ batch.supplier?.name || 'N/A' }}
                                     </td>
-                                    <td class="w-[15%] p-4 text-center text-sm text-gray-700">
+                                    <td class="w-[15%] p-4 text-left text-sm text-gray-700">
                                         {{ formatDateTime(batch.received_date) }}
                                     </td>
-                                    <td class="w-[10%] p-4 text-right text-sm text-gray-700">
+                                    <td class="w-[10%] p-4 text-left text-sm text-gray-700">
                                        {{  formatCurrency(batch.total_amount) }}
                                     </td>
-                                    <td class="w-[15%] p-4 text-center text-sm">
+                                    <td class="w-[20%] p-4 text-left text-sm">
                                         <span :class="{
                                             'rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 shadow-sm':
                                                 batch.payment_status === 'paid',
@@ -294,7 +294,7 @@ function formatCurrency(amount: number): string {
                                             {{ getPaymentStatusDisplayName(batch.payment_status) }}
                                         </span>
                                     </td>
-                                    <td class="w-[15%] p-4 text-center text-sm">
+                                    <td class="w-[15%] text-left text-sm">
                                         <span :class="{
                                             'rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 shadow-sm':
                                                 batch.receipt_status === 'completed',
@@ -308,7 +308,7 @@ function formatCurrency(amount: number): string {
                                             {{ getReceiptStatusDisplayName(batch.receipt_status) }}
                                         </span>
                                     </td>
-                                    <td class="w-[5%] p-4 text-center text-sm">
+                                    <td class="w-[5%] text-center text-sm">
                                         <button
                                             class="inline-flex items-center justify-center rounded-md bg-blue-600 p-2 text-white shadow-sm transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
                                             @click="goToBatchDetails(batch.id)" title="Xem chi tiết">

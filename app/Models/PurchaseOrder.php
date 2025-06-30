@@ -50,11 +50,6 @@ class PurchaseOrder extends Model
         return $this->hasMany(PurchaseOrderItem::class);
     }
 
-    public function purchaseReceipts()
-    {
-        return $this->hasMany(PurchaseReceipt::class);
-    }
-
     // Thêm relationship với Batch
     public function batches()
     {
