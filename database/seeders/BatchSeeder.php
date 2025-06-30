@@ -11,7 +11,7 @@ class BatchSeeder extends Seeder
     {
         $batches = [
             [
-                'batch_number' => 'RCPT-202506-101',
+                'batch_number' => 'REC-20250601-101',
                 'purchase_order_id' => 1,
                 'supplier_id' => 1,
                 'received_date' => '2025-06-02',
@@ -31,7 +31,7 @@ class BatchSeeder extends Seeder
                 'updated_at' => '2025-06-02 08:30:00',
             ],
             [
-                'batch_number' => 'RCPT-202506-102',
+                'batch_number' => 'REC-20250601-102',
                 'purchase_order_id' => 2,
                 'supplier_id' => 2,
                 'received_date' => '2025-06-06',
@@ -51,7 +51,7 @@ class BatchSeeder extends Seeder
                 'updated_at' => '2025-06-06 10:00:00',
             ],
             [
-                'batch_number' => 'RCPT-202506-103',
+                'batch_number' => 'REC-20250601-103',
                 'purchase_order_id' => 3,
                 'supplier_id' => 3,
                 'received_date' => '2025-06-09',
@@ -71,7 +71,7 @@ class BatchSeeder extends Seeder
                 'updated_at' => '2025-06-09 14:45:00',
             ],
             [
-                'batch_number' => 'RCPT-202506-104',
+                'batch_number' => 'REC-20250601-104',
                 'purchase_order_id' => 4,
                 'supplier_id' => 4,
                 'received_date' => '2025-06-12',

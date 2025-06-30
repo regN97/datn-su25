@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronDown, ChevronLeft, ChevronUp, Search, X } from 'lucide-vue-next';
+import { ChevronDown, ChevronLeft, ChevronUp } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
@@ -80,6 +80,8 @@ interface SelectedProduct extends Product {
     rejectedReason?: string;
     total: number;
     purchaseOrderItemId?: number;
+    manufacturingDate?: string;
+    expiryDate?: string;
 }
 
 interface ProductsResponse {
@@ -113,11 +115,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 const selectedPurchaseOrder = computed(() => props.purchaseOrder);
 
 // Reactive data
-const searchQuery = ref('');
+// const searchQuery = ref('');
 const isDropdownOpen = ref(false);
 const selectedProducts = ref<SelectedProduct[]>([]);
 const isLoading = ref(false);
-const searchInputRef = ref<HTMLInputElement>();
+// const searchInputRef = ref<HTMLInputElement>();
 const dropdownRef = ref<HTMLElement>();
 const isPriceModalOpen = ref(false);
 const editingProductId = ref<number | null>(null);
@@ -147,6 +149,7 @@ const isQuantityModalOpen = ref(false);
 const editingQuantity = ref(0);
 const editingRejectedQuantity = ref(0);
 const editingRejectedReason = ref<string>('');
+const rejectedValue = ref(0);
 
 const expectedImportDate = ref('');
 
@@ -200,7 +203,7 @@ const formattedPaidAmount = computed(() => {
     }).format(paidAmount.value);
 });
 
-const selectedUser = computed(() => props.users.find((u) => u.id === selectedUserId.value) || null);
+// const selectedUser = computed(() => props.users.find((u) => u.id === selectedUserId.value) || null);
 const selectedSupplier = computed(() => props.suppliers.find((s) => s.id === props.purchaseOrder?.supplier_id) || null);
 // Methods
 function goBack() {
@@ -220,53 +223,60 @@ function handleFormattedInput(event: Event) {
 
     const rawValue = target.value.replace(/[^\d]/g, '');
     const numericValue = parseFloat(rawValue);
-    paidAmount.value = isNaN(numericValue) ? 0 : numericValue;
+    let newPaidAmount = isNaN(numericValue) ? 0 : numericValue;
+
+    if (newPaidAmount > totalAfterDiscount.value) {
+        newPaidAmount = totalAfterDiscount.value;
+    }
+
+    paidAmount.value = newPaidAmount;
+    target.value = new Intl.NumberFormat('vi-VN').format(newPaidAmount);
 }
 
 function closeDropdown() {
     isDropdownOpen.value = false;
 }
 
-function selectProduct(product: Product, purchaseOrderItemId?: number) {
-    const existingProduct = selectedProducts.value.find((p) => p.id === product.id);
-    const supplierPrice = product.suppliers?.length > 0 ? product.suppliers[0].pivot.purchase_price : product.purchase_price;
+// function selectProduct(product: Product, purchaseOrderItemId?: number) {
+//     const existingProduct = selectedProducts.value.find((p) => p.id === product.id);
+//     const supplierPrice = product.suppliers?.length > 0 ? product.suppliers[0].pivot.purchase_price : product.purchase_price;
 
-    if (existingProduct) {
-        existingProduct.quantity += 1;
-        existingProduct.total = existingProduct.quantity * existingProduct.purchase_price;
-    } else {
-        selectedProducts.value.push({
-            ...product,
-            purchase_price: supplierPrice || 0,
-            quantity: 1,
-            rejectedQuantity: 0,
-            rejectedReason: '',
-            total: supplierPrice || 0,
-            purchaseOrderItemId,
-        });
-    }
+//     if (existingProduct) {
+//         existingProduct.quantity += 1;
+//         existingProduct.total = existingProduct.quantity * existingProduct.purchase_price;
+//     } else {
+//         selectedProducts.value.push({
+//             ...product,
+//             purchase_price: supplierPrice || 0,
+//             quantity: 1,
+//             rejectedQuantity: 0,
+//             rejectedReason: '',
+//             total: supplierPrice || 0,
+//             purchaseOrderItemId,
+//         });
+//     }
 
-    searchQuery.value = '';
-    closeDropdown();
+//     searchQuery.value = '';
+//     closeDropdown();
 
-    router.get(
-        route('admin.batches.add', { po_id: props.purchaseOrder.id }),
-        {},
-        {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        },
-    );
-}
+//     router.get(
+//         route('admin.batches.add', { po_id: props.purchaseOrder.id }),
+//         {},
+//         {
+//             preserveState: true,
+//             preserveScroll: true,
+//             replace: true,
+//         },
+//     );
+// }
 
-function updateQuantity(productId: number, quantity: number) {
-    const product = selectedProducts.value.find((p) => p.id === productId);
-    if (product && quantity > 0) {
-        product.quantity = quantity;
-        product.total = product.quantity * product.purchase_price;
-    }
-}
+// function updateQuantity(productId: number, quantity: number) {
+//     const product = selectedProducts.value.find((p) => p.id === productId);
+//     if (product && quantity > 0) {
+//         product.quantity = quantity;
+//         product.total = product.quantity * product.purchase_price;
+//     }
+// }
 
 function openPriceModal(product: SelectedProduct) {
     editingProductId.value = product.id;
@@ -310,7 +320,19 @@ function saveQuantity() {
         product.quantity = editingQuantity.value;
         product.rejectedQuantity = editingRejectedQuantity.value;
         product.rejectedReason = editingRejectedReason.value; // Stored in front-end only
-        product.total = product.quantity * product.purchase_price;
+        rejectedValue.value = product.rejectedQuantity * product.purchase_price;
+        product.total = product.quantity * product.purchase_price - rejectedValue.value;
+
+        if (product.rejectedQuantity > product.quantity) {
+            product.rejectedQuantity = 0;
+            editingRejectedQuantity.value = 0;
+            product.total = product.quantity * product.purchase_price;
+            return Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Số lượng từ chối không được lớn hơn số lượng nhận',
+            });
+        }
     }
     closeQuantityModal();
     router.get(
@@ -379,7 +401,44 @@ function toggleUserDropdown() {
     isUserDropdownOpen.value = !isUserDropdownOpen.value;
 }
 
+const todayStr = new Date().toISOString().split('T')[0];
+
+function validateProductDates(product: SelectedProduct) {
+    const errors: { manufacturingDate?: string; expiryDate?: string } = {};
+
+    // Validate ngày sản xuất không lớn hơn ngày hiện tại
+    if (product.manufacturingDate) {
+        if (product.manufacturingDate > todayStr) {
+            errors.manufacturingDate = 'NSX phải nhỏ hơn ngày hiện tại';
+        }
+    }
+
+    // Validate ngày hết hạn phải sau ngày sản xuất
+    if (product.expiryDate && product.manufacturingDate) {
+        if (product.expiryDate <= product.manufacturingDate) {
+            errors.expiryDate = 'HSD phải lớn hơn NSX';
+        }
+    }
+
+    return errors;
+}
+
 function submitBatch() {
+    for (const product of selectedProducts.value) {
+        const errors = validateProductDates(product);
+        if (errors.manufacturingDate || errors.expiryDate) {
+            let msg = '';
+            if (errors.manufacturingDate) msg += `Sản phẩm "${product.name}": ${errors.manufacturingDate}\n`;
+            if (errors.expiryDate) msg += `Sản phẩm "${product.name}": ${errors.expiryDate}\n`;
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi ngày sản xuất/hết hạn',
+                text: msg.trim(),
+            });
+            return;
+        }
+    }
+    
     if (!selectedSupplier.value?.id) {
         supplierError.value = 'Vui lòng chọn nhà cung cấp';
         Swal.fire({
@@ -420,7 +479,9 @@ function submitBatch() {
     const batchItems = selectedProducts.value.map((p) => ({
         product_id: p.id,
         purchase_order_item_id: p.purchaseOrderItemId || null,
-        received_quantity: p.quantity,
+        manufacturing_date: p.manufacturingDate,
+        expiry_date: p.expiryDate,
+        received_quantity: p.quantity - p.rejectedQuantity,
         rejected_quantity: p.rejectedQuantity,
         purchase_price: p.purchase_price,
         total_amount: p.total,
@@ -445,8 +506,6 @@ function submitBatch() {
         payment_date: paymentDate.value,
         payment_method: paymentStatus.value === 'unpaid' ? null : paymentMethod.value,
     };
-
-    console.log('Submitting batch:', payload);
 
     router.post(route('admin.batches.save'), payload, {
         onStart: () => {
@@ -481,9 +540,12 @@ function handleClickOutside(event: MouseEvent) {
     }
 }
 
-watch(() => props.purchaseOrder?.created_by, (newUserId) => {
-    selectedUserId.value = newUserId || null;
-});
+watch(
+    () => props.purchaseOrder?.created_by,
+    (newUserId) => {
+        selectedUserId.value = newUserId || null;
+    },
+);
 
 watch(paymentStatus, (newStatus) => {
     if (newStatus === 'paid' || newStatus === 'partially_paid') {
@@ -554,102 +616,125 @@ onUnmounted(() => {
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <div class="flex flex-col gap-6 lg:col-span-2">
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-                            <div class="border-b border-gray-200 p-4">
-                                <h2 class="text-lg font-semibold">Tạo đơn nhập từ đơn đặt {{ selectedPurchaseOrder?.po_number }}</h2>
-                            </div>
                             <div class="space-y-6 p-6">
                                 <!-- Selected Products -->
                                 <div v-if="selectedProducts.length > 0" class="space-y-3">
                                     <h3 class="text-sm font-medium text-gray-700">Sản phẩm đã chọn</h3>
-                                    <table class="min-w-full divide-y divide-gray-200">
+                                    <table class="min-w-full divide-y divide-gray-200 text-xs">
                                         <thead class="bg-gray-50">
                                             <tr>
                                                 <th
                                                     scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    class="w-[22%] px-2 py-2 text-left font-medium tracking-wider text-gray-500 uppercase"
                                                 >
                                                     Sản phẩm
                                                 </th>
                                                 <th
                                                     scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    class="w-[11%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase"
                                                 >
                                                     Số lượng
                                                 </th>
                                                 <th
                                                     scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    class="w-[13%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase"
                                                 >
                                                     Đơn giá
                                                 </th>
                                                 <th
                                                     scope="col"
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    class="w-[14%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase"
                                                 >
-                                                    Thành tiền
+                                                    NSX
                                                 </th>
-                                                <th scope="col" class="relative px-6 py-3">
-                                                    <span class="sr-only">Actions</span>
+                                                <th
+                                                    scope="col"
+                                                    class="w-[14%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase"
+                                                >
+                                                    HSD
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    class="w-[10%] px-2 py-2 text-left font-medium tracking-wider text-gray-500 uppercase"
+                                                >
+                                                    Tổng tiền
                                                 </th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-200 bg-white">
                                             <tr v-for="product in selectedProducts" :key="product.id">
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex items-center space-x-4">
+                                                <td class="w-[22%] px-2 py-2 whitespace-nowrap">
+                                                    <div class="flex items-center space-x-2">
                                                         <img
                                                             :src="product.image_url || '/storage/piclumen-1747750187180.png'"
                                                             :alt="product.name"
-                                                            class="h-12 w-12 rounded-lg border border-gray-200 object-cover"
+                                                            class="h-10 w-10 rounded-lg border border-gray-200 object-cover"
                                                         />
                                                         <div>
-                                                            <h4 class="font-medium text-gray-900">{{ product.name }}</h4>
-                                                            <p class="text-sm text-gray-500">SKU: {{ product.sku }}</p>
+                                                            <h4 class="text-xs font-medium text-gray-900">{{ product.name }}</h4>
+                                                            <p class="text-[11px] text-gray-500">SKU: {{ product.sku }}</p>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td class="px-6 py-4 text-center align-middle">
-                                                    <div class="flex flex-col items-center justify-center relative">
-                                                        <button class="text-blue-600 hover:text-blue-800"
-                                                            @click="openQuantityModal(product)" type="button">
+                                                <td class="w-[11%] text-center align-middle">
+                                                    <div class="relative flex flex-col items-center justify-center">
+                                                        <button
+                                                            class="text-xs text-blue-600 hover:text-blue-800"
+                                                            @click="openQuantityModal(product)"
+                                                            type="button"
+                                                        >
                                                             {{ product.quantity }}
                                                         </button>
-                                                        <div v-if="product.rejectedQuantity > 0"
-                                                            class="relative group mt-1">
-                                                            <span
-                                                                class="text-sm text-red-600 cursor-pointer select-none">
-                                                                {{ product.rejectedQuantity }}
-                                                            </span>
-                                                            <div class="absolute z-50 hidden group-hover:flex flex-col items-start w-64 bg-white text-[15px] text-gray-700 border border-gray-300 rounded-lg shadow-md px-4 py-3"
-                                                                style="top: 100%; left: 50%; transform: translateX(-50%) translateY(8px);">
-                                                                <div class="flex items-center mb-2">
-                                                                    <span
-                                                                        class="w-2 h-2 bg-red-600 rounded-full mr-2"></span>
-                                                                    <span class="font-semibold">Số lượng đã từ chối: {{
-                                                                        product.rejectedQuantity }}</span>
+                                                        <div v-if="product.rejectedQuantity > 0" class="group relative">
+                                                            <span class="cursor-pointer text-xs text-red-600 select-none">{{
+                                                                product.rejectedQuantity
+                                                            }}</span>
+                                                            <div
+                                                                class="absolute z-50 hidden w-48 flex-col items-start rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs text-gray-700 shadow-md group-hover:flex"
+                                                                style="top: 100%; left: 50%; transform: translateX(-50%) translateY(8px)"
+                                                            >
+                                                                <div class="mb-1 flex items-center">
+                                                                    <span class="mr-1 h-2 w-2 rounded-full bg-red-600"></span>
+                                                                    <span class="font-semibold"
+                                                                        >Số lượng đã từ chối: {{ product.rejectedQuantity }}</span
+                                                                    >
                                                                 </div>
-                                                                <hr class="w-full my-1 border-gray-200" />
-                                                                <div class="text-gray-400 text-sm mb-1">Lý do từ chối
-                                                                </div>
-                                                                <div class="text-gray-800 leading-snug break-words">
+                                                                <hr class="my-1 w-full border-gray-200" />
+                                                                <div class="mb-1 text-xs text-gray-400">Lý do từ chối</div>
+                                                                <div class="leading-snug break-words text-gray-800">
                                                                     {{ product.rejectedReason || 'Không có lý do' }}
                                                                 </div>
                                                                 <div
-                                                                    class="absolute -top-1.5 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-white rotate-45 border-t border-r border-gray-300 shadow-sm">
-                                                                </div>
+                                                                    class="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 transform border-t border-r border-gray-300 bg-white shadow-sm"
+                                                                ></div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                                    <button class="text-blue-600 hover:text-blue-800"
-                                                        @click="openPriceModal(product)" type="button">
+                                                <td class="w-[13%] text-center text-xs whitespace-nowrap text-gray-900">
+                                                    <button class="text-blue-600 hover:text-blue-800" @click="openPriceModal(product)" type="button">
                                                         {{ formatPrice(product.purchase_price) }}
                                                     </button>
                                                 </td>
-                                                <td
-                                                    class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">
+                                                <td class="w-[14%] text-center text-xs whitespace-nowrap">
+                                                    <input
+                                                        type="date"
+                                                        v-model="product.manufacturingDate"
+                                                        class="w-full rounded-md border border-gray-300 px-1 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                                    />
+                                                </td>
+                                                <td class="w-[14%] px-2 py-2 text-center text-xs whitespace-nowrap">
+                                                    <input
+                                                        type="date"
+                                                        v-model="product.expiryDate"
+                                                        class="w-full rounded-md border border-gray-300 px-1 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                                    />
+                                                </td>
+                                                <td class="w-[10%] px-2 py-2 text-xs font-semibold whitespace-nowrap text-gray-900">
                                                     {{ formatPrice(product.total) }}
+                                                    <p v-if="product.rejectedQuantity > 0" class="mt-0.5 text-red-500">
+                                                        {{ formatPrice(rejectedValue) }}
+                                                    </p>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -740,59 +825,7 @@ onUnmounted(() => {
                                             </div>
                                             <div class="flex items-center space-x-6">
                                                 <label class="inline-flex items-center space-x-2">
-                                                    <input type="radio" value="partially_paid" v-model="paymentStatus"
-                                                        class="form-radio text-blue-600" />
-                                                    <span class="font-medium text-gray-800">Đã thanh toán một
-                                                        phần</span>
-                                                </label>
-                                            </div>
-                                            <div v-if="paymentStatus === 'partially_paid'" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Hình thức thanh toán</label>
-                                                    <select
-                                                        v-model="paymentMethod"
-                                                        name="payment_method"
-                                                        class="border-white-300 mt-1 w-full rounded-md bg-white p-2 shadow-sm"
-                                                    >
-                                                        <option value="cash">Tiền mặt</option>
-                                                        <option value="bank_transfer">Chuyển khoản</option>
-                                                        <option value="credit_card">Thẻ</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Số tiền thanh toán</label>
-                                                    <div class="relative mt-1">
-                                                        <input
-                                                            type="text"
-                                                            :value="formattedPaidAmount"
-                                                            @input="handleFormattedInput"
-                                                            class="w-full rounded-md bg-white p-2 pr-10 shadow-sm"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Ngày ghi nhận</label>
-                                                    <input
-                                                        type="date"
-                                                        v-model="paymentDate"
-                                                        name="payment_date"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Tham chiếu</label>
-                                                    <input
-                                                        type="text"
-                                                        v-model="paymentReference"
-                                                        placeholder="Nhập mã tham chiếu"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div class="flex items-center space-x-6">
-                                                <label class="inline-flex items-center space-x-2">
-                                                    <input type="radio" value="unpaid" v-model="paymentStatus"
-                                                        class="form-radio text-blue-600" />
+                                                    <input type="radio" value="unpaid" v-model="paymentStatus" class="form-radio text-blue-600" />
                                                     <span class="font-medium text-gray-800">Thanh toán sau</span>
                                                 </label>
                                             </div>
@@ -840,24 +873,32 @@ onUnmounted(() => {
                                                 selectedUserId ? props.users.find((u) => u.id === selectedUserId)?.name : 'Tìm kiếm nhân viên...'
                                             "
                                             @focus="isUserDropdownOpen = true"
-                                            @keydown.escape="isUserDropdownOpen = false" :class="[
-                                                'h-10 w-full rounded-md border border-black-300 pl-4 pr-10 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500',
-                                                selectedUserId ? 'text-black' : 'text-gray-500'
-                                            ]" />
-                                        <button @click="toggleUserDropdown"
-                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600">
+                                            @keydown.escape="isUserDropdownOpen = false"
+                                            :class="[
+                                                'border-black-300 h-10 w-full rounded-md border pr-10 pl-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500',
+                                                selectedUserId ? 'text-black' : 'text-gray-500',
+                                            ]"
+                                        />
+                                        <button
+                                            @click="toggleUserDropdown"
+                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+                                        >
                                             <ChevronDown v-if="!isUserDropdownOpen" class="h-4 w-4" />
                                             <ChevronUp v-else class="h-4 w-4" />
                                         </button>
                                     </div>
-                                    <div v-if="isUserDropdownOpen"
-                                        class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+                                    <div
+                                        v-if="isUserDropdownOpen"
+                                        class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg"
+                                    >
                                         <div class="max-h-60 overflow-y-auto">
-                                            <div v-if="filteredUsers.length === 0"
-                                                class="p-4 text-center text-gray-500">
+                                            <div v-if="filteredUsers.length === 0" class="p-4 text-center text-gray-500">
                                                 <p class="text-sm">Không tìm thấy nhân viên nào</p>
                                             </div>
-                                            <button v-else v-for="user in filteredUsers" :key="user.id"
+                                            <button
+                                                v-else
+                                                v-for="user in filteredUsers"
+                                                :key="user.id"
                                                 @click="selectUser(user)"
                                                 class="w-full border-b border-gray-100 p-3 text-left last:border-b-0 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
                                             >
@@ -870,14 +911,20 @@ onUnmounted(() => {
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập hàng</label>
-                                    <input type="datetime-local" v-model="expectedImportDate"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <input
+                                        type="datetime-local"
+                                        v-model="expectedImportDate"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng
-                                        nhập</label>
-                                    <input type="text" v-model="batchCode" readonly
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng nhập</label>
+                                    <input
+                                        type="text"
+                                        v-model="batchCode"
+                                        readonly
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Tham chiếu</label>
@@ -905,8 +952,12 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <button class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600"
-                            @click="submitBatch" v-if="selectedProducts.length > 0" :disabled="isLoading">
+                        <button
+                            class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600"
+                            @click="submitBatch"
+                            v-if="selectedProducts.length > 0"
+                            :disabled="isLoading"
+                        >
                             {{ isLoading ? 'Đang lưu...' : 'Lưu đơn nhập hàng' }}
                         </button>
                         <button
@@ -928,13 +979,10 @@ onUnmounted(() => {
             <div class="fixed inset-0 flex items-center justify-center p-4">
                 <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
                     <h3 class="mb-4 text-lg font-semibold">Điều chỉnh giá sản phẩm</h3>
-                    <input type="number" min="0" v-model.number="editingPrice"
-                        class="mb-4 w-full rounded border border-gray-300 px-3 py-2" />
+                    <input type="number" min="0" v-model.number="editingPrice" class="mb-4 w-full rounded border border-gray-300 px-3 py-2" />
                     <div class="flex justify-end space-x-2">
-                        <button @click="closePriceModal"
-                            class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
-                        <button @click="savePrice" class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Áp
-                            dụng</button>
+                        <button @click="closePriceModal" class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
+                        <button @click="savePrice" class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Áp dụng</button>
                     </div>
                 </div>
             </div>
@@ -948,26 +996,36 @@ onUnmounted(() => {
                     <h3 class="mb-4 text-lg font-semibold">Điều chỉnh số lượng nhập</h3>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700">Số lượng nhập</label>
-                        <input type="number" min="0" v-model.number="editingQuantity"
+                        <input
+                            type="number"
+                            min="0"
+                            v-model.number="editingQuantity"
                             class="w-full rounded border border-gray-300 px-3 py-2"
-                            @input="editingQuantity = Math.max(0, Number(($event.target as HTMLInputElement).value))" />
+                            @input="editingQuantity = Math.max(0, Number(($event.target as HTMLInputElement).value))"
+                        />
                     </div>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700">Số lượng từ chối</label>
-                        <input type="number" min="0" v-model.number="editingRejectedQuantity"
+                        <input
+                            type="number"
+                            min="0"
+                            v-model.number="editingRejectedQuantity"
                             class="w-full rounded border border-gray-300 px-3 py-2"
-                            @input="editingRejectedQuantity = Math.max(0, Number(($event.target as HTMLInputElement).value))" />
+                            @input="editingRejectedQuantity = Math.max(0, Number(($event.target as HTMLInputElement).value))"
+                        />
                     </div>
                     <div class="mb-4" v-if="editingRejectedQuantity > 0">
                         <label class="block text-sm font-medium text-gray-700">Lý do từ chối</label>
-                        <textarea v-model="editingRejectedReason" placeholder="Nhập lý do từ chối..." maxlength="255"
-                            class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"></textarea>
+                        <textarea
+                            v-model="editingRejectedReason"
+                            placeholder="Nhập lý do từ chối..."
+                            maxlength="255"
+                            class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                        ></textarea>
                     </div>
                     <div class="flex justify-end space-x-2">
-                        <button @click="closeQuantityModal"
-                            class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
-                        <button @click="saveQuantity"
-                            class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Áp dụng</button>
+                        <button @click="closeQuantityModal" class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
+                        <button @click="saveQuantity" class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Áp dụng</button>
                     </div>
                 </div>
             </div>
@@ -1010,9 +1068,9 @@ onUnmounted(() => {
                                 type="text"
                                 min="0"
                                 :max="modalDiscountType === 'percent' ? 100 : subtotal"
-                                class="h-10 w-32 rounded-l border border-gray-300 px-2 focus:outline-none" />
-                            <button class="h-10 w-[36px] rounded-r border border-l-0 border-gray-300 px-2"
-                                type="button">
+                                class="h-10 w-32 rounded-l border border-gray-300 px-2 focus:outline-none"
+                            />
+                            <button class="h-10 w-[36px] rounded-r border border-l-0 border-gray-300 px-2" type="button">
                                 <span v-if="modalDiscountType === 'amount'" class="text-gray-500">₫</span>
                                 <span v-else class="text-gray-500">%</span>
                             </button>
@@ -1026,10 +1084,7 @@ onUnmounted(() => {
                         >
                             Xóa
                         </button>
-                        <button @click="saveDiscount"
-                            class="rounded bg-blue-500 px-4 py-1 font-semibold text-white hover:bg-blue-400">
-                            Lưu
-                        </button>
+                        <button @click="saveDiscount" class="rounded bg-blue-500 px-4 py-1 font-semibold text-white hover:bg-blue-400">Lưu</button>
                     </div>
                 </div>
             </div>

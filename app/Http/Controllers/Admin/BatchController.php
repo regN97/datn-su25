@@ -35,6 +35,7 @@ class BatchController extends Controller
         }
 
         $batches = Batch::with(['purchaseOrder', 'supplier', 'createdBy'])->get();
+        // dd($batches);
         return Inertia::render('admin/batches/Index', [
             'batches' => $batches,
         ]);
@@ -74,25 +75,25 @@ class BatchController extends Controller
                         );
                     }
                 ])->select(
-                        'id',
-                        'batch_id',
-                        'product_id',
-                        'purchase_order_item_id',
-                        'ordered_quantity',
-                        'received_quantity',
-                        'rejected_quantity',
-                        'remaining_quantity',
-                        'current_quantity',
-                        'purchase_price',
-                        'total_amount',
-                        'manufacturing_date',
-                        'expiry_date',
-                        'inventory_status',
-                        'created_by',
-                        'updated_by',
-                        'created_at',
-                        'updated_at'
-                    );
+                    'id',
+                    'batch_id',
+                    'product_id',
+                    'purchase_order_item_id',
+                    'ordered_quantity',
+                    'received_quantity',
+                    'rejected_quantity',
+                    'remaining_quantity',
+                    'current_quantity',
+                    'purchase_price',
+                    'total_amount',
+                    'manufacturing_date',
+                    'expiry_date',
+                    'inventory_status',
+                    'created_by',
+                    'updated_by',
+                    'created_at',
+                    'updated_at'
+                );
             },
             'supplier' => function ($query) {
                 $query->select('id', 'name', 'contact_person', 'email', 'phone', 'address');
@@ -114,25 +115,28 @@ class BatchController extends Controller
                 $query->select('id', 'name', 'email');
             },
         ])->select(
-                'id',
-                'batch_number',
-                'purchase_order_id',
-                'supplier_id',
-                'received_date',
-                'invoice_number',
-                'total_amount',
-                'discount_type',
-                'discount_amount',
-                'payment_status',
-                'paid_amount',
-                'receipt_status',
-                'notes',
-                'created_by',
-                'updated_by',
-                'created_at',
-                'updated_at'
-            )->findOrFail($id);
+            'id',
+            'batch_number',
+            'purchase_order_id',
+            'supplier_id',
+            'received_date',
+            'invoice_number',
+            'total_amount',
+            'discount_type',
+            'discount_amount',
+            'payment_status',
+            'paid_amount',
+            'receipt_status',
+            'notes',
+            'created_by',
+            'updated_by',
+            'created_at',
+            'updated_at'
+        )->findOrFail($id);
 
+        return Inertia::render('admin/batches/Show', [
+            'batch' => $batch,
+        ]);
     }
 
     public function add(Request $request, $po_id)
@@ -186,10 +190,10 @@ class BatchController extends Controller
             $user_id = $request->user_id ?? Auth::id();
 
             // Tạo batch_number
-            $batch_number = $request->batch_code;
+            $batch_number = null;
             if ($batch_number === null) {
                 $today = Carbon::now()->format('Ymd');
-                $prefix = "RCPT-{$today}-";
+                $prefix = "REC-{$today}-";
                 $lastBatch = Batch::where('batch_number', 'like', "{$prefix}%")
                     ->orderByDesc('batch_number')
                     ->first();
@@ -247,6 +251,20 @@ class BatchController extends Controller
                 $receipt_status = 'partially_received';
             }
 
+            $paymentStatus = '';
+            $remainingAmount = 0;
+
+            if ($request->paid_amount < $request->total_amount && $request->paid_amount > 0) {
+                $paymentStatus = 'partially_paid';
+                $remainingAmount = $request->total_amount - $request->paid_amount;
+            } elseif ($request->paid_amount === $request->total_amount) {
+                $paymentStatus = 'paid';
+                $remainingAmount = 0;
+            } else {
+                $paymentStatus = 'unpaid';
+                $remainingAmount = $request->total_amount;
+            }
+
             // Tạo batch
             $batch_data = [
                 'batch_number' => $batch_number,
@@ -257,10 +275,11 @@ class BatchController extends Controller
                 'total_amount' => $request->total_amount,
                 'discount_type' => $request->discount['type'] ?? null,
                 'discount_amount' => $request->discount['value'] ?? 0,
-                'payment_status' => $request->payment_status,
+                'payment_status' => $paymentStatus,
                 'payment_method' => $request->payment_method,
                 'payment_date' => $request->payment_date,
                 'paid_amount' => $request->paid_amount,
+                'remaining_amount' => $remainingAmount,
                 'payment_reference' => $request->payment_reference,
                 'receipt_status' => $receipt_status,
                 'created_by' => $user_id,
@@ -281,17 +300,17 @@ class BatchController extends Controller
 
                 $receivedQty = $item['received_quantity'] ?? 0;
                 $rejectedQty = $item['rejected_quantity'] ?? null;
+                $remainingQty = 0;
 
                 if ($rejectedQty === null) {
                     $rejectedQty = max(0, $orderedQty - $receivedQty);
                 }
 
-                $acceptedQty = $receivedQty - $rejectedQty;
-
-                $totalAcceptedBefore = BatchItem::where('purchase_order_item_id', $poItem->id)
-                    ->sum(DB::raw('received_quantity - rejected_quantity'));
-
-                $remainingQty = max(0, $orderedQty - ($totalAcceptedBefore + $acceptedQty));
+                if ($receivedQty < $orderedQty) {
+                    $remainingQty = $rejectedQty;
+                } else {
+                    $remainingQty = 0; // Nếu đã nhận đủ hoặc hơn, không còn số lượng còn lại
+                }
 
                 BatchItem::create([
                     'batch_id' => $batch->id,
@@ -301,7 +320,7 @@ class BatchController extends Controller
                     'received_quantity' => $receivedQty,
                     'rejected_quantity' => $rejectedQty,
                     'remaining_quantity' => $remainingQty,
-                    'current_quantity' => $acceptedQty,
+                    'current_quantity' => $receivedQty,
                     'purchase_price' => $item['purchase_price'],
                     'total_amount' => $item['total_amount'],
                     'manufacturing_date' => $item['manufacturing_date'] ?? null,

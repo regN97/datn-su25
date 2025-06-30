@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -148,30 +149,30 @@ class PurchaseReturnController extends Controller
                         'product:id,name,sku,image_url',
                         'purchaseOrderItem:id,ordered_quantity,unit_cost',
                     ])->select(
-                            'id',
-                            'batch_id',
-                            'product_id',
-                            'purchase_order_item_id',
-                            'ordered_quantity',
-                            'received_quantity',
-                            'remaining_quantity',
-                            'current_quantity',
-                            'purchase_price',
-                            'total_amount',
-                            'inventory_status'
-                        );
+                        'id',
+                        'batch_id',
+                        'product_id',
+                        'purchase_order_item_id',
+                        'ordered_quantity',
+                        'received_quantity',
+                        'remaining_quantity',
+                        'current_quantity',
+                        'purchase_price',
+                        'total_amount',
+                        'inventory_status'
+                    );
                 },
                 'purchaseOrder:id,po_number',
                 'supplier:id,name,email,phone,address',
             ])->select(
-                    'id',
-                    'batch_number',
-                    'purchase_order_id',
-                    'supplier_id',
-                    'received_date',
-                    'invoice_number',
-                    'total_amount'
-                )->find($batchId);
+                'id',
+                'batch_number',
+                'purchase_order_id',
+                'supplier_id',
+                'received_date',
+                'invoice_number',
+                'total_amount'
+            )->find($batchId);
 
             if (!$batch) {
                 $error = 'Batch not found or invalid.';
@@ -246,6 +247,7 @@ class PurchaseReturnController extends Controller
             'return_number' => 'TRA-' . now()->format('Ymd-His') . '-' . rand(100, 999),
             'supplier_id' => $validatedData['supplier_id'],
             'purchase_order_id' => $validatedData['purchase_order_id'],
+            'status' => 'completed',
             'return_date' => Carbon::parse($validatedData['return_date']),
             'reason' => $validatedData['reason'],
             'total_items_returned' => count($validatedData['items']),
@@ -302,5 +304,3 @@ class PurchaseReturnController extends Controller
             ->with('success', 'Phiếu trả hàng đã được tạo thành công.');
     }
 }
-
-?>
