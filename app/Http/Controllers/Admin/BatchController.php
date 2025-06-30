@@ -34,8 +34,19 @@ class BatchController extends Controller
             Log::info('Deleted batches:', $emptyBatchIds->toArray());
         }
 
-        $batches = Batch::with(['purchaseOrder', 'supplier', 'createdBy'])->get();
-        // dd($batches);
+        $batches = Batch::with([
+            'purchaseOrder',
+            'supplier',
+            'creator:id,name',
+            'batchItems' => function ($query) {
+                $query->with('product', function ($productQuery) {        
+                    $productQuery->select('id','name', 'sku', 'unit_id')
+                        ->with('unit:id,name'); 
+                });
+            }
+        ])
+            ->orderBy('id', 'desc')
+            ->get();
         return Inertia::render('admin/batches/Index', [
             'batches' => $batches,
         ]);
