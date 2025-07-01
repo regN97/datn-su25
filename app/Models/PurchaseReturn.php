@@ -20,10 +20,10 @@ class PurchaseReturn extends Model
         'created_by',
     ];
     protected $casts = [
-    'return_date' => 'date',
+        'return_date' => 'date',
     ];
 
-     protected $dates = ['return_date'];
+    protected $dates = ['return_date'];
 
     public function items()
     {
@@ -40,5 +40,10 @@ class PurchaseReturn extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+    public function purchaseOrder()
+    {
+        return $this->belongsTo(PurchaseOrder::class);
+    }
+
 }
 

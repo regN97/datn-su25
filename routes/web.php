@@ -9,7 +9,6 @@ use App\Http\Controllers\Admin\{
     ProductBatchController, PurchaseOrderController, InventoryController,
     UserController
 };
-use App\Http\Controllers\Cashier\Auth\AuthenticatedSessionController;
 
 Route::get('/', fn () => Inertia::render('Welcome'))->name('home');
 
@@ -50,26 +49,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::get('batches/add/{po_id}', [BatchController::class, 'add'])->name('batches.add');
     Route::post('batches/save', [BatchController::class, 'save'])->name('batches.save');
     Route::resource('batches', BatchController::class);
-    Route::resource('product-batches', ProductBatchController::class);
 
     // Others
     Route::resource('inventory', InventoryController::class);
     Route::resource('users', UserController::class);
 });
 
-Route::prefix('cashier')->name('cashier.')->group(function () {
-    Route::middleware('guest')->group(function () {
-        Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
-        Route::post('login', [AuthenticatedSessionController::class, 'store']);
-    });
-
-    Route::middleware(['auth', 'cashier'])->group(function () {
-        Route::get('dashboard', fn () => Inertia::render('cashier/Dashboard'))->name('dashboard');
-        Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-    });
-});
-
-
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
+require __DIR__ . '/cashier.php';
 

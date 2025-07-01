@@ -27,6 +27,7 @@ class Batch extends Model
         'payment_method',
         'payment_date',
         'paid_amount',
+        'remaining_amount',
         'receipt_status',
         'notes',
         'created_by',
