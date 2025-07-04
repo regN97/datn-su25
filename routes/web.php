@@ -46,6 +46,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::resource('purchase-orders', PurchaseOrderController::class);
 
     // Batches
+    Route::post('batches/{id}/pay', [BatchController::class, 'pay'])->name('batches.pay');
     Route::get('batches/add/{po_id}', [BatchController::class, 'add'])->name('batches.add');
     Route::post('batches/save', [BatchController::class, 'save'])->name('batches.save');
     Route::resource('batches', BatchController::class);
