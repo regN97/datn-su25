@@ -12,9 +12,9 @@ Route::prefix('cashier')->name('cashier.')->group(function () {
     });
 
     Route::middleware(['auth', 'cashier'])->group(function () {
-        Route::get('dashboard', fn () => Inertia::render('cashier/Dashboard'))->name('dashboard');
+        Route::get('dashboard', fn() => Inertia::render('cashier/Dashboard'))->name('dashboard');
         Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+        Route::post('pos/customers', [POSController::class, 'storeCustomer'])->name('pos.customers.store');
     });
     Route::get('pos', [POSController::class, 'index'])->name('pos.index');
 });
-

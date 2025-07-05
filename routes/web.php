@@ -4,13 +4,21 @@ use Inertia\Inertia;
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\{
-    DashboardController, CategoryController, ProductController, UnitController,
-    SupplierController, PurchaseReturnController, BatchController,
-    ProductBatchController, PurchaseOrderController, InventoryController,
+    DashboardController,
+    CategoryController,
+    ProductController,
+    UnitController,
+    SupplierController,
+    PurchaseReturnController,
+    BatchController,
+    CustomerController,
+    ProductBatchController,
+    PurchaseOrderController,
+    InventoryController,
     UserController
 };
 
-Route::get('/', fn () => Inertia::render('Welcome'))->name('home');
+Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', 'admin']) // Chỉ admin mới được vào
@@ -54,9 +62,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     // Others
     Route::resource('inventory', InventoryController::class);
     Route::resource('users', UserController::class);
+
+    //Customer
+    Route::get('customers/trashed', [CustomerController::class, 'trashed'])->name('customers.trashed');
+    Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
+    Route::delete('customers/{customer}/force-delete', [CustomerController::class, 'forceDelete'])->name('customers.forceDelete');
+    Route::resource('customers', CustomerController::class);
 });
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/cashier.php';
-

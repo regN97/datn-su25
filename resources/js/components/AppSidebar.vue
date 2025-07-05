@@ -69,7 +69,7 @@ const mainNavItems: NavItem[] = [
                 :icon="Users"
                 label="Quản lý người dùng"
                 :items="[
-                    { label: 'Quản lý khách hàng', href: '#', icon: User },
+                    { label: 'Quản lý khách hàng', href: route('admin.customers.index'), icon: User },
                     { label: 'Quản lý nhân viên', href: route('admin.users.index'), icon: UserCog },
                     { label: 'Quản lý tài khoản', href: '#', icon: KeyRound },
                 ]"

@@ -149,119 +149,133 @@ class InventoryController extends Controller
             'suppliers' => $suppliers,
         ]);
     }
-    public function updateI(Request $request, $id)
-    {
-        $request->validate([
-            'batchItems' => 'required|array',
-            'batchItems.*.id' => 'required|exists:batch_items,id',
-            'batchItems.*.current_quantity' => 'required|integer|min:0',
-        ]);
-
-        $product = Product::findOrFail($id);
-        $lowStockThreshold = $product->low_stock_threshold ?? 10;
-
-        foreach ($request->batchItems as $itemData) {
-            $batchItem = BatchItem::find($itemData['id']);
-
-            if ($batchItem) {
-                $batchItem->current_quantity = $itemData['current_quantity'];
-
-                $newStatus = 'active';
-                $expiryDate = $batchItem->expiry_date ? Carbon::parse($batchItem->expiry_date) : null;
-
-                if ($expiryDate && $expiryDate->isPast()) {
-                    $newStatus = 'expired';
-                } elseif ($batchItem->current_quantity <= 0) {
-                    $newStatus = 'out_of_stock';
-                } elseif ($batchItem->current_quantity <= $lowStockThreshold) {
-                    $newStatus = 'low_stock';
+   public function update(Request $request, $id)
+{
+    $request->validate([
+        'batchItems' => 'required|array',
+        'batchItems.*.id' => 'required|exists:batch_items,id',
+        'batchItems.*.current_quantity' => [
+            'required',
+            'integer',
+            'min:0',
+            function ($attribute, $value, $fail) use ($request) {
+                $index = explode('.', $attribute)[1];
+                $batchItemId = $request->batchItems[$index]['id'];
+                $batchItem = BatchItem::find($batchItemId);
+                if ($batchItem && $value > $batchItem->ordered_quantity) {
+                    $fail("Số lượng hiện tại không được vượt quá số lượng đặt ({$batchItem->ordered_quantity}).");
                 }
+                if ($batchItem && $value > $batchItem->received_quantity) {
+                    $fail("Số lượng hiện tại không được vượt quá số lượng nhập ({$batchItem->received_quantity}).");
+                }
+            },
+        ],
+    ]);
 
-                $batchItem->inventory_status = $newStatus;
-                $batchItem->save();
+    $product = Product::findOrFail($id);
+    $lowStockThreshold = $product->low_stock_threshold ?? 10;
+
+    foreach ($request->batchItems as $itemData) {
+        $batchItem = BatchItem::find($itemData['id']);
+
+        if ($batchItem) {
+            $batchItem->current_quantity = $itemData['current_quantity'];
+
+            $newStatus = 'active';
+            $expiryDate = $batchItem->expiry_date ? Carbon::parse($batchItem->expiry_date) : null;
+
+            if ($expiryDate && $expiryDate->isPast()) {
+                $newStatus = 'expired';
+            } elseif ($batchItem->current_quantity <= 0) {
+                $newStatus = 'out_of_stock';
+            } elseif ($batchItem->current_quantity <= $lowStockThreshold) {
+                $newStatus = 'low_stock';
             }
+
+            $batchItem->inventory_status = $newStatus;
+            $batchItem->save();
         }
-
-
-        $updatedBatchItems = BatchItem::where('product_id', $id)
-            ->with([
-                'batch' => function ($query) {
-                    $query->select(
-                        'id',
-                        'batch_number',
-                        'purchase_order_id',
-                        'supplier_id',
-                        'received_date',
-                        'total_amount',
-                        'payment_status',
-                        'receipt_status',
-                        'notes'
-                    );
-                },
-            ])
-            ->select(
-                'id',
-                'batch_id',
-                'product_id',
-                'ordered_quantity',
-                'received_quantity',
-                'current_quantity',
-                'purchase_price',
-                'total_amount',
-                'inventory_status',
-                'manufacturing_date',
-                'expiry_date'
-            )
-            ->get();
-
-        $totalInventory = $updatedBatchItems->sum('current_quantity');
-        $lowStock = $updatedBatchItems->where('inventory_status', 'low_stock')->sum('current_quantity');
-        $expired = $updatedBatchItems->whereNotNull('expiry_date')
-            ->where('expiry_date', '<', Carbon::now())
-            ->sum('current_quantity');
-
-        $suppliers = Supplier::pluck('name', 'id')->toArray();
-
-        return Inertia::render('admin/inventory/Show', [ 
-            'product' => [
-                'product_id' => $product->id,
-                'name' => $product->name,
-                'image_url' => $product->image_url ?? 'N/A',
-                'description' => $product->description ?? 'Không có mô tả',
-                'price' => $product->price ?? 0,
-                'stock' => $product->stock ?? 0,
-                'sku' => $product->sku ?? 'N/A',
-                'status' => $product->status ?? 'N/A',
-                'category' => is_string($product->category) ? json_decode($product->category, true) : $product->category ?? 'Không xác định',
-                'unit' => $product->unit ? $product->unit->name : 'N/A',
-            ],
-            'batchItems' => $updatedBatchItems->map(function ($item) use ($suppliers) {
-                return [
-                    'id' => $item->id,
-                    'batch_id' => $item->batch_id,
-                    'batch_number' => $item->batch ? $item->batch->batch_number : 'N/A',
-                    'purchase_order_id' => $item->batch ? $item->batch->purchase_order_id : null,
-                    'supplier_id' => $item->batch ? $item->batch->supplier_id : null,
-                    'supplier_name' => $item->batch && $item->batch->supplier_id ? ($suppliers[$item->batch->supplier_id] ?? 'Không xác định') : 'N/A',
-                    'received_date' => $item->batch ? Carbon::parse($item->batch->received_date)->format('Y-m-d') : null,
-                    'total_amount' => $item->batch ? $item->batch->total_amount : 0,
-                    'payment_status' => $item->batch ? $item->batch->payment_status : 'N/A',
-                    'receipt_status' => $item->batch ? $item->batch->receipt_status : 'N/A',
-                    'notes' => $item->batch ? $item->batch->notes : null,
-                    'ordered_quantity' => $item->ordered_quantity,
-                    'received_quantity' => $item->received_quantity,
-                    'current_quantity' => $item->current_quantity,
-                    'purchase_price' => $item->purchase_price,
-                    'total_item_amount' => $item->total_amount,
-                    'inventory_status' => $item->inventory_status,
-                    'manufacturing_date' => $item->manufacturing_date ? Carbon::parse($item->manufacturing_date)->format('Y-m-d') : null,
-                    'expiry_date' => $item->expiry_date ? Carbon::parse($item->expiry_date)->format('Y-m-d') : null,
-                ];
-            })->values(),
-            'totalInventory' => $totalInventory,
-            'lowStock' => $lowStock,
-            'expired' => $expired,
-            'suppliers' => $suppliers,
-        ]);
     }
+
+    $updatedBatchItems = BatchItem::where('product_id', $id)
+        ->with([
+            'batch' => function ($query) {
+                $query->select(
+                    'id',
+                    'batch_number',
+                    'purchase_order_id',
+                    'supplier_id',
+                    'received_date',
+                    'total_amount',
+                    'payment_status',
+                    'receipt_status',
+                    'notes'
+                );
+            },
+        ])
+        ->select(
+            'id',
+            'batch_id',
+            'product_id',
+            'ordered_quantity',
+            'received_quantity',
+            'current_quantity',
+            'purchase_price',
+            'total_amount',
+            'inventory_status',
+            'manufacturing_date',
+            'expiry_date'
+        )
+        ->get();
+
+    $totalInventory = $updatedBatchItems->sum('current_quantity');
+    $lowStock = $updatedBatchItems->where('inventory_status', 'low_stock')->sum('current_quantity');
+    $expired = $updatedBatchItems->whereNotNull('expiry_date')
+        ->where('expiry_date', '<', Carbon::now())
+        ->sum('current_quantity');
+
+    $suppliers = Supplier::pluck('name', 'id')->toArray();
+
+    return Inertia::render('admin/inventory/Show', [
+        'product' => [
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'image_url' => $product->image_url ?? 'N/A',
+            'description' => $product->description ?? 'Không có mô tả',
+            'price' => $product->price ?? 0,
+            'stock' => $product->stock ?? 0,
+            'sku' => $product->sku ?? 'N/A',
+            'status' => $product->status ?? 'N/A',
+            'category' => is_string($product->category) ? json_decode($product->category, true) : $product->category ?? 'Không xác định',
+            'unit' => $product->unit ? $product->unit->name : 'N/A',
+        ],
+        'batchItems' => $updatedBatchItems->map(function ($item) use ($suppliers) {
+            return [
+                'id' => $item->id,
+                'batch_id' => $item->batch_id,
+                'batch_number' => $item->batch ? $item->batch->batch_number : 'N/A',
+                'purchase_order_id' => $item->batch ? $item->batch->purchase_order_id : null,
+                'supplier_id' => $item->batch ? $item->batch->supplier_id : null,
+                'supplier_name' => $item->batch && $item->batch->supplier_id ? ($suppliers[$item->batch->supplier_id] ?? 'Không xác định') : 'N/A',
+                'received_date' => $item->batch ? Carbon::parse($item->batch->received_date)->format('Y-m-d') : null,
+                'total_amount' => $item->batch ? $item->batch->total_amount : 0,
+                'payment_status' => $item->batch ? $item->batch->payment_status : 'N/A',
+                'receipt_status' => $item->batch ? $item->batch->receipt_status : 'N/A',
+                'notes' => $item->batch ? $item->batch->notes : null,
+                'ordered_quantity' => $item->ordered_quantity,
+                'received_quantity' => $item->received_quantity,
+                'current_quantity' => $item->current_quantity,
+                'purchase_price' => $item->purchase_price,
+                'total_item_amount' => $item->total_amount,
+                'inventory_status' => $item->inventory_status,
+                'manufacturing_date' => $item->manufacturing_date ? Carbon::parse($item->manufacturing_date)->format('Y-m-d') : null,
+                'expiry_date' => $item->expiry_date ? Carbon::parse($item->expiry_date)->format('Y-m-d') : null,
+            ];
+        })->values(),
+        'totalInventory' => $totalInventory,
+        'lowStock' => $lowStock,
+        'expired' => $expired,
+        'suppliers' => $suppliers,
+    ]);
+}
 }

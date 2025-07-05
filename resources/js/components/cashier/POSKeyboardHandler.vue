@@ -1,10 +1,7 @@
-<template>
-  <!-- This component doesn't render anything -->
-</template>
-
 <script setup>
 import { onMounted, onUnmounted } from 'vue';
 
+// Nhận các props từ POS.vue
 const props = defineProps({
   onHelp: Function,
   onAddItem: Function,
@@ -14,42 +11,52 @@ const props = defineProps({
   onHoldOrder: Function,
   onReprint: Function,
   onDeleteItem: Function,
-  onCheckout: Function
+  onCheckout: Function,
 });
 
 const handleKeyDown = (event) => {
-  // Prevent default browser behavior for function keys
-  if (event.key.startsWith('F')) {
-    event.preventDefault();
-  }
+  // Kiểm tra xem event.key có tồn tại không trước khi sử dụng
+  if (!event.key) return;
 
-  switch (event.key) {
-    case 'F1':
+  // Xử lý các phím chức năng
+  switch (event.key.toLowerCase()) {
+    case 'f1':
+      event.preventDefault();
       props.onHelp?.();
       break;
-    case 'F2':
+    case 'f2':
+      event.preventDefault();
       props.onAddItem?.();
       break;
-    case 'F3':
+    case 'f3':
+      event.preventDefault();
       props.onSearch?.();
       break;
-    case 'F4':
+    case 'f4':
+      event.preventDefault();
       props.onCustomer?.();
       break;
-    case 'F5':
+    case 'f5':
+      event.preventDefault();
       props.onDiscount?.();
       break;
-    case 'F6':
+    case 'f6':
+      event.preventDefault();
       props.onHoldOrder?.();
       break;
-    case 'F7':
+    case 'f7':
+      event.preventDefault();
       props.onReprint?.();
       break;
-    case 'F8':
+    case 'f8':
+      event.preventDefault();
       props.onDeleteItem?.();
       break;
-    case 'F9':
+    case 'f9':
+      event.preventDefault();
       props.onCheckout?.();
+      break;
+    default:
       break;
   }
 };
@@ -62,3 +69,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
 });
 </script>
+
+<template>
+  <!-- Không cần template vì component này chỉ xử lý sự kiện bàn phím -->
+</template>
