@@ -3,6 +3,8 @@
     <HeaderC />
     <div class="flex flex-1 overflow-hidden">
       <AsideC />
+          <FlashMessage />
+
       <MainC>
         <slot></slot>
       </MainC>
@@ -14,6 +16,7 @@
 import HeaderC from '@/components/cashier/HeaderC.vue';
 import AsideC from '@/components/cashier/AsideC.vue';
 import MainC from '@/components/cashier/MainC.vue';
+import FlashMessage from '@/components/FlashMessage.vue';
 </script>
 
 <style>

@@ -1,12 +1,10 @@
 <script setup lang="ts">
+import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link } from '@inertiajs/vue3'; // Import Link component
+import { type BreadcrumbItem } from '@/types';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { PackagePlus, Pencil, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-
-interface BreadcrumbItem {
-    title: string;
-    href: string;
-}
 
 interface ProductUnit {
     name: string;
@@ -30,11 +28,19 @@ interface BatchItem {
     id: number;
     product: Product;
     batch: Batch;
+    purchase_order_item_id: number | null;
+    ordered_quantity: number;
     received_quantity: number;
+    rejected_quantity: number;
+    remaining_quantity: number;
     current_quantity: number;
     purchase_price: number;
     total_amount: number;
     inventory_status: string;
+    created_by: number | null;
+    updated_by: number | null;
+    created_at: string | null;
+    updated_at: string | null;
 }
 
 const props = defineProps<{
@@ -42,9 +48,11 @@ const props = defineProps<{
     units: string[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Quản lý tồn kho', href: '/admin/inventory' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Quản lý tồn kho', href: '/admin/inventory' },
+];
 
-const items = ref([...props.inventory]);
+const items = ref<BatchItem[]>([...props.inventory]);
 
 const filterName = ref('');
 const filterUnit = ref<string | null>(null);
@@ -134,13 +142,67 @@ const isSidebarOpen = ref(false);
 function toggleSidebar() {
     isSidebarOpen.value = !isSidebarOpen.value;
 }
+
+function goToEditInventory(id: number) {
+    router.visit(`/admin/inventory/${id}/edit`);
+}
+
+function goToCreatePage() {
+    router.visit('/admin/inventory/create');
+}
+
+function goToTrashedPage() {
+    router.visit('/admin/inventory/trashed');
+}
+
+const showDeleteModal = ref(false);
+const itemToDelete = ref<number | null>(null);
+
+function confirmDelete(id: number) {
+    itemToDelete.value = id;
+    showDeleteModal.value = true;
+}
+
+function handleDeleteInventory() {
+    if (!itemToDelete.value) return;
+
+    router.delete(`/admin/inventory/${itemToDelete.value}`, {
+        onSuccess: () => {
+            const idx = items.value.findIndex((item) => item.id === itemToDelete.value);
+            if (idx !== -1) items.value.splice(idx, 1);
+            showDeleteModal.value = false;
+            itemToDelete.value = null;
+        },
+        preserveState: true,
+    });
+}
+
+function cancelDelete() {
+    showDeleteModal.value = false;
+    itemToDelete.value = null;
+}
 </script>
+
 <template>
     <Head title="Quản lý tồn kho" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 bg-gray-50 p-4 dark:bg-gray-900">
-            <div class="relative flex-1 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div class="container mx-auto p-4 sm:p-6">
+        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+            <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
+                <div class="container mx-auto p-6">
+                    <!-- Header with title and action buttons -->
+                    <div class="mb-4 flex items-center justify-between">
+                        <h1 class="text-2xl font-bold">Quản lý tồn kho</h1>
+                        <div class="flex gap-2">
+                            <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
+                                <PackagePlus />
+                            </button>
+                            <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">
+                                Thùng rác
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Section -->
                     <div class="mb-4 flex flex-wrap items-center gap-4 rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800">
                         <div class="flex space-x-2">
                             <button
@@ -192,7 +254,7 @@ function toggleSidebar() {
                             <input
                                 v-model="filterName"
                                 type="text"
-                                placeholder=""
+                                placeholder="Nhập tên sản phẩm..."
                                 class="focus:ring-opacity-50 w-full rounded-md border-gray-300 p-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-500 sm:w-64 dark:border-gray-600 dark:bg-gray-700 dark:focus:border-blue-400 dark:focus:ring-blue-400"
                             />
                         </div>
@@ -224,6 +286,7 @@ function toggleSidebar() {
                         </div>
                     </div>
 
+                    <!-- Filter Sidebar -->
                     <div
                         :class="[
                             'fixed inset-y-0 right-0 z-50 w-full transform bg-white p-6 shadow-xl transition-transform duration-300 ease-in-out sm:w-80 md:w-96 dark:bg-gray-800',
@@ -311,50 +374,28 @@ function toggleSidebar() {
                     </div>
                     <div v-if="isSidebarOpen" class="bg-opacity-50 fixed inset-0 z-40 bg-black sm:hidden" @click="toggleSidebar"></div>
 
-                    <div class="overflow-x-auto rounded-lg bg-white shadow-md dark:bg-gray-800">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-100 dark:bg-gray-700">
+                    <!-- Inventory Table -->
+                    <div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md dark:bg-gray-800">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-200 dark:bg-gray-700">
                                 <tr>
-                                    <th class="w-[30%] p-3 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
-                                        Tên sản phẩm
-                                    </th>
-                                    <th class="w-[10%] p-3 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">SKU</th>
-                                    <th class="w-[10%] p-3 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
-                                        Barcode
-                                    </th>
-                                    <th class="w-[10%] p-3 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
-                                        Đơn vị tính
-                                    </th>
-
-                                    <th
-                                        class="w-[10%] p-3 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300"
-                                    >
-                                        Tồn kho hiện tại
-                                    </th>
-                                    <th
-                                        class="w-[10%] p-3 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300"
-                                    >
-                                        Số lượng bán
-                                    </th>
-                                    <th
-                                        class="w-[10%] p-3 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300"
-                                    >
-                                        Giá bán
-                                    </th>
-                                    <th
-                                        class="w-[10%] p-3 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300"
-                                    >
-                                        Giá mua
-                                    </th>
+                                    <th class="w-[25%] p-3 text-left text-sm font-semibold">Tên sản phẩm</th>
+                                    <th class="w-[10%] p-3 text-center text-sm font-semibold">SKU</th>
+                                    <th class="w-[10%] p-3 text-center text-sm font-semibold">Barcode</th>
+                                    <th class="w-[10%] p-3 text-center text-sm font-semibold">Đơn vị tính</th>
+                                    <th class="w-[10%] p-3 text-center text-sm font-semibold">Số lượng đặt</th>
+                                    <th class="w-[10%] p-3 text-center text-sm font-semibold">Tồn kho hiện tại</th>
+                                    <th class="w-[10%] p-3 text-center text-sm font-semibold">Giá bán</th>
+                                    <th class="w-[10%] p-3 text-center text-sm font-semibold">Giá mua</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr
-                                    v-for="item in paginatedProducts"
+                                    v-for="(item, idx) in paginatedProducts"
                                     :key="item.id"
                                     class="border-t border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
                                 >
-                                    <td class="w-[30%] p-2">
+                                    <td class="w-[25%] p-3 text-left text-sm">
                                         <Link :href="route('admin.inventory.show', item.product.id)" class="group flex items-center gap-2">
                                             <img
                                                 :src="item.product.image_url || 'https://via.placeholder.com/30'"
@@ -362,38 +403,40 @@ function toggleSidebar() {
                                                 class="h-8 w-8 rounded-full object-cover shadow-sm"
                                             />
                                             <span
-                                                class="text-xs font-medium text-gray-800 group-hover:text-blue-600 dark:text-gray-200 dark:group-hover:text-blue-400"
+                                                class="text-sm font-medium text-gray-800 group-hover:text-blue-600 dark:text-gray-200 dark:group-hover:text-blue-400"
                                             >
                                                 {{ item.product.name }}
                                             </span>
                                         </Link>
                                     </td>
-                                    <td class="w-[10%] p-2 text-xs">{{ item.product.sku }}</td>
-                                    <td class="w-[10%] p-2 text-xs">{{ item.product.barcode }}</td>
-                                    <td class="w-[10%] p-2 text-center text-xs">{{ item.product.unit?.name || 'N/A' }}</td>
-                                    <td class="w-[10%] p-2 text-center text-xs">{{ item.current_quantity }}</td>
-                                    <td class="w-[10%] p-2 text-center text-xs">
-                                        {{ item.received_quantity - item.current_quantity }}
-                                    </td>
-                                    <td class="w-[10%] p-2 text-center text-xs">{{ (item.product.selling_price ?? 0).toLocaleString('vi-VN') }}đ</td>
-                                    <td class="w-[10%] p-2 text-center text-xs">{{ (item.purchase_price ?? 0).toLocaleString('vi-VN') }}đ</td>
+                                    <td class="w-[10%] p-3 text-center text-sm">{{ item.product.sku }}</td>
+                                    <td class="w-[10%] p-3 text-center text-sm">{{ item.product.barcode }}</td>
+                                    <td class="w-[10%] p-3 text-center text-sm">{{ item.product.unit?.name || 'N/A' }}</td>
+                                    <td class="w-[10%] p-3 text-center text-sm">{{ item.ordered_quantity }}</td>
+                                    <td class="w-[10%] p-3 text-center text-sm">{{ item.current_quantity }}</td>
+                                    <td class="w-[10%] p-3 text-center text-sm">{{ (item.product.selling_price ?? 0).toLocaleString('vi-VN') }}đ</td>
+                                    <td class="w-[10%] p-3 text-center text-sm">{{ (item.purchase_price ?? 0).toLocaleString('vi-VN') }}đ</td>
+                                   
                                 </tr>
                                 <tr v-if="!paginatedProducts.length">
-                                    <td colspan="9" class="p-4 text-center text-xs text-gray-500 dark:text-gray-400">Không có dữ liệu</td>
+                                    <td colspan="10" class="p-3 text-center text-sm text-gray-500 dark:text-gray-400">Không có dữ liệu</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <p class="text-sm text-gray-600 dark:text-gray-400">
-                            Hiển thị <span class="font-semibold">{{ (currentPage - 1) * perPage + 1 }}</span> -
+                    <!-- Pagination -->
+                    <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <p class="text-sm">
+                            Hiển thị kết quả từ
+                            <span class="font-semibold">{{ (currentPage - 1) * perPage + 1 }}</span>
+                            -
                             <span class="font-semibold">{{ Math.min(currentPage * perPage, total) }}</span>
                             trên tổng <span class="font-semibold">{{ total }}</span>
                         </p>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center space-x-2">
                             <button
-                                class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-200"
+                                class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                 :disabled="currentPage === 1"
                                 @click="prevPage"
                             >
@@ -403,43 +446,47 @@ function toggleSidebar() {
                                 v-for="page in totalPages"
                                 :key="page"
                                 class="rounded px-3 py-1 text-sm"
-                                :class="
-                                    page === currentPage
-                                        ? 'bg-blue-500 font-semibold text-white'
-                                        : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
-                                "
+                                :class="page === currentPage ? 'bg-gray-200 font-bold' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
                                 @click="goToPage(page)"
                             >
                                 {{ page }}
                             </button>
                             <button
-                                class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-200"
+                                class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                 :disabled="currentPage === totalPages"
                                 @click="nextPage"
                             >
                                 Trang sau →
                             </button>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Hiển thị</span>
+                        <div class="flex items-center space-x-2">
+                            <p class="text-sm">Hiển thị</p>
                             <select
+                                class="rounded border p-1 text-sm focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-400"
                                 v-model="perPage"
                                 @change="changePerPage"
-                                class="rounded border border-gray-300 p-1 text-sm focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-400"
                             >
                                 <option v-for="opt in perPageOptions" :key="opt" :value="opt">{{ opt }}</option>
                             </select>
-                            <span class="text-sm text-gray-600 dark:text-gray-400">kết quả</span>
+                            <p class="text-sm">kết quả</p>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <DeleteModal
+                :is-open="showDeleteModal"
+                title="Xóa mục tồn kho"
+                message="Bạn có chắc chắn muốn xóa mục tồn kho này?"
+                @confirm="handleDeleteInventory"
+                @cancel="cancelDelete"
+            />
         </div>
     </AppLayout>
 </template>
 
 <style lang="css" scoped>
-table {
+.table-wrapper table {
     min-width: 100%;
     table-layout: fixed;
 }
@@ -450,6 +497,10 @@ table {
 
 .dark .border-gray-100 {
     border-color: var(--gray-700);
+}
+
+.dark .bg-gray-200 {
+    background-color: var(--gray-700);
 }
 
 .dark .hover\:bg-gray-50:hover {

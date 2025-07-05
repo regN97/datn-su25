@@ -36,6 +36,9 @@ class DatabaseSeeder extends Seeder
 
             // Đã loại bỏ ProductBatchSeeder vì không còn bảng product_batches
             // Đã loại bỏ InventorySeeder vì inventory sẽ được tính toán từ BatchItems
+
+            // 6. Seed các bảng bán hàng
+            CustomerSeeder::class,        // Customers
         ]);
     }
 }
