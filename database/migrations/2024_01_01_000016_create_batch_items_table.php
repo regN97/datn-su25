@@ -11,8 +11,10 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('batch_id')->constrained('batches')->onDelete('cascade');
             $table->foreignId('product_id')->constrained('products')->onDelete('restrict');
-            $table->foreignId('purchase_order_item_id')->constrained('purchase_order_items')->onDelete('restrict');
-
+            $table->foreignId('purchase_order_item_id')
+                ->nullable()
+                ->constrained('purchase_order_items')
+                ->onDelete('restrict');
             // Thông tin số lượng
             $table->unsignedInteger('ordered_quantity');   // Số lượng đặt trong PO
             $table->unsignedInteger('received_quantity');  // Số lượng đã nhận trong đợt này
