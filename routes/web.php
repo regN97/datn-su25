@@ -15,15 +15,17 @@ use App\Http\Controllers\Admin\{
     ProductBatchController,
     PurchaseOrderController,
     InventoryController,
-    UserController
+    UserController,
+    TestInventoryController
 };
+use App\Http\Controllers\TestController;
 
 Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', 'admin']) // Chỉ admin mới được vào
     ->name('dashboard');
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin'])->group(function () {
+Route::prefix('admin')->name('admin.')->group(function () {
     // Categories
     Route::get('categories/trashed', [CategoryController::class, 'trashed'])->name('categories.trashed');
     Route::post('categories/{cat}/restore', [CategoryController::class, 'restore'])->name('categories.restore');
@@ -69,7 +71,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::delete('customers/{customer}/force-delete', [CustomerController::class, 'forceDelete'])->name('customers.forceDelete');
     Route::resource('customers', CustomerController::class);
 });
-
+Route::get('/test', [TestController::class, 'index']);
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/cashier.php';
