@@ -29,7 +29,6 @@ interface ProductForm {
     image_url: string | null;
     image_file: File | null;
     image_input_type: 'url' | 'file';
-    sku: string;
     selected_supplier_ids: number[];
     is_active: boolean;
     selling_price: number;
@@ -42,7 +41,6 @@ interface ProductForm {
     purchase_prices: { [key: number]: number | null };
 }
 
-const page = usePage();
 const imageInputType = ref<'url' | 'file'>('url');
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -55,7 +53,6 @@ const form = useForm<ProductForm>({
     image_url: null,
     image_file: null,
     image_input_type: 'url',
-    sku: '',
     selected_supplier_ids: [],
     is_active: true,
     selling_price: 0,
@@ -63,10 +60,42 @@ const form = useForm<ProductForm>({
     category_id: null,
     unit_id: null,
     description: '',
-    min_stock_level: 0,
-    max_stock_level: null,
+    min_stock_level: 20,
+    max_stock_level: 200,
     purchase_prices: {},
 });
+
+// Validate selling price against purchase prices
+watch(
+    () => [form.selling_price, form.purchase_prices],
+    ([newSellingPrice, newPurchasePrices]) => {
+        if (typeof newSellingPrice !== 'number') return; // Kiểm tra kiểu
+        const purchasePrices = Object.values(newPurchasePrices).filter((price): price is number => price !== null);
+        if (purchasePrices.length > 0 && newSellingPrice > 0) {
+            const minPurchasePrice = Math.min(...purchasePrices);
+            if (newSellingPrice < minPurchasePrice) {
+                form.errors.selling_price = `Giá bán phải lớn hơn hoặc bằng giá nhập thấp nhất (${minPurchasePrice})`;
+            } else {
+                delete form.errors.selling_price;
+            }
+        }
+    },
+    { deep: true }
+);
+
+// Validate error purchase prices
+const getPurchasePriceErrorMessage = (supplierId: number): string | undefined => {
+    const key = `purchase_prices.${supplierId}`;
+    const error = (form.errors as Record<string, string>)[key];
+    if (!error) return undefined;
+
+    // Nếu muốn đơn giản hóa tất cả về "Trường giá nhập là bắt buộc."
+    if (error.includes('purchase_prices')) {
+        return 'Trường giá nhập là bắt buộc.';
+    }
+
+    return error;
+};
 
 watch(imageInputType, (newType) => {
     form.image_input_type = newType;
@@ -125,6 +154,7 @@ const goBack = () => {
 
 const submitForm = () => {
     form.post('/admin/products', {
+        forceFormData: true,
         onSuccess: () => {
             form.reset();
             form.purchase_prices = {};
@@ -141,6 +171,7 @@ const submitForm = () => {
 </script>
 
 <template>
+
     <Head title="Thêm Sản phẩm" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -168,21 +199,8 @@ const submitForm = () => {
                                         <InputError :message="form.errors.name" />
                                     </div>
                                     <div>
-                                        <label for="sku" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Mã SKU <span class="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="sku"
-                                            v-model="form.sku"
-                                            class="h-10 w-full rounded-md border border-gray-300 px-3 text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:bg-gray-700 dark:text-gray-200"
-                                            :class="{ 'border-red-500': form.errors.sku }"
-                                            placeholder="G7-MLH-011"
-                                        />
-                                        <InputError :message="form.errors.sku" />
-                                    </div>
-                                    <div>
-                                        <label for="barcode" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        <label for="barcode"
+                                            class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Mã vạch <span class="text-red-500">*</span>
                                         </label>
                                         <input
@@ -307,9 +325,9 @@ const submitForm = () => {
                                                             min="0"
                                                             class="h-10 w-full rounded-md border border-gray-300 px-3 text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:bg-gray-700 dark:text-gray-200"
                                                             :class="{ 'border-red-500': form.errors[`purchase_prices.${supplierId}`] }"
-                                                            placeholder="Nhập giá nhập"
-                                                        />
-                                                        <InputError :message="form.errors[`purchase_prices.${supplierId}`]" />
+                                                            placeholder="Nhập giá nhập" />
+                                                        <InputError
+                                                            :message="getPurchasePriceErrorMessage(supplierId)" />
                                                     </div>
                                                 </div>
                                             </div>

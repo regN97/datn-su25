@@ -20,6 +20,11 @@ return new class extends Migration
             $table->string('image_url', 512)->nullable();
             $table->unsignedInteger('min_stock_level')->default(0);
             $table->unsignedInteger('max_stock_level')->nullable();
+            $table->unsignedInteger('stock_quantity')->default(0);     // Tồn kho hiện tại 
+            $table->date('last_received_at')->nullable();              // Ngày nhập hàng gần nhất
+            $table->date('last_sold_at')->nullable();                  // Ngày bán hàng gần nhất
+            $table->boolean('is_trackable')->default(true);            // Có quản lý tồn kho không (false cho dịch vụ, sản phẩm ảo)
+            $table->unsignedInteger('reorder_point')->default(0);      // Khi stock_quantity <= reorder_point → cần nhập thêm
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();

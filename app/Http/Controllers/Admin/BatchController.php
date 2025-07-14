@@ -350,7 +350,13 @@ class BatchController extends Controller
             $purchaseOrder = PurchaseOrder::find($request->purchase_order_id);
             $purchaseOrder->updateStatusBasedOnItems();
 
-            Log::info('Batch created successfully:', ['batch_id' => $batch->id]);
+            $product = Product::find($item['product_id']);
+            if ($product) {
+                $product->stock_quantity = $product->getCurrentStock(); // tổng từ các batch_items
+                $product->last_received_at = now(); // cập nhật ngày nhập gần nhất
+                $product->save();
+            }
+
             return redirect()->route('admin.batches.index')->with('success', 'Đã tạo đơn nhập hàng thành công.');
         } catch (\Exception $e) {
             Log::error('Batch creation failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
@@ -399,7 +405,7 @@ class BatchController extends Controller
         } elseif ($paymentStatus === 'partially_paid') {
             $newReceiptStatus = 'partially_received';
         }
-        
+
         Log::info('Received paid_amount:', [
             'raw' => $request->input('paid_amount'),
             'converted' => (float) str_replace('.', '', $request->paid_amount)

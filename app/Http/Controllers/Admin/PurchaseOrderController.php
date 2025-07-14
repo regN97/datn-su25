@@ -47,7 +47,7 @@ class PurchaseOrderController extends Controller
 
     public function create(Request $request)
     {
-        $query = Product::query();
+        $query = Product::where('is_active', true);
 
         // Get suppliers with search if provided
         $suppliersQuery = Supplier::query();
@@ -133,6 +133,10 @@ class PurchaseOrderController extends Controller
 
         $po_items_data = [];
         foreach ($request->products as $product) {
+            $dbProduct = Product::find($product['id']);
+            if (!$dbProduct || !$dbProduct->is_active) {
+                return back()->withErrors(['products' => "Sản phẩm {$product['name']} đã bị ẩn và không thể nhập hàng."]);
+            }
             $po_items_data[] = [
                 'purchase_order_id' => $purchaseOrderId,
                 'product_id'        => $product['id'],

@@ -31,7 +31,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::resource('categories', CategoryController::class);
 
     // Products, Units
+    Route::get('products/trashed', [ProductController::class, 'trashed'])->name('admin.products.trashed');
+    Route::post('products/{id}/restore', [ProductController::class, 'restore'])->name('admin.products.restore');
+    Route::delete('products/{id}/force', [ProductController::class, 'forceDelete'])->name('admin.products.forceDelete');
     Route::resource('products', ProductController::class);
+
     Route::resource('units', UnitController::class);
 
     // Suppliers
