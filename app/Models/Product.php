@@ -25,13 +25,23 @@ class Product extends Model
         'min_stock_level',
         'max_stock_level',
         'is_active',
+        'stock_quantity',      // Tổng tồn kho hiện tại
+        'reorder_point',       // Ngưỡng cảnh báo đặt hàng lại
+        'last_received_at',    // Ngày nhập hàng gần nhất
+        'last_sold_at',        // Ngày bán gần nhất
+        'is_trackable',        // Có cần quản lý tồn kho không?
     ];
 
     protected $casts = [
         'selling_price' => 'integer',
         'min_stock_level' => 'integer',
         'max_stock_level' => 'integer',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        'stock_quantity' => 'integer',
+        'reorder_point' => 'integer',
+        'is_trackable' => 'boolean',
+        'last_received_at' => 'datetime',
+        'last_sold_at' => 'datetime',
     ];
 
     public function batchItems()
