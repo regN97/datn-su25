@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('batches', function (Blueprint $table) {
             $table->id();
-            $table->string('batch_number', 100)->unique();
-            $table->foreignId('purchase_order_id')->constrained('purchase_orders');  // Thêm liên kết với PO
+            $table->string('batch_number', 100);
+            $table->foreignId('purchase_order_id')->nullable()->constrained('purchase_orders');  // Thêm liên kết với PO
             $table->foreignId('supplier_id')->nullable()->constrained('suppliers');
             $table->date('received_date');
             $table->string('invoice_number', 100)->nullable();
