@@ -1,20 +1,12 @@
 <script setup lang="ts">
-import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { FilePlus2, KeyRound, Layers3, LayoutGrid, PackageSearch, RotateCw, Truck, User, UserCog, Users, Warehouse, PencilRuler  } from 'lucide-vue-next';
+import { FilePlus2, KeyRound, Layers3, LayoutGrid, PackageSearch, RotateCw, Truck, User, UserCog, Users, Warehouse, PencilRuler, TrendingUp } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import SidebarDropdown from './SideBarDropdown.vue';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Tổng quan',
-        href: '/dashboard',
-        icon: LayoutGrid,
-    },
-];
 </script>
 
 <template>
@@ -32,8 +24,16 @@ const mainNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent class="flex-1 px-4">
-            <!-- Tổng quan -->
-            <NavMain :items="mainNavItems" class="space-y-1" />
+            <!-- Tổng quan (dropdown) -->
+            <SidebarDropdown
+                :icon="LayoutGrid"
+                label="Tổng quan"
+                :items="[
+                    { label: 'Tổng quan nhập hàng', href: '/dashboard', icon: LayoutGrid },
+                    { label: 'Thống kê thử nghiệm', href: '/test', icon: TrendingUp },
+                ]"
+                class="mt-2"
+            />
 
             <!-- Quản lý hàng hóa -->
             <SidebarDropdown
