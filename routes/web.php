@@ -57,6 +57,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::post('batches/{id}/pay', [BatchController::class, 'pay'])->name('batches.pay');
     Route::get('batches/add/{po_id}', [BatchController::class, 'add'])->name('batches.add');
     Route::post('batches/save', [BatchController::class, 'save'])->name('batches.save');
+    Route::post('/batches/import', [BatchController::class, 'import'])->name('batches.import');
+
     Route::resource('batches', BatchController::class);
 
     // Others
