@@ -626,6 +626,13 @@ class ProductSeeder extends Seeder
             ],
         ];
         foreach ($products as $product) {
+            $product['stock_quantity'] = rand($product['min_stock_level'], $product['max_stock_level']);
+
+            $product['last_received_at'] = now()->subDays(rand(0, 30))->toDateString();
+            $product['last_sold_at'] = rand(0, 1) ? now()->subDays(rand(0, 15))->toDateString() : null;
+
+            $product['is_trackable'] = true;
+            $product['reorder_point'] = intval($product['min_stock_level'] * rand(70, 90) / 100);
             Product::create($product);
         }
     }

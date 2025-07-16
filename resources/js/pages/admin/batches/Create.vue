@@ -404,11 +404,7 @@ function toggleUserDropdown() {
 const todayStr = new Date().toISOString().split('T')[0];
 
 function validateProductDates(product: SelectedProduct) {
-    const errors: { manufacturingDate?: string; expiryDate?: string; isBlank?: boolean } = {};
-
-    if (!product.manufacturingDate || !product.expiryDate) {
-        errors.isBlank = true;
-    }
+    const errors: { manufacturingDate?: string; expiryDate?: string } = {};
 
     // Validate ngày sản xuất không lớn hơn ngày hiện tại
     if (product.manufacturingDate) {
@@ -430,11 +426,10 @@ function validateProductDates(product: SelectedProduct) {
 function submitBatch() {
     for (const product of selectedProducts.value) {
         const errors = validateProductDates(product);
-        if (errors.manufacturingDate || errors.expiryDate || errors.isBlank === true) {
+        if (errors.manufacturingDate || errors.expiryDate) {
             let msg = '';
             if (errors.manufacturingDate) msg += `Sản phẩm "${product.name}": ${errors.manufacturingDate}\n`;
             if (errors.expiryDate) msg += `Sản phẩm "${product.name}": ${errors.expiryDate}\n`;
-            if (errors.isBlank === true) msg += 'Vui lòng nhập ngày sản xuất và hết hạn cho sản phẩm.\n';
             Swal.fire({
                 icon: 'error',
                 title: 'Lỗi ngày sản xuất/hết hạn',
@@ -443,7 +438,7 @@ function submitBatch() {
             return;
         }
     }
-
+    
     if (!selectedSupplier.value?.id) {
         supplierError.value = 'Vui lòng chọn nhà cung cấp';
         Swal.fire({

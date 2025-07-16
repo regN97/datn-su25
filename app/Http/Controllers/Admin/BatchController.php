@@ -394,7 +394,13 @@ class BatchController extends Controller
             $purchaseOrder = PurchaseOrder::find($request->purchase_order_id);
             $purchaseOrder->updateStatusBasedOnItems();
 
-            Log::info('Batch created successfully:', ['batch_id' => $batch->id]);
+            $product = Product::find($item['product_id']);
+            if ($product) {
+                $product->stock_quantity = $product->getCurrentStock(); // tổng từ các batch_items
+                $product->last_received_at = now(); // cập nhật ngày nhập gần nhất
+                $product->save();
+            }
+
             return redirect()->route('admin.batches.index')->with('success', 'Đã tạo đơn nhập hàng thành công.');
         } catch (\Exception $e) {
             Log::error('Batch creation failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
@@ -402,6 +408,63 @@ class BatchController extends Controller
                 'general' => 'Đã có lỗi xảy ra: ' . $e->getMessage(),
             ])->withInput();
         }
+    }
+
+    public function pay(Request $request, $id)
+    {
+        $request->validate([
+            'paymentAmount' => 'required|numeric|min:0',
+            'paymentDate' => 'required|date',
+            'paymentMethod' => 'required|string|max:100',
+        ]);
+
+        $batch = Batch::with('batchItems')->findOrFail($id);
+
+        // Tính tổng tiền cần thanh toán sau chiết khấu
+        $subtotal = $batch->batchItems->sum('total_amount');
+
+        if ($batch->discount_type === 'amount') {
+            $subtotal -= $batch->discount_amount;
+        } elseif ($batch->discount_type === 'percent') {
+            $subtotal -= ($subtotal * $batch->discount_amount) / 100;
+        }
+
+        // Cộng thêm số tiền thanh toán mới
+        $newPaidAmount = $batch->paid_amount + $request->paymentAmount;
+
+        // Xác định trạng thái thanh toán
+        if ($newPaidAmount >= $subtotal) {
+            $paymentStatus = 'paid';
+        } elseif ($newPaidAmount > 0) {
+            $paymentStatus = 'partially_paid';
+        } else {
+            $paymentStatus = 'unpaid';
+        }
+
+        // Xác định trạng thái nhận hàng dựa vào thanh toán
+        $newReceiptStatus = $batch->receipt_status;
+
+        if ($paymentStatus === 'paid') {
+            $newReceiptStatus = 'completed';
+        } elseif ($paymentStatus === 'partially_paid') {
+            $newReceiptStatus = 'partially_received';
+        }
+
+        Log::info('Received paid_amount:', [
+            'raw' => $request->input('paid_amount'),
+            'converted' => (float) str_replace('.', '', $request->paid_amount)
+        ]);
+
+        // Cập nhật Batch
+        $batch->update([
+            'paid_amount' => $newPaidAmount,
+            'payment_status' => $paymentStatus,
+            'receipt_status' => $newReceiptStatus,
+            'payment_date' => $request->paymentDate,
+            'payment_method' => $request->paymentMethod,
+        ]);
+
+        return Inertia::location(route('admin.batches.show', $batch->id));
     }
 
     public function create()

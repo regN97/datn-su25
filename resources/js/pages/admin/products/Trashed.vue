@@ -3,13 +3,17 @@ import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Eye, EyeOff, Filter, PackagePlus, Pencil, Trash2, Trash  } from 'lucide-vue-next';
+import { Eye, EyeOff, Filter, Undo2, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Quản lý sản phẩm',
         href: '/admin/products',
+    },
+    {
+        title: 'Sản phẩm đã xóa',
+        href: '/admin/products/trashed',
     },
 ];
 
@@ -23,14 +27,11 @@ type ProductUnit = {
     name: string;
 };
 
-// Cập nhật Supplier type để bao gồm pivot object
 type Supplier = {
     id: number;
     name: string;
     pivot?: {
-        // Đối tượng pivot chứa các trường từ bảng trung gian
         purchase_price?: number;
-        // Các trường khác nếu có trên bảng pivot
     };
 };
 
@@ -42,22 +43,21 @@ type Product = {
     description: string;
     category_id: number;
     unit_id: number;
-    // purchase_price: number; // Loại bỏ trường này khỏi Product type
     selling_price: number;
     image_url: string;
     min_stock_level: number;
     max_stock_level: number;
     is_active: boolean;
+    deleted_at?: string | null;
     category?: Category;
     unit?: ProductUnit;
-    suppliers?: Supplier[]; // Danh sách nhà cung cấp của RIÊNG sản phẩm này
+    suppliers?: Supplier[];
 };
 
 const page = usePage<SharedData>();
 const categories = page.props.categories as Category[];
 const units = page.props.units as ProductUnit[];
 const products = page.props.products as Product[];
-
 const allSuppliers = (page.props.allSuppliers as Supplier[]) || [];
 
 const isSidebarOpen = ref(false);
@@ -66,8 +66,8 @@ const isSidebarOpen = ref(false);
 const filterName = ref('');
 const filterCategory = ref<number | null>(null);
 const filterStatus = ref<string>('all');
-const filterMinSellingPrice = ref<number | null>(null); // Đổi tên để tránh nhầm lẫn với giá nhập
-const filterMaxSellingPrice = ref<number | null>(null); // Đổi tên để tránh nhầm lẫn với giá nhập
+const filterMinSellingPrice = ref<number | null>(null);
+const filterMaxSellingPrice = ref<number | null>(null);
 const filterUnit = ref<number | null>(null);
 const filterSuppliers = ref<number[]>([]);
 
@@ -145,17 +145,6 @@ function changePerPage(event: Event) {
     currentPage.value = 1;
 }
 
-function goToCreatePage() {
-    router.visit('/admin/products/create');
-}
-
-function goToEditPage(id: number) {
-    router.visit(`/admin/products/${id}/edit`);
-}
-function goToTrashPage() {
-    router.visit('/admin/products/trashed');
-}
-
 const showDeleteModal = ref(false);
 const productToDelete = ref<number | null>(null);
 
@@ -167,7 +156,7 @@ function confirmDelete(id: number) {
 function handleDeleteProduct() {
     if (!productToDelete.value) return;
 
-    router.delete(`/admin/products/${productToDelete.value}`, {
+    router.delete(`/admin/products/${productToDelete.value}/force`, {
         onSuccess: () => {
             const idx = products.findIndex((p) => p.id === productToDelete.value);
             if (idx !== -1) products.splice(idx, 1);
@@ -178,6 +167,15 @@ function handleDeleteProduct() {
     });
 }
 
+function restoreProduct(id: number) {
+    router.post(`/admin/products/${id}/restore`, {}, {
+        onSuccess: () => {
+            const idx = products.findIndex((p) => p.id === id);
+            if (idx !== -1) products.splice(idx, 1);
+        },
+        preserveState: true,
+    });
+}
 
 function cancelDelete() {
     showDeleteModal.value = false;
@@ -191,8 +189,8 @@ function resetFilters() {
     filterMinSellingPrice.value = null;
     filterMaxSellingPrice.value = null;
     filterSuppliers.value = [];
-    currentPage.value = 1;
     filterUnit.value = null;
+    currentPage.value = 1;
 }
 
 function toggleSidebar() {
@@ -201,23 +199,17 @@ function toggleSidebar() {
 </script>
 
 <template>
-    <Head title="Products" />
+    <Head title="Sản phẩm đã xóa" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
                     <div class="mb-4 flex items-center justify-between">
-                        <h1 class="text-2xl font-bold">Danh mục sản phẩm</h1>
+                        <h1 class="text-2xl font-bold">Sản phẩm đã xóa</h1>
                         <div class="flex items-center space-x-4">
                             <button @click="toggleSidebar" class="rounded-3xl bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
                                 <Filter class="h-5 w-5" />
-                            </button>
-                            <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
-                                <PackagePlus />
-                            </button>
-                            <button @click="goToTrashPage" class="rounded-3xl bg-gray-500 px-8 py-2 text-white hover:bg-gray-600">
-                                <Trash />
                             </button>
                         </div>
                     </div>
@@ -343,7 +335,7 @@ function toggleSidebar() {
                             </thead>
                             <tbody>
                                 <template v-for="product in paginatedProducts" :key="product.id">
-                                    <tr class="border-t">
+                                    <tr class="border-t bg-gray-100">
                                         <td class="w-[15%] p-3 text-center text-sm">
                                             <img
                                                 :src="product.image_url"
@@ -352,7 +344,10 @@ function toggleSidebar() {
                                                 onerror="this.onerror=null;this.src='/storage/piclumen-1747750187180.png';"
                                             />
                                         </td>
-                                        <td class="w-[25%] p-3 text-left text-sm">{{ product.name || 'Không có' }}</td>
+                                        <td class="w-[25%] p-3 text-left text-sm">
+                                            {{ product.name || 'Không có' }}
+                                            <span class="text-red-500 text-xs"></span>
+                                        </td>
                                         <td class="w-[20%] p-3 text-center text-sm">{{ product.sku || 'Không có' }}</td>
                                         <td class="w-[20%] p-3 text-center text-sm">
                                             <span :class="product.is_active ? 'font-medium text-green-600' : 'font-medium text-red-500'">
@@ -366,13 +361,12 @@ function toggleSidebar() {
                                                     class="flex items-center gap-1 rounded-md bg-gray-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
                                                 >
                                                     <component :is="openProductDetailsId === product.id ? EyeOff : Eye" class="h-4 w-4" />
-                                                    {{ openProductDetailsId === product.id ? '' : '' }}
                                                 </button>
                                                 <button
-                                                    class="rounded-md bg-blue-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-                                                    @click="goToEditPage(product.id)"
+                                                    @click="restoreProduct(product.id)"
+                                                    class="rounded-md bg-green-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none"
                                                 >
-                                                    <Pencil class="h-4 w-4" />
+                                                    <Undo2 class="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     @click="confirmDelete(product.id)"
@@ -428,6 +422,10 @@ function toggleSidebar() {
                                                             <span class="w-32 font-semibold text-gray-900">Tồn kho tối đa:</span>
                                                             <span>{{ product.max_stock_level || '0' }}</span>
                                                         </div>
+                                                        <div class="flex items-start">
+                                                            <span class="w-32 font-semibold text-gray-900">Ngày xóa:</span>
+                                                            <span>{{ product.deleted_at ? new Date(product.deleted_at).toLocaleString('vi-VN') : 'Không có' }}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
 
@@ -472,7 +470,7 @@ function toggleSidebar() {
                                     </tr>
                                 </template>
                                 <tr v-if="paginatedProducts.length === 0">
-                                    <td colspan="8" class="p-3 text-center text-sm">Không có dữ liệu</td>
+                                    <td colspan="8" class="p-3 text-center text-sm">Không có sản phẩm nào trong thùng rác</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -521,8 +519,8 @@ function toggleSidebar() {
 
         <DeleteModal
             :is-open="showDeleteModal"
-            title="Xóa sản phẩm"
-            message="Bạn có chắc chắn muốn xóa sản phẩm này?"
+            title="Xóa vĩnh viễn sản phẩm"
+            message="Bạn có chắc chắn muốn xóa vĩnh viễn sản phẩm này? Hành động này không thể hoàn tác."
             @confirm="handleDeleteProduct"
             @cancel="cancelDelete"
         />
