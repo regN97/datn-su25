@@ -26,4 +26,10 @@ class Bill extends Model
     {
         return $this->hasMany(BillDetail::class);
     }
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'bill_details', 'bill_id', 'product_id')
+            ->withPivot(['quantity', 'unit_cost', 'unit_price', 'discount_per_item', 'subtotal']);
+    }
 }
