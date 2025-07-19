@@ -79,4 +79,13 @@ class Product extends Model
     {
         return $this->belongsToMany(Supplier::class, 'product_suppliers', 'product_id', 'supplier_id')->withTimestamps()->withPivot('purchase_price');
     }
+        public function bills()
+    {
+        return $this->belongsToMany(Bill::class, 'bill_details', 'product_id', 'bill_id')
+                    ->withPivot(['quantity', 'unit_cost', 'unit_price', 'discount_per_item', 'subtotal']);
+    }
+        public function billDetails()
+    {
+        return $this->hasMany(BillDetail::class);
+    }
 }
