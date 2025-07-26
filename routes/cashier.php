@@ -14,7 +14,14 @@ Route::prefix('cashier')->name('cashier.')->group(function () {
     Route::middleware(['auth', 'cashier'])->group(function () {
         Route::get('dashboard', fn() => Inertia::render('cashier/Dashboard'))->name('dashboard');
         Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-        Route::post('pos/customers', [POSController::class, 'storeCustomer'])->name('pos.customers.store');
+        Route::post('pos/customers', [POSController::class, 'createCustomer'])->name('pos.customers.store'); // Sửa storeCustomer thành createCustomer
+        Route::get('pos', [POSController::class, 'index'])->name('pos.index');
+        Route::post('/pos/sale', [POSController::class, 'submitSale'])->name('pos.sale');
+        Route::post('/pos/session/start', [POSController::class, 'startSession'])->name('session.start');
+        Route::post('/pos/session/close', [POSController::class, 'closeSession'])->name('session.close');
+        Route::get('/pos/shift-report', [POSController::class, 'shiftReport'])->name('shift.report');
+        Route::post('/pos/shift-report/generate', [POSController::class, 'generateShiftReport'])->name('shift.report.generate');
+        Route::get('/pos/check-batch/{productId}', [POSController::class, 'checkBatch'])->name('batch.check');
+        Route::get('/pos/work-shifts', [POSController::class, 'getWorkShifts'])->name('work_shifts.get');
     });
-    Route::get('pos', [POSController::class, 'index'])->name('pos.index');
 });
