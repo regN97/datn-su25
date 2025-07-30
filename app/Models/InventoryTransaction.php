@@ -15,7 +15,9 @@ class InventoryTransaction extends Model
 
     protected $fillable = [
         'transaction_type_id',
+        'product_id',
         'quantity_change',
+        'stock_after',
         'unit_price',
         'total_value',
         'transaction_date',
@@ -23,6 +25,7 @@ class InventoryTransaction extends Model
         'related_purchase_return_id',
         'related_batch_id',
         'user_id',
+        'note',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -46,5 +49,10 @@ class InventoryTransaction extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
     }
 }

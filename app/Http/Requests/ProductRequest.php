@@ -25,7 +25,6 @@ class ProductRequest extends FormRequest
         return [
             'name' => 'required|string|min:3|max:255',
             'barcode' => [
-                'required',
                 'nullable',
                 'string',
                 'min:5',
