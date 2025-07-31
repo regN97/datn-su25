@@ -112,100 +112,95 @@ class BatchController extends Controller
 
     public function show($id)
     {
-        $batch = Batch::with([
-            'batchItems' => function ($query) {
-                $query->with([
-                    'product' => function ($productQuery) {
-                        $productQuery->select(
-                            'id',
-                            'name',
-                            'sku',
-                            'barcode',
-                            'unit_id',
-                            'description',
-                            'selling_price',
-                            'image_url'
-                        );
-                    },
-                    'product.unit' => function ($unitQuery) {
-                        $unitQuery->select('id', 'name');
-                    },
-                    'createdBy' => function ($userQuery) {
-                        $userQuery->select('id', 'name', 'email');
-                    },
-                    'updatedBy' => function ($userQuery) {
-                        $userQuery->select('id', 'name', 'email');
-                    },
-                    'purchaseOrderItem' => function ($poItemQuery) {
-                        $poItemQuery->select(
-                            'id',
-                            'ordered_quantity',
-                            'unit_cost'
-                        );
-                    }
-                ])->select(
-                        'id',
-                        'batch_id',
-                        'product_id',
-                        'purchase_order_item_id',
-                        'ordered_quantity',
-                        'received_quantity',
-                        'rejected_quantity',
-                        'remaining_quantity',
-                        'current_quantity',
-                        'purchase_price',
-                        'total_amount',
-                        'manufacturing_date',
-                        'expiry_date',
-                        'inventory_status',
-                        'created_by',
-                        'updated_by',
-                        'created_at',
-                        'updated_at'
-                    );
-            },
-            'supplier' => function ($query) {
-                $query->select('id', 'name', 'contact_person', 'email', 'phone', 'address');
-            },
-            'purchaseOrder' => function ($query) {
-                $query->select(
-                    'id',
-                    'po_number',
-                    'order_date',
-                    'expected_delivery_date',
-                    'actual_delivery_date',
-                    'total_amount'
-                );
-            },
-            'createdBy' => function ($query) {
-                $query->select('id', 'name', 'email');
-            },
-            'updatedBy' => function ($query) {
-                $query->select('id', 'name', 'email');
-            },
-        ])->select(
-                'id',
-                'batch_number',
-                'purchase_order_id',
-                'supplier_id',
-                'received_date',
-                'invoice_number',
-                'total_amount',
-                'discount_type',
-                'discount_amount',
-                'payment_status',
-                'paid_amount',
-                'receipt_status',
-                'notes',
-                'created_by',
-                'updated_by',
-                'created_at',
-                'updated_at'
-            )->findOrFail($id);
+        try {
+            // Fetch the batch with related supplier
+            $batch = Batch::with(['supplier', 'creator'])
+                ->where('id', $id)
+                ->firstOrFail();
 
-        return Inertia::render('admin/batches/Show', [
-            'batch' => $batch,
-        ]);
+            // Fetch batch items with product details
+            $batchItems = BatchItem::with([
+                'product' => function ($query) {
+                    $query->select('id', 'name', 'sku', 'image_url')
+                        ->with([
+                            'unit' => function ($query) {
+                                $query->select('id', 'name');
+                            }
+                        ]);
+                }
+            ])
+                ->where('batch_id', $id)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'batch_id' => $item->batch_id,
+                        'product_id' => $item->product_id,
+                        'purchase_order_item_id' => $item->purchase_order_item_id,
+                        'product_name' => $item->product->name ?? $item->product_name,
+                        'product_sku' => $item->product->sku ?? $item->product_sku,
+                        'ordered_quantity' => $item->ordered_quantity,
+                        'received_quantity' => $item->received_quantity,
+                        'rejected_quantity' => $item->rejected_quantity,
+                        'remaining_quantity' => $item->remaining_quantity,
+                        'current_quantity' => $item->current_quantity,
+                        'purchase_price' => $item->purchase_price,
+                        'total_amount' => $item->total_amount,
+                        'manufacturing_date' => $item->manufacturing_date,
+                        'expiry_date' => $item->expiry_date,
+                        'inventory_status' => $item->inventory_status,
+                        'product' => [
+                            'name' => $item->product->name ?? $item->product_name,
+                            'sku' => $item->product->sku ?? $item->product_sku,
+                            'image_url' => $item->product->image_url ?? null,
+                            'unit' => $item->product->unit ? [
+                                'name' => $item->product->unit->name
+                            ] : null,
+                        ],
+                    ];
+                });
+
+            // Fetch suppliers
+            $suppliers = Supplier::select('id', 'name', 'email', 'phone', 'address')
+                ->get()
+                ->map(function ($supplier) {
+                    return [
+                        'id' => $supplier->id,
+                        'name' => $supplier->name,
+                        'email' => $supplier->email,
+                        'phone' => $supplier->phone,
+                        'address' => $supplier->address,
+                        'pivot' => [
+                            'purchase_price' => $supplier->pivot->purchase_price ?? 0,
+                        ],
+                    ];
+                });
+
+            // Fetch users
+            $users = User::select('id', 'name')->get();
+
+            return Inertia::render('admin/batches/Show', [
+                'batch' => [$batch], // Wrap in array to match Vue component props
+                'batchItem' => $batchItems,
+                'suppliers' => $suppliers,
+                'users' => $users,
+                'flash' => [
+                    'success' => session('success'),
+                    'error' => session('error'),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching batch details: ' . $e->getMessage());
+            return Inertia::render('admin/batches/Show', [
+                'batch' => [],
+                'batchItem' => [],
+                'suppliers' => [],
+                'users' => [],
+                'flash' => [
+                    'error' => 'Không thể tải thông tin lô hàng. Vui lòng thử lại.',
+                ],
+            ]);
+        }
     }
 
     public function add(Request $request, $po_id)
@@ -443,7 +438,7 @@ class BatchController extends Controller
         } elseif ($paymentStatus === 'partially_paid') {
             $newReceiptStatus = 'partially_received';
         }
-
+        
         Log::info('Received paid_amount:', [
             'raw' => $request->input('paid_amount'),
             'converted' => (float) str_replace('.', '', $request->paid_amount)
