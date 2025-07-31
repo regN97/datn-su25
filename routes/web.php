@@ -12,7 +12,6 @@ use App\Http\Controllers\Admin\{
     PurchaseReturnController,
     BatchController,
     CustomerController,
-    ProductBatchController,
     PurchaseOrderController,
     InventoryController,
     UserController,
@@ -33,6 +32,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('categories', CategoryController::class);
 
     // Products, Units
+    Route::get('products/{id}/inventory-history', [InventoryController::class, 'index'])
+    ->name('admin.products.inventory_history');
     Route::get('products/trashed', [ProductController::class, 'trashed'])->name('admin.products.trashed');
     Route::post('products/{id}/restore', [ProductController::class, 'restore'])->name('admin.products.restore');
     Route::delete('products/{id}/force', [ProductController::class, 'forceDelete'])->name('admin.products.forceDelete');

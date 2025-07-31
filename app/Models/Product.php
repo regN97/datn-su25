@@ -98,4 +98,9 @@ class Product extends Model
     {
         return $this->hasMany(BillDetail::class);
     }
+
+    public function inventoryTransactions()
+{
+    return $this->hasMany(InventoryTransaction::class);
+}
 }

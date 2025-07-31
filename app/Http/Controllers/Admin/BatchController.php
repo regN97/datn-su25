@@ -4,29 +4,29 @@ namespace App\Http\Controllers\Admin;
 
 use Carbon\Carbon;
 use App\Models\User;
-use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
 use App\Models\Batch;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\BatchItem;
+use App\Models\InventoryTransaction;
 use Illuminate\Http\Request;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Admin\BatchRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Session;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Illuminate\Support\Facades\Validator;
 
 class BatchController extends Controller
 {
 
     public function index()
     {
-
-
         // Xóa các batch có tổng current_quantity = 0
         $emptyBatchIds = Batch::whereHas('batchItems', function ($query) {
             $query->select('batch_id')
@@ -223,187 +223,181 @@ class BatchController extends Controller
         ]);
     }
 
-    public function save(Request $request)
+    public function save(BatchRequest $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'batch_items' => 'required|array',
-                'batch_items.*.product_id' => 'required|integer|exists:products,id',
-                'batch_items.*.purchase_order_item_id' => 'nullable|integer|exists:purchase_order_items,id',
-                'batch_items.*.received_quantity' => 'required|integer|min:0',
-                'batch_items.*.rejected_quantity' => 'nullable|integer|min:0',
-                'batch_items.*.purchase_price' => 'required|numeric|min:0',
-                'batch_items.*.total_amount' => 'required|numeric|min:0',
-                'purchase_order_id' => 'required|integer|exists:purchase_orders,id',
-                'supplier_id' => 'required|integer|exists:suppliers,id',
-                'total_amount' => 'required|numeric|min:0',
-                'discount.type' => 'nullable|in:amount,percent',
-                'discount.value' => 'nullable|numeric|min:0',
-                'payment_status' => 'required|in:paid,partially_paid,unpaid',
-                'payment_method' => 'required_if:payment_status,paid,partially_paid|nullable|in:cash,bank_transfer,credit_card',
-                'payment_date' => 'required_if:payment_status,paid,partially_paid|nullable|date',
-                'paid_amount' => 'required_if:payment_status,paid,partially_paid|numeric|min:0',
-                'expected_import_date' => 'required|date',
-                'batch_code' => 'nullable|string|max:50',
-                'invoice_code' => 'nullable|string|max:50',
-                'notes' => 'nullable|string',
-                'user_id' => 'nullable|integer|exists:users,id',
-            ]);
-
-            if ($validator->fails()) {
-                Log::warning('Batch validation failed:', $validator->errors()->toArray());
-                return back()->withErrors($validator)->withInput();
-            }
-
             $user_id = $request->user_id ?? Auth::id();
 
-            $batch_number = null;
-            if ($batch_number === null) {
+            return DB::transaction(function () use ($request, $user_id) {
+                // Tạo batch_number tự động
                 $today = Carbon::now()->format('Ymd');
-                $prefix = "REC-{$today}-";
-                $lastBatch = Batch::where('batch_number', 'like', "{$prefix}%")
+                $prefixBatch = "REC-{$today}-";
+                $lastBatch = Batch::where('batch_number', 'like', "{$prefixBatch}%")
                     ->orderByDesc('batch_number')
                     ->first();
                 $nextNumber = $lastBatch
                     ? str_pad((int) substr($lastBatch->batch_number, -3) + 1, 3, '0', STR_PAD_LEFT)
                     : '001';
-                $batch_number = "{$prefix}{$nextNumber}";
-            }
+                $batch_number = "{$prefixBatch}{$nextNumber}";
 
-            $invoice_number = $request->invoice_code;
-            if ($invoice_number === null) {
-                $today = Carbon::now()->format('Ymd');
-                $prefix = "INV-{$today}-";
-                $lastInvoice = Batch::where('invoice_number', 'like', "{$prefix}%")
+                // Tạo invoice_number tự động
+                $prefixInvoice = "INV-{$today}-";
+                $lastInvoice = Batch::where('invoice_number', 'like', "{$prefixInvoice}%")
                     ->orderByDesc('invoice_number')
                     ->first();
-                $nextNumber = $lastInvoice
+                $nextNumberInv = $lastInvoice
                     ? str_pad((int) substr($lastInvoice->invoice_number, -3) + 1, 3, '0', STR_PAD_LEFT)
                     : '001';
-                $invoice_number = "{$prefix}{$nextNumber}";
-            }
+                $invoice_number = $request->invoice_code ?? "{$prefixInvoice}{$nextNumberInv}";
 
-            $totalOrdered = 0;
-            $totalReceived = 0;
-            $totalRejected = 0;
-            $hasRejected = false;
+                // Tính trạng thái nhận hàng
+                $totalOrdered = 0;
+                $totalReceived = 0;
+                $totalRejected = 0;
+                $hasRejected = false;
 
-            foreach ($request->batch_items as $item) {
-                $poItem = PurchaseOrderItem::find($item['purchase_order_item_id']);
-                if (!$poItem) {
-                    Log::error('Invalid purchase order item:', ['item' => $item]);
-                    return back()->withErrors(['batch_items' => "Mục đơn hàng của sản phẩm {$item['product_id']} không tồn tại."])->withInput();
+                foreach ($request->batch_items as $item) {
+                    $poItem = PurchaseOrderItem::find($item['purchase_order_item_id']);
+                    if ($poItem) {
+                        $orderedQty = $poItem->ordered_quantity;
+                        $receivedQty = $item['received_quantity'] ?? 0;
+                        $rejectedQty = $item['rejected_quantity'] ?? 0;
+
+                        $totalOrdered += $orderedQty;
+                        $totalReceived += $receivedQty;
+                        $totalRejected += $rejectedQty;
+
+                        if ($rejectedQty > 0) {
+                            $hasRejected = true;
+                        }
+                    }
                 }
 
-                $orderedQty = $poItem->ordered_quantity;
-                $receivedQty = $item['received_quantity'] ?? 0;
-                $rejectedQty = $item['rejected_quantity'] ?? 0;
-
-                $totalOrdered += $orderedQty;
-                $totalReceived += $receivedQty;
-                $totalRejected += $rejectedQty;
-
-                if ($rejectedQty > 0) {
-                    $hasRejected = true;
+                $receipt_status = 'partially_received';
+                if (!$hasRejected && $totalReceived >= $totalOrdered) {
+                    $receipt_status = 'completed';
+                } elseif ($totalOrdered > 0 && $totalReceived == 0 && $hasRejected) {
+                    $receipt_status = 'cancelled';
                 }
-            }
 
-            $receipt_status = 'partially_received';
-            if (!$hasRejected && $totalReceived >= $totalOrdered) {
-                $receipt_status = 'completed';
-            } elseif ($totalOrdered > 0 && $totalReceived == 0 && $hasRejected) {
-                $receipt_status = 'cancelled';
-            }
-
-            $paymentStatus = '';
-            $remainingAmount = 0;
-
-            if ($request->paid_amount < $request->total_amount && $request->paid_amount > 0) {
-                $paymentStatus = 'partially_paid';
-                $remainingAmount = $request->total_amount - $request->paid_amount;
-            } elseif ($request->paid_amount === $request->total_amount) {
-                $paymentStatus = 'paid';
+                // Tính trạng thái thanh toán
+                $paymentStatus = '';
                 $remainingAmount = 0;
-            } else {
-                $paymentStatus = 'unpaid';
-                $remainingAmount = $request->total_amount;
-            }
-
-            $batch_data = [
-                'batch_number' => $batch_number,
-                'purchase_order_id' => $request->purchase_order_id,
-                'supplier_id' => $request->supplier_id,
-                'received_date' => $request->expected_import_date,
-                'invoice_number' => $invoice_number,
-                'total_amount' => $request->total_amount,
-                'discount_type' => $request->discount['type'] ?? null,
-                'discount_amount' => $request->discount['value'] ?? 0,
-                'payment_status' => $paymentStatus,
-                'payment_method' => $request->payment_method,
-                'payment_date' => $request->payment_date,
-                'paid_amount' => $request->paid_amount,
-                'remaining_amount' => $remainingAmount,
-                'payment_reference' => $request->payment_reference,
-                'receipt_status' => $receipt_status,
-                'created_by' => $user_id,
-                'notes' => $request->notes,
-            ];
-
-            $batch = Batch::create($batch_data);
-
-            foreach ($request->batch_items as $item) {
-                $poItem = PurchaseOrderItem::find($item['purchase_order_item_id']);
-                if (!$poItem) {
-                    Log::error('Invalid purchase order item during batch item creation:', ['item' => $item]);
-                    return back()->withErrors(['batch_items' => "Mục đơn hàng của sản phẩm {$item['product_id']} không tồn tại."])->withInput();
+                if ($request->paid_amount < $request->total_amount && $request->paid_amount > 0) {
+                    $paymentStatus = 'partially_paid';
+                    $remainingAmount = $request->total_amount - $request->paid_amount;
+                } elseif ($request->paid_amount == $request->total_amount) {
+                    $paymentStatus = 'paid';
+                    $remainingAmount = 0;
+                } else {
+                    $paymentStatus = 'unpaid';
+                    $remainingAmount = $request->total_amount;
                 }
 
-                $orderedQty = $poItem->ordered_quantity;
-                $receivedQty = $item['received_quantity'] ?? 0;
-                $rejectedQty = $item['rejected_quantity'] ?? null;
-                $remainingQty = 0;
-
-                if ($rejectedQty === null) {
-                    $rejectedQty = max(0, $orderedQty - $receivedQty);
-                }
-
-                if ($receivedQty < $orderedQty) {
-                    $remainingQty = $orderedQty - $receivedQty - $rejectedQty;
-                }
-
-                BatchItem::create([
-                    'batch_id' => $batch->id,
-                    'product_id' => $item['product_id'],
-                    'purchase_order_item_id' => $item['purchase_order_item_id'],
-                    'ordered_quantity' => $poItem->ordered_quantity,
-                    'received_quantity' => $receivedQty,
-                    'rejected_quantity' => $rejectedQty,
-                    'remaining_quantity' => $remainingQty,
-                    'current_quantity' => $receivedQty,
-                    'purchase_price' => $item['purchase_price'],
-                    'total_amount' => $item['total_amount'],
-                    'manufacturing_date' => $item['manufacturing_date'] ?? null,
-                    'expiry_date' => $item['expiry_date'] ?? null,
-                    'inventory_status' => 'active',
+                // Tạo batch
+                $batch = Batch::create([
+                    'batch_number' => $batch_number,
+                    'purchase_order_id' => $request->purchase_order_id,
+                    'supplier_id' => $request->supplier_id,
+                    'received_date' => $request->expected_import_date,
+                    'invoice_number' => $invoice_number,
+                    'total_amount' => $request->total_amount,
+                    'discount_type' => $request->discount['type'] ?? null,
+                    'discount_amount' => $request->discount['value'] ?? 0,
+                    'payment_status' => $paymentStatus,
+                    'payment_method' => $request->payment_method,
+                    'payment_date' => $request->payment_date,
+                    'paid_amount' => $request->paid_amount,
+                    'remaining_amount' => $remainingAmount,
+                    'payment_reference' => $request->payment_reference,
+                    'receipt_status' => $receipt_status,
                     'created_by' => $user_id,
+                    'notes' => $request->notes,
                 ]);
 
-                $poItem->updateReceivedQuantity();
-            }
+                // Lặp qua từng sản phẩm
+                foreach ($request->batch_items as $item) {
+                    $poItem = PurchaseOrderItem::find($item['purchase_order_item_id']);
+                    if (!$poItem) {
+                        throw new \Exception("Mục đơn hàng của sản phẩm {$item['product_id']} không tồn tại.");
+                    }
 
-            $purchaseOrder = PurchaseOrder::find($request->purchase_order_id);
-            $purchaseOrder->updateStatusBasedOnItems();
+                    $orderedQty = $poItem->ordered_quantity;
+                    $receivedQty = $item['received_quantity'] ?? 0;
+                    $rejectedQty = $item['rejected_quantity'] ?? null;
+                    $remainingQty = 0;
 
-            $product = Product::find($item['product_id']);
-            if ($product) {
-                $product->stock_quantity = $product->getCurrentStock(); // tổng từ các batch_items
-                $product->last_received_at = now(); // cập nhật ngày nhập gần nhất
-                $product->save();
-            }
+                    if ($rejectedQty === null) {
+                        $rejectedQty = max(0, $orderedQty - $receivedQty);
+                    }
 
-            return redirect()->route('admin.batches.index')->with('success', 'Đã tạo đơn nhập hàng thành công.');
+                    if ($receivedQty < $orderedQty) {
+                        $remainingQty = max(0, $orderedQty - $receivedQty - $rejectedQty);
+                    }
+
+                    // Tạo BatchItem
+                    BatchItem::create([
+                        'batch_id' => $batch->id,
+                        'product_id' => $item['product_id'],
+                        'purchase_order_item_id' => $item['purchase_order_item_id'],
+                        'ordered_quantity' => $poItem->ordered_quantity,
+                        'received_quantity' => $receivedQty,
+                        'rejected_quantity' => $rejectedQty,
+                        'remaining_quantity' => $remainingQty,
+                        'current_quantity' => $receivedQty,
+                        'purchase_price' => $item['purchase_price'],
+                        'total_amount' => $item['total_amount'],
+                        'manufacturing_date' => $item['manufacturing_date'] ?? null,
+                        'expiry_date' => $item['expiry_date'] ?? null,
+                        'inventory_status' => 'active',
+                        'created_by' => $user_id,
+                    ]);
+
+                    // Cập nhật tồn kho sản phẩm
+                    $product = Product::find($item['product_id']);
+                    if ($product) {
+                        // Cập nhật số lượng tồn kho và ngày nhập gần nhất
+                        $previousStock = $product->stock_quantity;
+                        $changeQty = $receivedQty; // hoặc một biến khác tùy context
+                        $newStock = $previousStock + $changeQty;
+                        // Cập nhật tồn kho sản phẩm
+                        $product->update([
+                            'stock_quantity' => $newStock,
+                            'last_received_at' => now(), // nếu có cột này
+                        ]);
+
+                        // Ghi lại lịch sử biến động kho
+                        InventoryTransaction::create([
+                            'transaction_type_id' => 1,
+                            'product_id' => $product->id,
+                            'quantity_change' => $receivedQty,
+                            'unit_price' => $item['purchase_price'],
+                            'total_value' => $item['purchase_price'] * $receivedQty,
+                            'transaction_date' => now(),
+                            'related_batch_id' => $batch->id,
+                            'user_id' => $user_id,
+                            'stock_after' => $newStock,
+                            'note' => 'Nhập hàng từ phiếu ' . $batch->batch_number
+                        ]);
+                    }
+
+                    // Cập nhật số lượng đã nhận của PurchaseOrderItem
+                    $poItem->updateReceivedQuantity();
+                }
+
+                // Cập nhật trạng thái đơn hàng
+                $purchaseOrder = PurchaseOrder::find($request->purchase_order_id);
+                $purchaseOrder->updateStatusBasedOnItems();
+
+                return redirect()
+                    ->route('admin.batches.index')
+                    ->with('success', 'Đã tạo đơn nhập hàng và ghi lịch sử tồn kho thành công.');
+            });
         } catch (\Exception $e) {
-            Log::error('Batch creation failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('Batch creation failed:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->withErrors([
                 'general' => 'Đã có lỗi xảy ra: ' . $e->getMessage(),
             ])->withInput();

@@ -2,20 +2,22 @@
 
 namespace App\Http\Controllers\Admin;
 
+use HRTime\Unit;
 use Inertia\Inertia;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Supplier;
 use App\Models\ProductUnit;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\ProductSupplier;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ProductRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
-use App\Http\Requests\ProductRequest;
 
 class ProductController extends Controller
 {
@@ -64,16 +66,17 @@ class ProductController extends Controller
                 if (!empty($purchasePrices)) {
                     $minPurchasePrice = min($purchasePrices);
                     if ($data['selling_price'] < $minPurchasePrice) {
-                        return back()->withErrors(['selling_price' => 'Giá bán phải lớn hơn hoặc bằng giá nhập thấp nhất (' . $minPurchasePrice . ')'])->withInput();
+                        return back()->withErrors([
+                            'selling_price' => 'Giá bán phải lớn hơn hoặc bằng giá nhập thấp nhất (' . $minPurchasePrice . ')'
+                        ])->withInput();
                     }
                 }
             }
 
-            // Nếu các field dạng JSON truyền bằng FormData (forceFormData: true)
+            // Parse JSON nếu truyền từ FormData
             if (is_string($request->input('selected_supplier_ids'))) {
                 $data['selected_supplier_ids'] = json_decode($request->input('selected_supplier_ids'), true);
             }
-
             if (is_string($request->input('purchase_prices'))) {
                 $data['purchase_prices'] = json_decode($request->input('purchase_prices'), true);
             }
@@ -81,17 +84,25 @@ class ProductController extends Controller
             // Sinh SKU tự động
             $data['sku'] = $this->generateAutoSku();
 
-            // Xử lý ảnh
-            if ($data['image_input_type'] === 'file' && $request->hasFile('image_file')) {
-                $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
-                $data['image_url'] = Storage::url($uploadedFilePath);
+            // Xử lý ảnh theo kiểu người dùng chọn
+            if (isset($data['image_input_type'])) {
+                if ($data['image_input_type'] === 'file' && $request->hasFile('image_file')) {
+                    $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
+                    $data['image_url'] = Storage::url($uploadedFilePath);
+                } elseif (Str::contains($data['image_url'], 'google.com/imgres')) {
+                    parse_str(parse_url($data['image_url'], PHP_URL_QUERY), $query);
+                    $data['image_url'] = $query['imgurl'] ?? $data['image_url'];
+                } else {
+                    $data['image_url'] = null;
+                }
             }
-
+            Log::info('Image URL:', [$data['image_url']]);
+            // Xóa các field phụ không cần lưu trong CSDL
             unset($data['image_file'], $data['image_input_type']);
 
             // Tách supplier & giá nhập
-            $supplierIds = $data['selected_supplier_ids'];
-            $purchasePrices = $data['purchase_prices'];
+            $supplierIds = $data['selected_supplier_ids'] ?? [];
+            $purchasePrices = $data['purchase_prices'] ?? [];
             unset($data['selected_supplier_ids'], $data['purchase_prices']);
 
             // Tạo sản phẩm
@@ -113,12 +124,17 @@ class ProductController extends Controller
         }
     }
 
-    public function show(string $id)
+
+    public function show($id)
     {
-        //
+        $product = Product::findOrFail($id);
+
+        return Inertia::render('admin/products/Show')->with([
+            'product' => $product,
+            'unit' => $product->unit,
+            'category' => $product->category
+        ]);
     }
-
-
 
     public function edit($id)
     {
@@ -167,10 +183,6 @@ class ProductController extends Controller
             'image_type' => 'required|in:url,upload',
             'selected_supplier_ids' => 'required|array|min:1',
             'selected_supplier_ids.*' => 'exists:suppliers,id',
-        ], [
-            // ... các thông báo lỗi ...
-        ], [
-            // ... các tên trường ...
         ]);
 
         // Lấy sản phẩm từ DB
@@ -196,13 +208,17 @@ class ProductController extends Controller
                     Storage::disk('public')->delete($oldPath);
                 }
             }
-            // Giữ nguyên image_url đã validate
         } else {
             // Không có ảnh mới, giữ nguyên ảnh cũ
             $data['image_url'] = $product->image_url;
         }
 
         unset($data['image_file'], $data['image_type']);
+
+        $data['is_active'] = isset($data['is_active']) && $data['is_active'] === '1';
+        $data['selling_price'] = (float) $data['selling_price'];
+        $data['min_stock_level'] = (int) $data['min_stock_level'];
+        $data['max_stock_level'] = (int) $data['max_stock_level'];
 
         // Cập nhật thông tin sản phẩm
         $product->update($data);
