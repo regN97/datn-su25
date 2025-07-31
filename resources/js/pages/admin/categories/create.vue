@@ -26,17 +26,6 @@ const form = useForm({
     image_type: 'url',
 });
 
-const newParentName = ref('');
-
-function addNewParentCategory() {
-    const name = newParentName.value.trim();
-    if (!name) return;
-    const tempId = -Date.now();
-    categories.value.unshift({ id: tempId, name });
-    form.parent_id = tempId;
-    newParentName.value = '';
-}
-
 function submit() {
     form.post('/admin/categories', { forceFormData: true });
 }
@@ -60,25 +49,6 @@ function submit() {
                                 <div v-if="form.errors.name" class="mt-1 text-sm text-red-500">
                                     {{ form.errors.name }}
                                 </div>
-                            </div>
-                            <div>
-                                <label class="mb-1 block font-semibold">Thêm nhanh danh mục cha</label>
-                                <div class="flex gap-2">
-                                    <input
-                                        v-model="newParentName"
-                                        type="text"
-                                        class="flex-1 rounded border px-3 py-2"
-                                        placeholder="Nhập tên danh mục cha mới"
-                                    />
-                                    <button
-                                        type="button"
-                                        class="rounded bg-green-500 px-4 py-2 text-white transition hover:bg-green-600"
-                                        @click="addNewParentCategory"
-                                    >
-                                        + Thêm
-                                    </button>
-                                </div>
-                                <div class="mt-1 text-xs text-gray-400">Có thể thêm nhanh và chọn danh mục cha</div>
                             </div>
                         </div>
                         <!-- Cột phải -->

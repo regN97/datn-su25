@@ -68,7 +68,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Tạo đơn đặt hàng nhập',
+        title: 'Tạo đơn đặt hàng',
         href: '/admin/purchase-orders/create',
     },
 ];
@@ -428,7 +428,7 @@ onUnmounted(() => {
                     >
                         <ChevronLeft class="h-5 w-5" />
                     </button>
-                    <h1 class="ml-4 text-3xl font-bold text-gray-900">Tạo đơn hàng nhập</h1>
+                    <h1 class="ml-4 text-3xl font-bold text-gray-900">Tạo đơn đặt hàng</h1>
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
