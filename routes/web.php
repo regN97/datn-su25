@@ -70,6 +70,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Others
     Route::resource('inventory', InventoryController::class);
+    Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::resource('users', UserController::class);
 
     //Customer
