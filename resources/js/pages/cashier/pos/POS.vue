@@ -1033,33 +1033,33 @@ const generateBankQR = async () => {
     bankQRCode.value = null;
     bankTransactionInfo.value = null;
 
-      try {
-    const amount = cartTotal.value;
-    const billCode = billNumber.value || 'HD' + Date.now();
-    const description = `Thanh toan hoa don ${billCode}`;
-    const encodedDesc = encodeURIComponent(description);
-    const accountName = encodeURIComponent('Nguyen Van Huy');
+    try {
+        const amount = cartTotal.value;
+        const billCode = billNumber.value || 'HD' + Date.now();
+        const description = `Thanh toan hoa don ${billCode}`;
+        const encodedDesc = encodeURIComponent(description);
+        const accountName = encodeURIComponent('Nguyen Van Huy');
 
-    const qrCodeUrl = `https://img.vietqr.io/image/MB-0986690271-compact2.png?amount=${amount}&addInfo=${encodedDesc}&accountName=${accountName}`;
+        const qrCodeUrl = `https://img.vietqr.io/image/MB-0986690271-compact2.png?amount=${amount}&addInfo=${encodedDesc}&accountName=${accountName}`;
 
-    bankQRCode.value = qrCodeUrl;
-    bankTransactionInfo.value = {
-        bankCode: 'MB',
-        accountNo: '0986690271',
-        accountName: 'Nguyễn Văn Huy',
-        amount,
-        description,
-    };
-    successMessage.value = 'Mã QR ngân hàng đã được tạo!';
-    showSuccessModal.value = true;
-    autoHideMessage();
-} catch (error) {
-    console.error('generateBankQR error:', error);
-    errorMessage.value = 'Lỗi khi tạo mã QR ngân hàng. Vui lòng thử lại.';
-    autoHideMessage();
-} finally {
-    isLoadingBankQR.value = false;
-}
+        bankQRCode.value = qrCodeUrl;
+        bankTransactionInfo.value = {
+            bankCode: 'MB',
+            accountNo: '0986690271',
+            accountName: 'Nguyễn Văn Huy',
+            amount,
+            description,
+        };
+        successMessage.value = 'Mã QR ngân hàng đã được tạo!';
+        showSuccessModal.value = true;
+        autoHideMessage();
+    } catch (error) {
+        console.error('generateBankQR error:', error);
+        errorMessage.value = 'Lỗi khi tạo mã QR ngân hàng. Vui lòng thử lại.';
+        autoHideMessage();
+    } finally {
+        isLoadingBankQR.value = false;
+    }
 };
 // Cập nhật hàm confirmPayment để xử lý chuyển khoản ngân hàng
 const confirmPayment = async () => {
@@ -1192,7 +1192,6 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                     <div class="total-section">
                         <p class="text-right"><strong>Tổng tiền hàng:</strong> ${sanitizeHTML(formatCurrency(subtotal))}</p>
                         <p class="text-right"><strong>Giảm giá:</strong> ${sanitizeHTML(formatCurrency(0))}</p>
-                        <p class="text-right"><strong>Thuế VAT (0%):</strong> ${sanitizeHTML(formatCurrency(tax))}</p>
                         <p class="text-right total"><strong>Tổng thanh toán:</strong> ${sanitizeHTML(formatCurrency(total))}</p>
                         <p class="text-right"><strong>Phương thức:</strong> ${sanitizeHTML(
             paymentMethod === 'cash' ? 'Tiền mặt' :
@@ -1234,9 +1233,9 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
     <Head title="Cashier" />
     <CashierLayout>
         <POSKeyboardHandler @show-help="showHelp" @add-item="addItem" @focus-search="focusSearch"
-            @select-customer="toggleCustomerSidebar"  @hold-order="holdOrder"
-            @reprint-receipt="reprintReceipt" @remove-last-cart-item="removeLastCartItem" @checkout="showPaymentModal"
-            @logout="initiateLogout" :on-checkout="showPayment" />
+            @select-customer="toggleCustomerSidebar" @hold-order="holdOrder" @reprint-receipt="reprintReceipt"
+            @remove-last-cart-item="removeLastCartItem" @checkout="showPaymentModal" @logout="initiateLogout"
+            :on-checkout="showPayment" />
         <div class="flex text-xs relative h-[650px]">
             <!-- Error Message -->
             <div v-if="errorMessage"
@@ -1343,7 +1342,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                 <select v-model="selectedCategory"
                                     class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option v-for="category in categories" :key="category" :value="category">{{ category
-                                    }}</option>
+                                        }}</option>
                                 </select>
                             </div>
                             <div class="mb-2">
@@ -1439,14 +1438,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                     :class="{ 'border-red-500': form.errors.address }" />
                                 <InputError class="mt-0.5 text-[10px]" :message="form.errors.address" />
                             </div>
-                            <div>
-                                <label for="wallet" class="block text-xs font-medium text-gray-700 mb-1">Ví tiền</label>
-                                <input type="number" id="wallet" v-model.number="form.wallet"
-                                    placeholder="Nhập số tiền trong ví"
-                                    class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    :class="{ 'border-red-500': form.errors.wallet }" />
-                                <InputError class="mt-0.5 text-[10px]" :message="form.errors.wallet" />
-                            </div>
+
                             <div class="flex space-x-2">
                                 <button type="button" @click="toggleAddCustomerForm"
                                     class="w-1/2 bg-gray-300 text-gray-700 py-1.5 rounded text-xs hover:bg-gray-400">Hủy</button>
@@ -1566,7 +1558,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                 <p><strong>Ca làm việc:</strong> {{ activeShift?.shift_name || 'N/A' }}</p>
                                 <p><strong>Thời gian ca:</strong> {{ activeShift?.shift_time ?
                                     `${activeShift.shift_time.start_time} - ${activeShift.shift_time.end_time}` : 'N/A'
-                                }}</p>
+                                    }}</p>
                                 <p><strong>Bắt đầu:</strong> {{ formattedOpenedAt }}</p>
                             </div>
                             <h4 class="text-xs font-semibold text-gray-800 mt-3">Đóng ca</h4>
@@ -1644,7 +1636,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                     <p><strong>Tổng doanh thu:</strong> {{
                                         formatCurrency(shiftReport.report?.total_sales || 0) }}</p>
                                     <p><strong>Tiền mặt:</strong> {{ formatCurrency(shiftReport.report?.total_cash || 0)
-                                    }}</p>
+                                        }}</p>
                                     <p><strong>Thẻ ngân hàng:</strong> {{ formatCurrency(shiftReport.report?.total_card
                                         || 0) }}</p>
                                     <p><strong>Chuyển khoản:</strong> {{
@@ -1678,7 +1670,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                         class="border-b border-gray-100 pb-2">
                                         <p><strong>Tên:</strong> {{ customer.customer_name || 'Khách lẻ' }}</p>
                                         <p><strong>Tổng chi tiêu:</strong> {{ formatCurrency(customer.total_amount || 0)
-                                        }}</p>
+                                            }}</p>
                                         <p><strong>Số hóa đơn:</strong> {{ customer.bill_count || 0 }}</p>
                                     </div>
                                 </div>
@@ -1720,23 +1712,28 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                     </div>
                                 </div>
                             </div>
-                            <button @click="toggleFilterSidebar" class="_Free2"></button>
+                            <!-- Nút mở báo cáo -->
                             <button @click="toggleReportSidebar"
-                                class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs hover:bg-gray-300">
+                                class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs hover:bg-gray-300"
+                                title="Xem báo cáo ca">
                                 <FileText class="w-4 h-4" />
                             </button>
+
+                            <!-- Nút mở bộ lọc -->
                             <button @click="toggleFilterSidebar"
-                                class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs hover:bg-gray-300">
+                                class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs hover:bg-gray-300"
+                                title="Bộ lọc báo cáo">
                                 <MenuIcon class="w-4 h-4" />
                             </button>
+
+                            <!-- Nút mở trình quét mã vạch -->
                             <button @click="openScanner"
-                                class="bg-blue-200 text-blue-700 px-2 py-0.5 rounded text-xs hover:bg-blue-300">
+                                class="bg-blue-200 text-blue-700 px-2 py-0.5 rounded text-xs hover:bg-blue-300"
+                                title="Quét mã vạch">
                                 <ScanLine class="w-4 h-4" />
                             </button>
-                            <button @click="initiateLogout"
-                                class="bg-red-600 text-white px-2 py-0.5 rounded text-xs hover:bg-red-700">
-                                <LogOutIcon class="w-4 h-4" />
-                            </button>
+
+
                             <div class="flex justify-between items-center mt-1 text-[11px] text-gray-600">
                                 <button v-if="
                                     searchTerm ||
@@ -1754,7 +1751,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                         </div>
                         <div v-if="activeShift" class="text-[11px] text-gray-600">
                             <p><strong>Ca làm việc:</strong> {{ activeShift.shift_name }} (Bắt đầu: {{ formattedOpenedAt
-                            }})</p>
+                                }})</p>
                         </div>
                     </div>
                     <div class="mb-1">
@@ -1877,25 +1874,15 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                 </button>
                             </div>
                         </div>
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-xs font-semibold text-gray-700">Tổng phụ:</span>
-                            <span class="text-base font-bold text-gray-800">
-                                {{ formatCurrency(cartSubtotal) }}
-                            </span>
-                        </div>
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-xs font-semibold text-gray-700">Thuế VAT (0%):</span>
-                            <span class="text-base font-bold text-gray-800">
-                                {{ formatCurrency(cartTax) }}
-                            </span>
-                        </div>
+
+
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-xs font-semibold text-gray-700">Tổng cộng:</span>
                             <span class="text-base font-bold text-gray-800">
                                 {{ formatCurrency(cartTotal) }}
                             </span>
                         </div>
-                        
+
                         <button type="submit"
                             class="w-full bg-green-600 text-white py-1.5 rounded text-xs font-semibold hover:bg-green-700"
                             :disabled="form.processing || cart.length === 0">
@@ -1979,7 +1966,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-2xl font-bold text-gray-900">Xác nhận thanh toán</h2>
                             <span class="text-sm text-gray-600">Nhân viên: <strong>{{ props.auth?.user?.name || 'N/A'
-                            }}</strong></span>
+                                    }}</strong></span>
                         </div>
                         <!-- Bill Information in Rectangular Frame -->
                         <div class="bg-gray-50 border border-gray-300 rounded-lg p-6 shadow-sm">
@@ -2020,7 +2007,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                                 <td class="p-3 text-center">{{ item.quantity }}</td>
                                                 <td class="p-3 text-right">{{ formatCurrency(item.price) }}</td>
                                                 <td class="p-3 text-right">{{ formatCurrency(item.price * item.quantity)
-                                                }}</td>
+                                                    }}</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -2036,10 +2023,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                     <span class="font-semibold">Giảm giá:</span>
                                     <span>{{ formatCurrency(0) }}</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="font-semibold">Thuế VAT (0%):</span>
-                                    <span>{{ formatCurrency(cartTax) }}</span>
-                                </div>
+
                                 <div class="flex justify-between text-lg font-bold text-green-600">
                                     <span>Tổng cần thanh toán:</span>
                                     <span>{{ formatCurrency(cartTotal) }}</span>
