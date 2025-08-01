@@ -1207,6 +1207,7 @@ class POSController
     }
 }
 
+
     public function syncInventory()
     {
         $products = Product::where('is_active', 1)
