@@ -781,78 +781,78 @@ class POSController
      * Kiểm tra lô hàng hợp lệ cho sản phẩm.
      */
     public function checkBatch(Request $request, $productId)
-{
-    try {
-        $quantity = $request->query('quantity', 1);
-        $product = Product::find($productId);
+    {
+        try {
+            $quantity = $request->query('quantity', 1);
+            $product = Product::find($productId);
 
-        if (!$product) {
-            Log::warning('Sản phẩm không tồn tại khi kiểm tra lô hàng.', ['product_id' => $productId]);
+            if (!$product) {
+                Log::warning('Sản phẩm không tồn tại khi kiểm tra lô hàng.', ['product_id' => $productId]);
+                return response()->json([
+                    'hasValidBatch' => false,
+                    'availableStock' => 0,
+                    'message' => 'Sản phẩm không tồn tại.'
+                ], 200);
+            }
+
+            $availableStock = $this->calculateAvailableStock($productId, true);
+
+            if ($availableStock == 0) {
+                return response()->json([
+                    'hasValidBatch' => false,
+                    'availableStock' => 0,
+                    'message' => "Sản phẩm {$product->name} không có lô hàng hợp lệ."
+                ], 200);
+            }
+
+            if ($availableStock < $quantity) {
+                return response()->json([
+                    'hasValidBatch' => false,
+                    'availableStock' => $availableStock,
+                    'message' => "Sản phẩm {$product->name} không đủ tồn kho. Chỉ còn {$availableStock}."
+                ], 200);
+            }
+
+            // Ghi log nếu có lô partially_received được sử dụng
+            $batchItems = BatchItem::where('product_id', $productId)
+                ->where('inventory_status', 'active')
+                ->where('current_quantity', '>', 0)
+                ->whereHas('batch', function ($query) {
+                    $query->whereNull('deleted_at')
+                        ->whereIn('receipt_status', ['completed', 'partially_received']);
+                })
+                ->where(function ($query) {
+                    $query->whereNull('expiry_date')
+                        ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
+                })
+                ->get();
+
+            $hasPartiallyReceived = $batchItems->contains(function ($batchItem) {
+                return $batchItem->batch->receipt_status === 'partially_received';
+            });
+
+            if ($hasPartiallyReceived) {
+                Log::info('Sản phẩm có lô partially_received khả dụng.', [
+                    'product_id' => $productId,
+                    'available_stock' => $availableStock,
+                    'user_id' => Auth::id(),
+                ]);
+            }
+
             return response()->json([
-                'hasValidBatch' => false,
-                'availableStock' => 0,
-                'message' => 'Sản phẩm không tồn tại.'
+                'hasValidBatch' => true,
+                'availableStock' => $availableStock
             ], 200);
-        }
-
-        $availableStock = $this->calculateAvailableStock($productId, true);
-
-        if ($availableStock == 0) {
-            return response()->json([
-                'hasValidBatch' => false,
-                'availableStock' => 0,
-                'message' => "Sản phẩm {$product->name} không có lô hàng hợp lệ."
-            ], 200);
-        }
-
-        if ($availableStock < $quantity) {
-            return response()->json([
-                'hasValidBatch' => false,
-                'availableStock' => $availableStock,
-                'message' => "Sản phẩm {$product->name} không đủ tồn kho. Chỉ còn {$availableStock}."
-            ], 200);
-        }
-
-        // Ghi log nếu có lô partially_received được sử dụng
-        $batchItems = BatchItem::where('product_id', $productId)
-            ->where('inventory_status', 'active')
-            ->where('current_quantity', '>', 0)
-            ->whereHas('batch', function ($query) {
-                $query->whereNull('deleted_at')
-                    ->whereIn('receipt_status', ['completed', 'partially_received']);
-            })
-            ->where(function ($query) {
-                $query->whereNull('expiry_date')
-                    ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
-            })
-            ->get();
-
-        $hasPartiallyReceived = $batchItems->contains(function ($batchItem) {
-            return $batchItem->batch->receipt_status === 'partially_received';
-        });
-
-        if ($hasPartiallyReceived) {
-            Log::info('Sản phẩm có lô partially_received khả dụng.', [
+        } catch (\Exception $e) {
+            Log::error('Lỗi trong checkBatch: ', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'product_id' => $productId,
-                'available_stock' => $availableStock,
-                'user_id' => Auth::id(),
+                'user_id' => Auth::id()
             ]);
+            return response()->json(['errors' => ['server' => 'Có lỗi khi kiểm tra lô hàng.']], 500);
         }
-
-        return response()->json([
-            'hasValidBatch' => true,
-            'availableStock' => $availableStock
-        ], 200);
-    } catch (\Exception $e) {
-        Log::error('Lỗi trong checkBatch: ', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'product_id' => $productId,
-            'user_id' => Auth::id()
-        ]);
-        return response()->json(['errors' => ['server' => 'Có lỗi khi kiểm tra lô hàng.']], 500);
     }
-}
 
     /**
      * Xử lý giao dịch bán hàng.
@@ -1004,104 +1004,104 @@ class POSController
                     'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                 ]);
 
-               foreach ($data['cart'] as $item) {
-    $product = Product::lockForUpdate()->find($item['id']);
-    $remainingQuantity = $item['quantity'];
+                foreach ($data['cart'] as $item) {
+                    $product = Product::lockForUpdate()->find($item['id']);
+                    $remainingQuantity = $item['quantity'];
 
-    $batchItems = BatchItem::where('product_id', $item['id'])
-        ->where('inventory_status', 'active')
-        ->where('current_quantity', '>', 0)
-        ->whereHas('batch', function ($query) {
-            $query->whereNull('deleted_at')
-                ->whereIn('receipt_status', ['completed', 'partially_received']);
-        })
-        ->where(function ($query) {
-            $query->whereNull('expiry_date')
-                ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
-        })
-        ->orderBy('created_at', 'asc')
-        ->lockForUpdate()
-        ->get();
+                    $batchItems = BatchItem::where('product_id', $item['id'])
+                        ->where('inventory_status', 'active')
+                        ->where('current_quantity', '>', 0)
+                        ->whereHas('batch', function ($query) {
+                            $query->whereNull('deleted_at')
+                                ->whereIn('receipt_status', ['completed', 'partially_received']);
+                        })
+                        ->where(function ($query) {
+                            $query->whereNull('expiry_date')
+                                ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
+                        })
+                        ->orderBy('created_at', 'asc')
+                        ->lockForUpdate()
+                        ->get();
 
-    foreach ($batchItems as $batchItem) {
-        if ($remainingQuantity <= 0) {
-            break;
-        }
+                    foreach ($batchItems as $batchItem) {
+                        if ($remainingQuantity <= 0) {
+                            break;
+                        }
 
-        $quantityToDeduct = min($batchItem->current_quantity, $remainingQuantity);
-        if ($quantityToDeduct > 0) {
-            $newQuantity = $batchItem->current_quantity - $quantityToDeduct;
-            $batchItem->update([
-                'current_quantity' => $newQuantity,
-                'inventory_status' => $newQuantity <= 0 ? 'out_of_stock' : ($newQuantity <= ($batchItem->min_stock_level ?? 0) ? 'low_stock' : 'active'),
-                'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-            ]);
+                        $quantityToDeduct = min($batchItem->current_quantity, $remainingQuantity);
+                        if ($quantityToDeduct > 0) {
+                            $newQuantity = $batchItem->current_quantity - $quantityToDeduct;
+                            $batchItem->update([
+                                'current_quantity' => $newQuantity,
+                                'inventory_status' => $newQuantity <= 0 ? 'out_of_stock' : ($newQuantity <= ($batchItem->min_stock_level ?? 0) ? 'low_stock' : 'active'),
+                                'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+                            ]);
 
-            if ($batchItem->batch->receipt_status === 'partially_received') {
-                Log::info('Sử dụng lô partially_received cho giao dịch bán hàng.', [
-                    'batch_id' => $batchItem->batch_id,
-                    'product_id' => $item['id'],
-                    'quantity_deducted' => $quantityToDeduct,
-                    'user_id' => $user->id,
-                ]);
-            }
+                            if ($batchItem->batch->receipt_status === 'partially_received') {
+                                Log::info('Sử dụng lô partially_received cho giao dịch bán hàng.', [
+                                    'batch_id' => $batchItem->batch_id,
+                                    'product_id' => $item['id'],
+                                    'quantity_deducted' => $quantityToDeduct,
+                                    'user_id' => $user->id,
+                                ]);
+                            }
 
-            InventoryTransaction::create([
-                'transaction_type_id' => 2, // Xuất kho
-                'quantity_change' => -$quantityToDeduct,
-                'unit_price' => $product->selling_price,
-                'total_value' => $quantityToDeduct * $product->selling_price,
-                'transaction_date' => Carbon::now('Asia/Ho_Chi_Minh'),
-                'related_bill_id' => $bill->id,
-                'related_batch_id' => $batchItem->batch_id,
-                'user_id' => $user->id,
-                'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-                'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-            ]);
+                            InventoryTransaction::create([
+                                'transaction_type_id' => 2, // Xuất kho
+                                'quantity_change' => -$quantityToDeduct,
+                                'unit_price' => $product->selling_price,
+                                'total_value' => $quantityToDeduct * $product->selling_price,
+                                'transaction_date' => Carbon::now('Asia/Ho_Chi_Minh'),
+                                'related_bill_id' => $bill->id,
+                                'related_batch_id' => $batchItem->batch_id,
+                                'user_id' => $user->id,
+                                'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+                                'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+                            ]);
 
-            BillDetail::create([
-                'bill_id' => $bill->id,
-                'product_id' => $product->id,
-                'batch_id' => $batchItem->batch_id,
-                'p_name' => $product->name,
-                'p_sku' => $product->sku,
-                'p_barcode' => $product->barcode,
-                'quantity' => $quantityToDeduct,
-                'unit_cost' => $batchItem->purchase_price,
-                'unit_price' => $product->selling_price,
-                'discount_per_item' => 0,
-                'subtotal' => $quantityToDeduct * $product->selling_price,
-                'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-                'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-            ]);
+                            BillDetail::create([
+                                'bill_id' => $bill->id,
+                                'product_id' => $product->id,
+                                'batch_id' => $batchItem->batch_id,
+                                'p_name' => $product->name,
+                                'p_sku' => $product->sku,
+                                'p_barcode' => $product->barcode,
+                                'quantity' => $quantityToDeduct,
+                                'unit_cost' => $batchItem->purchase_price,
+                                'unit_price' => $product->selling_price,
+                                'discount_per_item' => 0,
+                                'subtotal' => $quantityToDeduct * $product->selling_price,
+                                'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+                                'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+                            ]);
 
-            $remainingQuantity -= $quantityToDeduct;
-        }
-    }
+                            $remainingQuantity -= $quantityToDeduct;
+                        }
+                    }
 
-    if ($remainingQuantity > 0) {
-        Log::error('Không đủ hàng trong kho để phân bổ.', [
-            'product_id' => $item['id'],
-            'remaining_quantity' => $remainingQuantity,
-        ]);
-        throw new \Exception("Không đủ hàng trong kho cho sản phẩm {$product->name}.");
-    }
+                    if ($remainingQuantity > 0) {
+                        Log::error('Không đủ hàng trong kho để phân bổ.', [
+                            'product_id' => $item['id'],
+                            'remaining_quantity' => $remainingQuantity,
+                        ]);
+                        throw new \Exception("Không đủ hàng trong kho cho sản phẩm {$product->name}.");
+                    }
 
-    $product->stock_quantity -= $item['quantity'];
-    $product->last_sold_at = Carbon::now('Asia/Ho_Chi_Minh');
-    $product->save();
+                    $product->stock_quantity -= $item['quantity'];
+                    $product->last_sold_at = Carbon::now('Asia/Ho_Chi_Minh');
+                    $product->save();
 
-    $updatedProducts[] = [
-        'id' => $product->id,
-        'name' => $product->name,
-        'category' => $product->category ? $product->category->name : 'N/A',
-        'price' => $product->selling_price ?? 0,
-        'stock' => $product->stock_quantity ?? 0,
-        'image' => $product->image_url ?? '/storage/default-product.png',
-        'sku' => $product->sku,
-        'barcode' => $product->barcode,
-    ];
-}
+                    $updatedProducts[] = [
+                        'id' => $product->id,
+                        'name' => $product->name,
+                        'category' => $product->category ? $product->category->name : 'N/A',
+                        'price' => $product->selling_price ?? 0,
+                        'stock' => $product->stock_quantity ?? 0,
+                        'image' => $product->image_url ?? '/storage/default-product.png',
+                        'sku' => $product->sku,
+                        'barcode' => $product->barcode,
+                    ];
+                }
 
                 if ($data['customer_id']) {
                     $customer = Customer::lockForUpdate()->find($data['customer_id']);
@@ -1220,54 +1220,54 @@ class POSController
      * Tìm sản phẩm theo mã vạch.
      */
     public function getProductByBarcode($barcode)
-{
-    try {
-        $barcode = trim($barcode);
-        $product = Product::with('category')
-            ->select('id', 'name', 'category_id', 'selling_price', 'image_url', 'sku', 'barcode')
-            ->where('barcode', $barcode)
-            ->where('is_active', 1)
-            ->whereNull('deleted_at')
-            ->first();
+    {
+        try {
+            $barcode = trim($barcode);
+            $product = Product::with('category')
+                ->select('id', 'name', 'category_id', 'selling_price', 'image_url', 'sku', 'barcode')
+                ->where('barcode', $barcode)
+                ->where('is_active', 1)
+                ->whereNull('deleted_at')
+                ->first();
 
-        if (!$product) {
-            Log::warning('Không tìm thấy sản phẩm với mã vạch.', [
+            if (!$product) {
+                Log::warning('Không tìm thấy sản phẩm với mã vạch.', [
+                    'barcode' => $barcode,
+                    'user_id' => Auth::id()
+                ]);
+                return response()->json([
+                    'message' => 'Không tìm thấy sản phẩm với mã vạch này.',
+                    'product' => null,
+                ], 404);
+            }
+
+            $availableStock = $this->getAvailableStock($product->id);
+
+            return response()->json([
+                'product' => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'category' => $product->category ? $product->category->name : 'N/A',
+                    'price' => $product->selling_price ?? 0,
+                    'stock' => $availableStock,
+                    'image' => $product->image_url ?? '/storage/default-product.png',
+                    'sku' => $product->sku,
+                    'barcode' => $product->barcode,
+                ],
+                'hasValidBatch' => $availableStock > 0,
+                'availableStock' => $availableStock,
+                'message' => $availableStock > 0 ? 'Sản phẩm hợp lệ, bao gồm lô partially_received.' : 'Sản phẩm không có lô hàng hợp lệ.',
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Lỗi trong getProductByBarcode: ', [
                 'barcode' => $barcode,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'user_id' => Auth::id()
             ]);
             return response()->json([
-                'message' => 'Không tìm thấy sản phẩm với mã vạch này.',
-                'product' => null,
-            ], 404);
+                'errors' => ['server' => 'Có lỗi khi tìm sản phẩm theo mã vạch.']
+            ], 500);
         }
-
-        $availableStock = $this->getAvailableStock($product->id);
-
-        return response()->json([
-            'product' => [
-                'id' => $product->id,
-                'name' => $product->name,
-                'category' => $product->category ? $product->category->name : 'N/A',
-                'price' => $product->selling_price ?? 0,
-                'stock' => $availableStock,
-                'image' => $product->image_url ?? '/storage/default-product.png',
-                'sku' => $product->sku,
-                'barcode' => $product->barcode,
-            ],
-            'hasValidBatch' => $availableStock > 0,
-            'availableStock' => $availableStock,
-            'message' => $availableStock > 0 ? 'Sản phẩm hợp lệ, bao gồm lô partially_received.' : 'Sản phẩm không có lô hàng hợp lệ.',
-        ], 200);
-    } catch (\Exception $e) {
-        Log::error('Lỗi trong getProductByBarcode: ', [
-            'barcode' => $barcode,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'user_id' => Auth::id()
-        ]);
-        return response()->json([
-            'errors' => ['server' => 'Có lỗi khi tìm sản phẩm theo mã vạch.']
-        ], 500);
     }
-}
 }

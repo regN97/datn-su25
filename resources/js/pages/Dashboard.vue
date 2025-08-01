@@ -19,7 +19,7 @@ import {
     CategoryScale,
     LinearScale,
 } from 'chart.js'
-import { Line } from 'vue-chartjs'
+
 ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale)
 
 
@@ -74,8 +74,8 @@ const dashboards = page.props.dashboards
 
             <!-- Thống kê  -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard title="Doanh thu" :value="dashboards.totalRevenue" unit="đ" />
-                <StatCard title="Đơn hàng" :value="dashboards.totalBills" />
+                <StatCard title="Doanh thu 30 ngày gần nhất" :value="dashboards.totalRevenue" unit="đ" />
+                <StatCard title="Đơn hàng 30 ngày gần nhất" :value="dashboards.totalBills" />
             </div>
 
             <!-- Biểu đồ doanh thu và doanh thu trung bình -->

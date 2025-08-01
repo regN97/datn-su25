@@ -187,29 +187,7 @@ function updateQuantity(productId: number, quantity: number) {
     }
 }
 
-const userSearchQuery = ref('');
-const isUserDropdownOpen = ref(false);
-const selectedUser = ref<User | null>(null);
 const userDropdownRef = ref<HTMLElement>();
-
-const filteredUsers = computed(() => {
-    if (!userSearchQuery.value) return props.users;
-    return props.users.filter((user) => user.name.toLowerCase().includes(userSearchQuery.value.toLowerCase()));
-});
-
-function openUserDropdown() {
-    isUserDropdownOpen.value = true;
-}
-
-function closeUserDropdown() {
-    isUserDropdownOpen.value = false;
-}
-
-function selectUser(user: User) {
-    selectedUser.value = user;
-    userSearchQuery.value = user.name; // Gán tên user vào input
-    closeUserDropdown();
-}
 
 // Add these reactive refs after existing refs
 const supplierSearchQuery = ref('');
@@ -254,9 +232,6 @@ function handleClickOutside(event: MouseEvent) {
     }
     if (supplierDropdownRef.value && !supplierDropdownRef.value.contains(event.target as Node)) {
         closeSupplierDropdown();
-    }
-    if (userDropdownRef.value && !userDropdownRef.value.contains(event.target as Node)) {
-        closeUserDropdown();
     }
 }
 
@@ -398,7 +373,7 @@ function submitOrder() {
         },
         total_amount: totalAfterDiscount.value,
         supplier_id: selectedSupplier.value ? selectedSupplier.value.id : null,
-        user_id: selectedUser.value ? selectedUser.value.id : null,
+        user_id: props.users.id,
         expected_import_date: expectedImportDate.value,
         order_code: orderCode.value,
         note: note.value,
@@ -732,52 +707,12 @@ onUnmounted(() => {
                                 <div class="relative" ref="userDropdownRef">
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Nhân viên phụ trách</label>
                                     <div class="relative">
-                                        <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
                                         <input
                                             type="text"
-                                            placeholder="Tìm kiếm"
-                                            v-model="userSearchQuery"
-                                            @focus="openUserDropdown"
-                                            @keydown.escape="closeUserDropdown"
-                                            class="h-10 w-full rounded-md border border-gray-300 pr-4 pl-10 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                            :value="props.users.name"
+                                            disabled
+                                            class="h-10 w-full rounded-md border border-gray-300 pr-4 pl-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                         />
-                                        <button
-                                            v-if="isUserDropdownOpen"
-                                            @click="closeUserDropdown"
-                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
-                                        >
-                                            <ChevronUp class="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            v-else
-                                            @click="openUserDropdown"
-                                            class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
-                                        >
-                                            <ChevronDown class="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                    <!-- User Dropdown -->
-                                    <div
-                                        v-if="isUserDropdownOpen"
-                                        class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg"
-                                    >
-                                        <div class="max-h-80 overflow-y-auto">
-                                            <div v-if="filteredUsers.length > 0">
-                                                <button
-                                                    v-for="user in filteredUsers"
-                                                    :key="user.id"
-                                                    @click="selectUser(user)"
-                                                    class="w-full border-b border-gray-100 p-4 text-left last:border-b-0 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
-                                                >
-                                                    <div class="flex flex-col">
-                                                        <span class="font-medium text-gray-900">{{ user.name }}</span>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                            <div v-else class="p-4 text-center text-gray-500">
-                                                <p class="text-sm">Không tìm thấy tài khoản nào</p>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                                 <!-- Ngày nhập dự kiến -->
