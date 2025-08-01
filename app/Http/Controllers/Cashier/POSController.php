@@ -9,9 +9,13 @@ use App\Models\Product;
 use App\Models\Customer;
 use App\Models\BatchItem;
 use App\Models\Promotion;
+use App\Models\UserShift;
 use App\Models\WorkShift;
+use App\Mail\ReceiptEmail;
 use App\Models\BillDetail;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Models\PaymentTransaction;
 use Illuminate\Support\Facades\DB;
 use App\Models\CashRegisterSession;
 use Illuminate\Support\Facades\Log;
@@ -19,10 +23,7 @@ use App\Models\InventoryTransaction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
-use App\Models\PaymentTransaction;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use App\Mail\ReceiptEmail;
-use Illuminate\Support\Str;
 
 class POSController
 {
@@ -401,169 +402,201 @@ class POSController
      * Mở một phiên làm việc mới.
      */
     public function startSession(Request $request)
-    {
-        try {
-            $user = Auth::user();
-            if ($user->role_id !== 3) {
-                return response()->json(['errors' => ['server' => 'Không có quyền truy cập.']], 403);
-            }
-
-            $data = $request->validate([
-                'opening_amount' => 'required|numeric|min:0',
-                'notes' => 'nullable|string|max:255',
-                'shift_id' => 'required|exists:work_shifts,id',
-            ]);
-
-            $activeSession = CashRegisterSession::where('user_id', $user->id)
-                ->whereNull('closed_at')
-                ->whereNull('deleted_at')
-                ->first();
-
-            if ($activeSession) {
-                return response()->json(['errors' => ['server' => 'Bạn đã có một ca làm việc đang mở.']], 422);
-            }
-
-            $workShift = WorkShift::find($data['shift_id']);
-            if (!$workShift || $workShift->deleted_at) {
-                return response()->json(['errors' => ['server' => 'Ca làm việc không tồn tại hoặc đã bị xóa.']], 422);
-            }
-
-            $currentTime = Carbon::now('Asia/Ho_Chi_Minh')->format('H:i:s');
-            $startTime = Carbon::parse($workShift->start_time, 'Asia/Ho_Chi_Minh')->format('H:i:s');
-            $endTime = Carbon::parse($workShift->end_time, 'Asia/Ho_Chi_Minh')->format('H:i:s');
-            $isSuitable = $currentTime >= $startTime && $currentTime <= $endTime;
-            if ($startTime > $endTime) {
-                $isSuitable = $currentTime >= $startTime || $currentTime <= $endTime;
-            }
-
-            if (!$isSuitable) {
-                return response()->json(['errors' => ['server' => 'Ca làm việc này không phù hợp với thời gian hiện tại.']], 422);
-            }
-
-            $userShift = \App\Models\UserShift::create([
-                'user_id' => $user->id,
-                'shift_id' => $data['shift_id'],
-                'date' => Carbon::today('Asia/Ho_Chi_Minh'),
-                'status' => 'CHECKED_IN',
-                'check_in' => Carbon::now('Asia/Ho_Chi_Minh'),
-                'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-            ]);
-
-            $session = CashRegisterSession::create([
-                'user_id' => $user->id,
-                'user_shift_id' => $userShift->id,
-                'opening_amount' => $data['opening_amount'],
-                'notes' => $data['notes'],
-                'opened_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-            ]);
-
-            $activeShift = [
-                'shift_id' => $workShift->id,
-                'shift_name' => $workShift->name,
-                'shift_time' => [
-                    'start_time' => $startTime,
-                    'end_time' => $endTime,
-                ],
-                'opened_at' => $session->opened_at ? $session->opened_at->setTimezone('Asia/Ho_Chi_Minh')->toISOString() : null,
-            ];
-
-            return response()->json([
-                'success' => 'Ca làm việc đã được mở thành công!',
-                'activeShift' => $activeShift,
-                'hasActiveSession' => true,
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Lỗi xác thực trong startSession: ', [
-                'errors' => $e->errors(),
-                'user_id' => Auth::id()
-            ]);
-            return response()->json(['errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            Log::error('Lỗi trong startSession: ', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id()
-            ]);
-            return response()->json(['errors' => ['server' => 'Có lỗi khi mở ca làm việc.']], 500);
+{
+    try {
+        $user = Auth::user();
+        if ($user->role_id !== 3) {
+            return response()->json(['errors' => ['server' => 'Không có quyền truy cập.']], 403);
         }
+
+        $data = $request->validate([
+            'opening_amount' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:255',
+            'shift_id' => 'required|exists:work_shifts,id',
+        ]);
+
+        // Kiểm tra nếu đã có ca làm việc đang mở trong cùng ngày
+        $existingShift = UserShift::where('user_id', $user->id)
+            ->where('date', Carbon::today('Asia/Ho_Chi_Minh'))
+            ->where('status', 'CHECKED_IN')
+            ->first();
+
+        if ($existingShift) {
+            Log::warning('Nhân viên đã có ca làm việc đang mở trong ngày.', [
+                'user_id' => $user->id,
+                'shift_id' => $existingShift->shift_id,
+            ]);
+            return response()->json(['errors' => ['server' => 'Bạn đã có một ca làm việc đang mở trong ngày hôm nay.']], 422);
+        }
+
+        // Kiểm tra phiên làm việc đang mở
+        $activeSession = CashRegisterSession::where('user_id', $user->id)
+            ->whereNull('closed_at')
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($activeSession) {
+            return response()->json(['errors' => ['server' => 'Bạn đã có một ca làm việc đang mở.']], 422);
+        }
+
+        $workShift = WorkShift::find($data['shift_id']);
+        if (!$workShift || $workShift->deleted_at) {
+            return response()->json(['errors' => ['server' => 'Ca làm việc không tồn tại hoặc đã bị xóa.']], 422);
+        }
+
+        $currentTime = Carbon::now('Asia/Ho_Chi_Minh')->format('H:i:s');
+        $startTime = Carbon::parse($workShift->start_time, 'Asia/Ho_Chi_Minh')->format('H:i:s');
+        $endTime = Carbon::parse($workShift->end_time, 'Asia/Ho_Chi_Minh')->format('H:i:s');
+        $isSuitable = $currentTime >= $startTime && $currentTime <= $endTime;
+        if ($startTime > $endTime) {
+            $isSuitable = $currentTime >= $startTime || $currentTime <= $endTime;
+        }
+
+        if (!$isSuitable) {
+            return response()->json(['errors' => ['server' => 'Ca làm việc này không phù hợp với thời gian hiện tại.']], 422);
+        }
+
+        $userShift = UserShift::create([
+            'user_id' => $user->id,
+            'shift_id' => $data['shift_id'],
+            'date' => Carbon::today('Asia/Ho_Chi_Minh'),
+            'status' => 'CHECKED_IN',
+            'check_in' => Carbon::now('Asia/Ho_Chi_Minh'),
+            'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+        ]);
+
+        $session = CashRegisterSession::create([
+            'user_id' => $user->id,
+            'user_shift_id' => $userShift->id,
+            'opening_amount' => $data['opening_amount'],
+            'notes' => $data['notes'],
+            'opened_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+        ]);
+
+        $activeShift = [
+            'shift_id' => $workShift->id,
+            'shift_name' => $workShift->name,
+            'shift_time' => [
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+            ],
+            'opened_at' => $session->opened_at ? $session->opened_at->setTimezone('Asia/Ho_Chi_Minh')->toISOString() : null,
+        ];
+
+        return response()->json([
+            'success' => 'Ca làm việc đã được mở thành công!',
+            'activeShift' => $activeShift,
+            'hasActiveSession' => true,
+        ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error('Lỗi xác thực trong startSession: ', [
+            'errors' => $e->errors(),
+            'user_id' => Auth::id()
+        ]);
+        return response()->json(['errors' => $e->errors()], 422);
+    } catch (\Exception $e) {
+        Log::error('Lỗi trong startSession: ', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'user_id' => Auth::id()
+        ]);
+        return response()->json(['errors' => ['server' => 'Có lỗi khi mở ca làm việc.']], 500);
     }
+}
 
     /**
      * Đóng phiên làm việc hiện tại.
      */
     public function closeSession(Request $request)
-    {
-        try {
-            $user = Auth::user();
-            if ($user->role_id !== 3) {
-                return response()->json(['errors' => ['server' => 'Không có quyền truy cập.']], 403);
-            }
-
-            $data = $request->validate([
-                'closing_amount' => 'required|numeric|min:0',
-                'notes' => 'nullable|string|max:255',
-            ]);
-
-            $session = CashRegisterSession::where('user_id', $user->id)
-                ->whereNull('closed_at')
-                ->whereNull('deleted_at')
-                ->first();
-
-            if (!$session) {
-                return response()->json(['errors' => ['server' => 'Không có ca làm việc đang mở.']], 422);
-            }
-
-            $userShift = \App\Models\UserShift::with('workShift')->find($session->user_shift_id);
-            $shiftCheck = $this->checkShiftExpiration($userShift);
-            if ($shiftCheck['isExpired']) {
-                Log::info('Đóng ca làm việc đã hết hạn', [
-                    'session_id' => $session->id,
-                    'user_shift_id' => $session->user_shift_id,
-                    'user_id' => $user->id,
-                ]);
-            }
-
-            $bills = Bill::where('session_id', $session->id)
-                ->whereNull('deleted_at')
-                ->get();
-
-            $actual_amount = $bills->sum('total_amount');
-            $difference = $data['closing_amount'] - ($session->opening_amount + $actual_amount);
-
-            $session->update([
-                'closing_amount' => $data['closing_amount'],
-                'actual_amount' => $actual_amount,
-                'difference' => $difference,
-                'notes' => $data['notes'],
-                'closed_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-            ]);
-
-            if ($userShift) {
-                $userShift->update([
-                    'status' => 'COMPLETED',
-                    'check_out' => Carbon::now('Asia/Ho_Chi_Minh'),
-                ]);
-            }
-
-            return response()->json([
-                'success' => 'Ca làm việc đã được đóng thành công!',
-                'hasActiveSession' => false,
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Lỗi xác thực trong closeSession: ', [
-                'errors' => $e->errors(),
-                'user_id' => Auth::id()
-            ]);
-            return response()->json(['errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            Log::error('Lỗi trong closeSession: ', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id()
-            ]);
-            return response()->json(['errors' => ['server' => 'Có lỗi khi đóng ca làm việc.']], 500);
+{
+    try {
+        $user = Auth::user();
+        if ($user->role_id !== 3) {
+            return response()->json(['errors' => ['server' => 'Không có quyền truy cập.']], 403);
         }
+
+        $data = $request->validate([
+            'closing_amount' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:255',
+        ]);
+
+        $session = CashRegisterSession::where('user_id', $user->id)
+            ->whereNull('closed_at')
+            ->whereNull('deleted_at')
+            ->first();
+
+        if (!$session) {
+            return response()->json(['errors' => ['server' => 'Không có ca làm việc đang mở.']], 422);
+        }
+
+        // Kiểm tra hóa đơn chưa thanh toán
+        $pendingBills = Bill::where('session_id', $session->id)
+            ->where('payment_status_id', 1)
+            ->whereNull('deleted_at')
+            ->count();
+
+        if ($pendingBills > 0) {
+            Log::warning('Có hóa đơn chưa thanh toán trong ca.', [
+                'session_id' => $session->id,
+                'pending_bills' => $pendingBills,
+                'user_id' => $user->id,
+            ]);
+            return response()->json(['errors' => ['server' => 'Vui lòng xử lý tất cả hóa đơn chưa thanh toán trước khi đóng ca.']], 422);
+        }
+
+        $userShift = \App\Models\UserShift::with('workShift')->find($session->user_shift_id);
+        $shiftCheck = $this->checkShiftExpiration($userShift);
+        if ($shiftCheck['isExpired']) {
+            Log::info('Đóng ca làm việc đã hết hạn', [
+                'session_id' => $session->id,
+                'user_shift_id' => $session->user_shift_id,
+                'user_id' => $user->id,
+            ]);
+        }
+
+        $bills = Bill::where('session_id', $session->id)
+            ->whereNull('deleted_at')
+            ->get();
+
+        $actual_amount = $bills->sum('total_amount');
+        $difference = $data['closing_amount'] - ($session->opening_amount + $actual_amount);
+
+        $session->update([
+            'closing_amount' => $data['closing_amount'],
+            'actual_amount' => $actual_amount,
+            'difference' => $difference,
+            'notes' => $data['notes'],
+            'closed_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+        ]);
+
+        if ($userShift) {
+            $userShift->update([
+                'status' => 'COMPLETED',
+                'check_out' => Carbon::now('Asia/Ho_Chi_Minh'),
+            ]);
+        }
+
+        return response()->json([
+            'success' => 'Ca làm việc đã được đóng thành công!',
+            'hasActiveSession' => false,
+            'difference' => $difference, // Trả về chênh lệch tiền
+            'actual_amount' => $actual_amount,
+        ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error('Lỗi xác thực trong closeSession: ', [
+            'errors' => $e->errors(),
+            'user_id' => Auth::id()
+        ]);
+        return response()->json(['errors' => $e->errors()], 422);
+    } catch (\Exception $e) {
+        Log::error('Lỗi trong closeSession: ', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'user_id' => Auth::id()
+        ]);
+        return response()->json(['errors' => ['server' => 'Có lỗi khi đóng ca làm việc.']], 500);
     }
+}
 
     /**
      * Tạo báo cáo ca làm việc.

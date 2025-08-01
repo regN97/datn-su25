@@ -10,13 +10,13 @@
     <Link href="#" title="Đổi trả" class="p-2 hover:bg-gray-100 rounded">
     <Undo2 class="w-5 h-5" />
     </Link>
-    <Link href="#" title="Báo cáo ca" class="p-2 hover:bg-gray-100 rounded">
+    <Link :href="route('cashier.shift.report')" title="Báo cáo ca" class="p-2 hover:bg-gray-100 rounded">
     <BarChart class="w-5 h-5" />
     </Link>
     <Link href="#" title="Khách hàng" class="p-2 hover:bg-gray-100 rounded">
     <Users class="w-5 h-5" />
     </Link>
-    <Link href="#" title="Thông báo" class="p-2 hover:bg-gray-100 rounded">
+    <Link :href="route('cashier.notifications')" title="Thông báo" class="p-2 hover:bg-gray-100 rounded">
     <Bell class="w-5 h-5" />
     </Link>
     <Link href="#" title="Cài đặt" class="p-2 hover:bg-gray-100 rounded">

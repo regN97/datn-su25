@@ -100,7 +100,6 @@ const translatePaymentMethod = (method) => {
     <Head title="Tra cứu hóa đơn" />
     <CashierLayout>
         <div class="p-6 max-w-7xl mx-auto">
-            <h1 class="text-2xl font-bold mb-6 text-gray-800">Tra cứu hóa đơn</h1>
 
             <div class="mb-8">
                 <form @submit.prevent="searchBills" class="flex items-center gap-4 max-w-2xl mx-auto">

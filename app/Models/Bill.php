@@ -33,4 +33,8 @@ class Bill extends Model
         return $this->belongsToMany(Product::class, 'bill_details', 'bill_id', 'product_id')
             ->withPivot(['quantity', 'unit_cost', 'unit_price', 'discount_per_item', 'subtotal']);
     }
+    public function paymentStatus()
+    {
+        return $this->belongsTo(OrderPaymentStatus::class, 'payment_status_id');
+    }
 }
