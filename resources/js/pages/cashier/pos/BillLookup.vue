@@ -80,6 +80,19 @@ const handleInlineUpload = (event, bill) => {
         }
     );
 };
+const translatePaymentMethod = (method) => {
+    switch (method) {
+        case 'credit_card':
+            return 'Thẻ tín dụng';
+        case 'bank_transfer':
+            return 'Chuyển khoản';
+        case 'cash':
+            return 'Tiền mặt';
+        default:
+            return method || '-';
+    }
+};
+
 </script>
 
 <template>
@@ -122,7 +135,7 @@ const handleInlineUpload = (event, bill) => {
                             <td class="p-4">{{ bill.bill_number }}</td>
                             <td class="p-4">{{ bill.customer_name || '-' }}</td>
                             <td class="p-4">{{ formatCurrency(bill.total_amount) }}</td>
-                            <td class="p-4">{{ bill.payment_method || '-' }}</td>
+<td class="p-4">{{ translatePaymentMethod(bill.payment_method) }}</td>
                             <td class="p-4">{{ bill.created_at }}</td>
                             <td class="p-4">
                                 <div class="flex flex-col gap-2">
