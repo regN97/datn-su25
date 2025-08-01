@@ -674,6 +674,7 @@ onUnmounted(() => {
                                                 </td>
                                                 <td class="w-[11%] text-center align-middle">
                                                     <div class="relative flex flex-col items-center justify-center">
+
                                                         <button
                                                             class="text-xs text-blue-600 hover:text-blue-800"
                                                             @click="openQuantityModal(product)"
@@ -685,6 +686,7 @@ onUnmounted(() => {
                                                                     ? product.available_quantity
                                                                     : product.ordered_quantity
                                                             }}
+
                                                         </button>
                                                         <div v-if="product.rejectedQuantity > 0" class="group relative">
                                                             <span
