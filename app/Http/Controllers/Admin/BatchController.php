@@ -114,7 +114,7 @@ class BatchController extends Controller
     {
         try {
             // Fetch the batch with related supplier
-            $batch = Batch::with(['supplier', 'creator'])
+            $batch = Batch::with(['supplier', 'creator', 'purchaseOrder'])
                 ->where('id', $id)
                 ->firstOrFail();
 
@@ -245,6 +245,22 @@ class BatchController extends Controller
                     : '001';
                 $invoice_number = $request->invoice_code ?? "{$prefixInvoice}{$nextNumberInv}";
 
+                // Kiểm tra số lượng nhận trước khi tạo batch
+                foreach ($request->batch_items as $item) {
+                    $poItem = PurchaseOrderItem::find($item['purchase_order_item_id']);
+                    if (!$poItem) {
+                        throw new \Exception("Mục đơn hàng của sản phẩm {$item['product_id']} không tồn tại.");
+                    }
+
+                    $orderedQty = $poItem->ordered_quantity;
+                    $receivedQty = $item['received_quantity'] ?? 0;
+
+                    // Kiểm tra số lượng nhận không được vượt quá số lượng đặt
+                    if ($receivedQty > $orderedQty) {
+                        throw new \Exception("Số lượng nhận ({$receivedQty}) của sản phẩm {$item['product_id']} không được vượt quá số lượng đặt ({$orderedQty}).");
+                    }
+                }
+
                 // Tính trạng thái nhận hàng
                 $totalOrdered = 0;
                 $totalReceived = 0;
@@ -268,8 +284,9 @@ class BatchController extends Controller
                     }
                 }
 
+                // Xác định trạng thái nhận hàng
                 $receipt_status = 'partially_received';
-                if (!$hasRejected && $totalReceived >= $totalOrdered) {
+                if (!$hasRejected && $totalReceived === $totalOrdered) { // Thay đổi điều kiện từ >= thành ===
                     $receipt_status = 'completed';
                 } elseif ($totalOrdered > 0 && $totalReceived == 0 && $hasRejected) {
                     $receipt_status = 'cancelled';
@@ -317,36 +334,60 @@ class BatchController extends Controller
                         throw new \Exception("Mục đơn hàng của sản phẩm {$item['product_id']} không tồn tại.");
                     }
 
+                    // Tính tổng số lượng đã nhận từ các batch trước
+                    $totalPreviousReceived = BatchItem::where('purchase_order_item_id', $item['purchase_order_item_id'])
+                        ->where('product_id', $item['product_id'])
+                        ->sum('received_quantity');
+
                     $orderedQty = $poItem->ordered_quantity;
                     $receivedQty = $item['received_quantity'] ?? 0;
-                    $rejectedQty = $item['rejected_quantity'] ?? null;
-                    $remainingQty = 0;
+                    $rejectedQty = $item['rejected_quantity'] ?? 0;
 
-                    if ($rejectedQty === null) {
-                        $rejectedQty = max(0, $orderedQty - $receivedQty);
+                    // Tổng số lượng đã nhận sau lần nhập này
+                    $newTotalReceived = $totalPreviousReceived + $receivedQty;
+
+                    // Tính remaining_quantity dựa trên tổng số lượng đã nhận
+                    $remainingQty = max(0, $orderedQty - $newTotalReceived);
+
+                    // Kiểm tra batch_item đã tồn tại
+                    $existingBatchItem = BatchItem::where('purchase_order_item_id', $item['purchase_order_item_id'])
+                        ->where('product_id', $item['product_id'])
+                        ->first();
+
+                    if ($existingBatchItem) {
+                        // Nếu đã có thì update các trường
+                        $existingBatchItem->update([
+                            'ordered_quantity'    => $orderedQty,
+                            'received_quantity'   => $newTotalReceived,      // Cập nhật tổng số lượng đã nhận
+                            'rejected_quantity'   => $rejectedQty,                      // Reset về 0 vì đã nhận bù
+                            'remaining_quantity'  => $remainingQty,
+                            'current_quantity'    => $newTotalReceived,      // current = tổng số đã nhận
+                            'purchase_price'      => $item['purchase_price'],
+                            'total_amount'        => $item['total_amount'],
+                            'manufacturing_date'  => $item['manufacturing_date'] ?? null,
+                            'expiry_date'         => $item['expiry_date'] ?? null,
+                            'inventory_status'    => 'active',
+                            'updated_by'          => $user_id,
+                        ]);
+                    } else {
+                        // Nếu chưa có thì tạo mới
+                        BatchItem::create([
+                            'batch_id'            => $batch->id,
+                            'product_id'          => $item['product_id'],
+                            'purchase_order_item_id' => $item['purchase_order_item_id'],
+                            'ordered_quantity'    => $orderedQty,
+                            'received_quantity'   => $receivedQty,
+                            'rejected_quantity'   => $rejectedQty,
+                            'remaining_quantity'  => $remainingQty,
+                            'current_quantity'    => $receivedQty,
+                            'purchase_price'      => $item['purchase_price'],
+                            'total_amount'        => $item['total_amount'],
+                            'manufacturing_date'  => $item['manufacturing_date'] ?? null,
+                            'expiry_date'         => $item['expiry_date'] ?? null,
+                            'inventory_status'    => 'active',
+                            'created_by'          => $user_id,
+                        ]);
                     }
-
-                    if ($receivedQty < $orderedQty) {
-                        $remainingQty = max(0, $orderedQty - $receivedQty - $rejectedQty);
-                    }
-
-                    // Tạo BatchItem
-                    BatchItem::create([
-                        'batch_id' => $batch->id,
-                        'product_id' => $item['product_id'],
-                        'purchase_order_item_id' => $item['purchase_order_item_id'],
-                        'ordered_quantity' => $poItem->ordered_quantity,
-                        'received_quantity' => $receivedQty,
-                        'rejected_quantity' => $rejectedQty,
-                        'remaining_quantity' => $remainingQty,
-                        'current_quantity' => $receivedQty,
-                        'purchase_price' => $item['purchase_price'],
-                        'total_amount' => $item['total_amount'],
-                        'manufacturing_date' => $item['manufacturing_date'] ?? null,
-                        'expiry_date' => $item['expiry_date'] ?? null,
-                        'inventory_status' => 'active',
-                        'created_by' => $user_id,
-                    ]);
 
                     // Cập nhật tồn kho sản phẩm
                     $product = Product::find($item['product_id']);
@@ -438,7 +479,7 @@ class BatchController extends Controller
         } elseif ($paymentStatus === 'partially_paid') {
             $newReceiptStatus = 'partially_received';
         }
-        
+
         Log::info('Received paid_amount:', [
             'raw' => $request->input('paid_amount'),
             'converted' => (float) str_replace('.', '', $request->paid_amount)

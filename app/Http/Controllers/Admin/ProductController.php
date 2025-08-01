@@ -53,6 +53,7 @@ class ProductController extends Controller
 
     public function store(ProductRequest $request): RedirectResponse
     {
+        // dd($request->all());
         try {
             $data = $request->validated();
 
@@ -87,13 +88,18 @@ class ProductController extends Controller
             // Xử lý ảnh theo kiểu người dùng chọn
             if (isset($data['image_input_type'])) {
                 if ($data['image_input_type'] === 'file' && $request->hasFile('image_file')) {
-                    $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
-                    $data['image_url'] = Storage::url($uploadedFilePath);
+                    $file = $request->file('image_file');
+                    if ($file && $file->isValid() && $file->getRealPath()) {
+                        $uploadedFilePath = $file->store('product_images', 'public');
+                        $data['image_url'] = Storage::url($uploadedFilePath);
+                    } else {
+                        return back()->withErrors(['image_file' => 'File ảnh không hợp lệ hoặc đã bị xóa.'])->withInput();
+                    }
                 } elseif (Str::contains($data['image_url'], 'google.com/imgres')) {
                     parse_str(parse_url($data['image_url'], PHP_URL_QUERY), $query);
                     $data['image_url'] = $query['imgurl'] ?? $data['image_url'];
                 } else {
-                    $data['image_url'] = null;
+                    $data['image_url'] = 'test.jpg';
                 }
             }
             Log::info('Image URL:', [$data['image_url']]);

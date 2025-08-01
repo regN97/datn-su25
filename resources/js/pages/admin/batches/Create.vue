@@ -50,6 +50,7 @@ interface PurchaseOrderItem {
     product_id: number;
     product_name: string;
     product_sku: string;
+    received_quantity: number;
     ordered_quantity: number;
     unit_cost: number;
     subtotal: number;
@@ -75,8 +76,12 @@ interface User {
 }
 
 interface SelectedProduct extends Product {
+    ordered_quantity: number;
+    available_quantity: number; // Số lượng còn lại có thể nhập
     quantity: number;
+    recievedQuantity: number;
     rejectedQuantity: number;
+    remainingQuantity?: number;
     rejectedReason?: string;
     total: number;
     purchaseOrderItemId?: number;
@@ -101,7 +106,10 @@ const props = withDefaults(defineProps<Props>(), {
         data: [],
         total: 0,
     }),
-    suppliers: () => []
+    purchase_orders: () => [],
+    purchase_order_items: () => [],
+    suppliers: () => [],
+    users: () => [],
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -311,24 +319,38 @@ function openQuantityModal(product: SelectedProduct) {
 function saveQuantity() {
     const product = selectedProducts.value.find((p) => p.id === editingProductId.value);
     if (product) {
-        product.quantity = editingQuantity.value;
-        product.rejectedQuantity = editingRejectedQuantity.value;
-        product.rejectedReason = editingRejectedReason.value; // Stored in front-end only
-        rejectedValue.value = product.rejectedQuantity * product.purchase_price;
-        product.total = product.quantity * product.purchase_price - rejectedValue.value;
+        // Kiểm tra với available_quantity thay vì ordered_quantity
+        const maxQuantity = props.purchaseOrder.status_id === 3 ? product.available_quantity : product.ordered_quantity;
 
-        if (product.rejectedQuantity > product.quantity) {
-            product.rejectedQuantity = 0;
-            editingRejectedQuantity.value = 0;
-            product.total = product.quantity * product.purchase_price;
-            return Swal.fire({
+        if (editingQuantity.value > maxQuantity) {
+            Swal.fire({
                 icon: 'error',
                 title: 'Lỗi',
-                text: 'Số lượng từ chối không được lớn hơn số lượng nhận',
+                text: `Số lượng nhập (${editingQuantity.value}) không được vượt quá số lượng còn lại cần nhập (${maxQuantity})`,
             });
+            return;
         }
+
+        if (editingRejectedQuantity.value > editingQuantity.value) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Số lượng từ chối không được lớn hơn số lượng nhập',
+            });
+            return;
+        }
+
+        product.quantity = editingQuantity.value;
+        product.rejectedQuantity = editingRejectedQuantity.value;
+        product.rejectedReason = editingRejectedReason.value;
+
+        // Tính lại giá trị rejected và tổng
+        rejectedValue.value = product.rejectedQuantity * product.purchase_price;
+        product.total = (product.quantity - product.rejectedQuantity) * product.purchase_price;
     }
     closeQuantityModal();
+
+    // Refresh data nếu cần
     router.get(
         route('admin.batches.add', { po_id: props.purchaseOrder.id }),
         {},
@@ -556,15 +578,24 @@ watch(paidAmount, (newValue) => {
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
     if (props.purchaseOrderItem && props.purchaseOrderItem.length > 0) {
-        selectedProducts.value = props.purchaseOrderItem.map((item) => ({
-            ...item.product,
-            quantity: item.ordered_quantity,
-            rejectedQuantity: (item as any).rejected_quantity || 0,
-            rejectedReason: (item as any).rejected_reason || '',
-            purchase_price: item.unit_cost,
-            total: item.subtotal,
-            purchaseOrderItemId: item.id,
-        }));
+        selectedProducts.value = props.purchaseOrderItem.map((item) => {
+            const availableQty = item.ordered_quantity - (item.received_quantity || 0);
+
+            return {
+                ...item.product,
+                ordered_quantity: item.ordered_quantity,
+                available_quantity: availableQty,
+                // Nếu status_id === 3 (partially received), quantity = available_quantity
+                quantity: props.purchaseOrder.status_id === 3 ? availableQty : item.ordered_quantity,
+                recievedQuantity: item.received_quantity || 0,
+                remainingQuantity: availableQty,
+                rejectedQuantity: 0,
+                rejectedReason: '',
+                purchase_price: item.unit_cost,
+                total: item.unit_cost * (props.purchaseOrder.status_id === 3 ? availableQty : item.ordered_quantity),
+                purchaseOrderItemId: item.id,
+            };
+        });
     }
 });
 
@@ -643,9 +674,19 @@ onUnmounted(() => {
                                                 </td>
                                                 <td class="w-[11%] text-center align-middle">
                                                     <div class="relative flex flex-col items-center justify-center">
-                                                        <button class="text-xs text-blue-600 hover:text-blue-800"
-                                                            @click="openQuantityModal(product)" type="button">
-                                                            {{ product.quantity }}
+
+                                                        <button
+                                                            class="text-xs text-blue-600 hover:text-blue-800"
+                                                            @click="openQuantityModal(product)"
+                                                            type="button"
+                                                        >
+                                                            {{ product.quantity }} /
+                                                            {{
+                                                                props.purchaseOrder.status_id === 3
+                                                                    ? product.available_quantity
+                                                                    : product.ordered_quantity
+                                                            }}
+
                                                         </button>
                                                         <div v-if="product.rejectedQuantity > 0" class="group relative">
                                                             <span
@@ -690,8 +731,8 @@ onUnmounted(() => {
                                                 <td
                                                     class="w-[10%] px-2 py-2 text-xs font-semibold whitespace-nowrap text-gray-900">
                                                     {{ formatPrice(product.total) }}
-                                                    <p v-if="product.rejectedQuantity > 0" class="mt-0.5 text-red-500">
-                                                        {{ formatPrice(rejectedValue) }}
+                                                    <p v-if="product.rejectedQuantity > 0" class="mt-0.5 text-xs text-red-500">
+                                                        -{{ formatPrice(product.rejectedQuantity * product.purchase_price) }}
                                                     </p>
                                                 </td>
                                             </tr>

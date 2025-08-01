@@ -7,7 +7,6 @@ const props = defineProps({
   onAddItem: Function,
   onSearch: Function,
   onCustomer: Function,
-  onDiscount: Function,
   onHoldOrder: Function,
   onReprint: Function,
   onDeleteItem: Function,
@@ -35,10 +34,6 @@ const handleKeyDown = (event) => {
     case 'f4':
       event.preventDefault();
       props.onCustomer?.();
-      break;
-    case 'f5':
-      event.preventDefault();
-      props.onDiscount?.();
       break;
     case 'f6':
       event.preventDefault();

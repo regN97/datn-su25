@@ -38,7 +38,7 @@ class PurchaseOrderController extends Controller
                         ->with('unit:id,name'); // Tải thông tin đơn vị và chỉ lấy id, name
                 });
             }
-        ])->get(); // Lấy tất cả các đơn hàng sau khi đã tải các mối quan hệ
+        ])->orderByDesc('created_at')->get(); // Lấy tất cả các đơn hàng sau khi đã tải các mối quan hệ
 
         return Inertia::render('admin/purchase_orders/Index')->with([
             'purchaseOrders' => $purchaseOrders,
@@ -72,7 +72,7 @@ class PurchaseOrderController extends Controller
 
         $products = ['data' => $query->get()];
 
-        $user = User::all();
+        $user = User::find(Auth::id())->toArray();
 
         return Inertia::render('admin/purchase_orders/Create', [
             'products' => $products,

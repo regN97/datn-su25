@@ -116,6 +116,7 @@ const po_products = ref<PurchaseOrderItem[]>(props.purchaseOrderItem.map(item =>
     ...item,
     received_quantity: item.received_quantity || 0
 })));
+
 const purchase_order = ref<PurchaseOrder[]>(props.purchaseOrder);
 
 function getStatusClass(status_id: number) {
@@ -387,12 +388,14 @@ function printOrder() {
                                                     Số lượng
                                                 </th>
                                                 <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                    Đã nhập
+                                                </th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                                                     Đơn giá
                                                 </th>
                                                 <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                                                     Thành tiền
                                                 </th>
-                                                <th class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-200 bg-white">
@@ -412,6 +415,9 @@ function printOrder() {
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap">
                                                     <span>{{ p.ordered_quantity }}</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span>{{ p.received_quantity }}</span>
                                                 </td>
                                                 <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                                     <span>{{ formatPrice(p.unit_cost) }}</span>

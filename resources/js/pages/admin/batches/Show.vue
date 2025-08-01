@@ -30,6 +30,7 @@ interface Batch {
   id: number;
   batch_number: string;
   purchase_order_id: number;
+  purchase_order?: PurchaseOrder | null;
   supplier_id: number | null;
   supplier?: Supplier | null;
   received_date: string;
@@ -99,6 +100,59 @@ interface Props {
   batch: Batch[];
   batchItem: BatchItem[];
 }
+
+interface POStatus {
+    id: number;
+    name: string;
+    code: string;
+};
+
+// Kiểu mới cho PurchaseOrderItem (các mặt hàng trong đơn đặt hàng)
+interface PurchaseOrderItem {
+    id: number;
+    purchase_order_id: number;
+    product_id: number;
+    product?: Product; // Mối quan hệ product, bao gồm cả unit
+    product_name: string;
+    product_sku: string;
+    ordered_quantity: number;
+    received_quantity: number;
+    quantity_returned: number; // Đã thêm
+    unit_cost: number;
+    subtotal: number;
+    discount_amount: number | null; // Có thể null
+    discount_type: 'percent' | 'amount' | null; // Có thể null
+    notes: string | null; // Đã thêm
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+};
+
+// Kiểu cho PurchaseOrder, đã cập nhật theo cấu trúc database mới
+interface PurchaseOrder {
+    id: number;
+    po_number: string;
+    supplier_id: number;
+    supplier?: Supplier;
+    status_id: number;
+    status?: POStatus;
+    order_date: string;
+    expected_delivery_date: string | null;
+    actual_delivery_date: string | null;
+    discount_amount: number | null;
+    discount_type: 'percent' | 'amount' | null;
+    total_amount: number;
+    created_by: number;
+    creator?: User;
+    approved_by: number | null;
+    approver?: User;
+    approved_at: string | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+    items?: PurchaseOrderItem[]; // Mảng các mặt hàng trong đơn đặt hàng
+};
 
 const props = withDefaults(defineProps<Props>(), {
   suppliers: () => [],
@@ -384,6 +438,7 @@ function cancelPayment() {
 function goBack() {
   router.visit(route('admin.batches.index'));
 }
+
 </script>
 
 <template>
@@ -627,8 +682,8 @@ function goBack() {
                     class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn nhập hàng</label>
-                  <input type="text" disabled :value="batchNumber"
+                  <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng</label>
+                  <input type="text" disabled :value="props.batch[0]?.purchase_order?.po_number"
                     class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
