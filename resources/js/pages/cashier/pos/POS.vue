@@ -1033,28 +1033,33 @@ const generateBankQR = async () => {
     bankQRCode.value = null;
     bankTransactionInfo.value = null;
 
-    try {
-        const qrData = `Ngân hàng: VIETCOMBANK\nSố tài khoản: 1234567890\nChủ tài khoản: G7 Mart\nSố tiền: ${cartTotal.value}\nNội dung: Thanh toán hóa đơn ${billNumber.value || 'HD' + Date.now()} tại G7 Mart`;
-        const qrCodeUrl = await QRCode.toDataURL(qrData, { width: 200, margin: 1 });
+      try {
+    const amount = cartTotal.value;
+    const billCode = billNumber.value || 'HD' + Date.now();
+    const description = `Thanh toan hoa don ${billCode}`;
+    const encodedDesc = encodeURIComponent(description);
+    const accountName = encodeURIComponent('Nguyen Van Huy');
 
-        bankQRCode.value = qrCodeUrl;
-        bankTransactionInfo.value = {
-            bankCode: 'VIETCOMBANK',
-            accountNo: '1234567890',
-            accountName: 'G7 Mart',
-            amount: cartTotal.value,
-            description: `Thanh toán hóa đơn ${billNumber.value || 'HD' + Date.now()} tại G7 Mart`,
-        };
-        successMessage.value = 'Mã QR ngân hàng đã được tạo!';
-        showSuccessModal.value = true;
-        autoHideMessage();
-    } catch (error) {
-        console.error('generateBankQR error:', error);
-        errorMessage.value = 'Lỗi khi tạo mã QR ngân hàng. Vui lòng thử lại.';
-        autoHideMessage();
-    } finally {
-        isLoadingBankQR.value = false;
-    }
+    const qrCodeUrl = `https://img.vietqr.io/image/MB-0986690271-compact2.png?amount=${amount}&addInfo=${encodedDesc}&accountName=${accountName}`;
+
+    bankQRCode.value = qrCodeUrl;
+    bankTransactionInfo.value = {
+        bankCode: 'MB',
+        accountNo: '0986690271',
+        accountName: 'Nguyễn Văn Huy',
+        amount,
+        description,
+    };
+    successMessage.value = 'Mã QR ngân hàng đã được tạo!';
+    showSuccessModal.value = true;
+    autoHideMessage();
+} catch (error) {
+    console.error('generateBankQR error:', error);
+    errorMessage.value = 'Lỗi khi tạo mã QR ngân hàng. Vui lòng thử lại.';
+    autoHideMessage();
+} finally {
+    isLoadingBankQR.value = false;
+}
 };
 // Cập nhật hàm confirmPayment để xử lý chuyển khoản ngân hàng
 const confirmPayment = async () => {
