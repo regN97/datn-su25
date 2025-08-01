@@ -10,19 +10,7 @@ class ProductSeeder extends Seeder
     public function run()
     {
         $products = [
-            [
-                'name' => 'Bánh quy Cosy Marie 200g',
-                'sku' => 'COS-001',
-                'barcode' => '8936001234567',
-                'description' => 'Bánh quy Cosy Marie vị bơ thơm ngon',
-                'category_id' => 1,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 25000,
-                'min_stock_level' => 50,
-                'max_stock_level' => 500,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
+            
             [
                 'name' => 'Kẹo dẻo Haribo Goldbears 100g',
                 'sku' => 'HRB-001',
@@ -34,7 +22,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 50,
                 'max_stock_level' => 500,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/HEEKFBrxy9efc1W00LcX352Wa3BfOdHhxfrklXC0.jpg'
             ],
 
             // Danh mục 2: Đồ ăn nhẹ
@@ -49,7 +37,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 100,
                 'max_stock_level' => 1000,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/4Ue4zAP627CIUHjkMuWeISgDBaV5gtYif0uiKZjK.jpg'
             ],
             [
                 'name' => 'Snack Oishi Vị Tôm 50g',
@@ -62,7 +50,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 100,
                 'max_stock_level' => 1000,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/U4TgPoOGKdFalurZYkf2eHUa6f4DKrgvjeN5hsm3.jpg'
             ],
 
             // Danh mục 3: Bánh kẹo
@@ -77,7 +65,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 200,
                 'max_stock_level' => 2000,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/OzQjLwWzsLcpz1oNQ4yQ3CKTCF55sFDfT74dk91k.jpg'
             ],
             [
                 'name' => 'Bánh Chocopie Orion 330g',
@@ -90,7 +78,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 50,
                 'max_stock_level' => 500,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/6ySCGkjQmPxALXsQVcCoJXG9AokhPqGUZsDIQiry.jpg'
             ],
 
             // Danh mục 4: Thực phẩm đông lạnh
@@ -105,7 +93,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 30,
                 'max_stock_level' => 300,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/DFBBzF7vit8r5HV87W4VBLRWXMCa6Y2pWvoZpwma.jpg'
             ],
             [
                 'name' => 'Chả cá basa 300g',
@@ -118,7 +106,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 30,
                 'max_stock_level' => 300,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/E0cvQez1zxqNoX4GzPwQXQMFr3jOlFvik1Tp7VLh.jpg'
             ],
 
             // Danh mục 5: Thực phẩm tươi sống
@@ -133,7 +121,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 10,
                 'max_stock_level' => 100,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/1GcIy3VJ9GDCBsoWS1nvUamEomEbNCZ8pUcv7ur7.jpg'
             ],
             [
                 'name' => 'Cá hồi phi lê 500g',
@@ -146,7 +134,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 10,
                 'max_stock_level' => 100,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/Bziot9fVb6Yu5nauNen7vwBJVEIwuJcCQswaJtil.jpg'
             ],
 
             // Danh mục 6: Rau củ quả
@@ -161,7 +149,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 50,
                 'max_stock_level' => 500,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/XLZno0ZsKVS61W4f3s5tPrSTyl8PCEfV2kK52HXB.jpg'
             ],
             [
                 'name' => 'Khoai tây Đà Lạt 1kg',
@@ -174,7 +162,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 50,
                 'max_stock_level' => 500,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/pj4HJJN9J2WxDlPK8jUfB9FtWudbBTGkoZR8a1sR.jpg'
             ],
 
             // Danh mục 7: Gia vị
@@ -189,7 +177,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 50,
                 'max_stock_level' => 500,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/ZAj7vy49nYG2CgiLBfHQUclH0gyRLNHXGbRZBgbS.jpg'
             ],
             [
                 'name' => 'Muối iod Tico 1kg',
@@ -202,7 +190,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 100,
                 'max_stock_level' => 1000,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/DRtuOcbOcgCBh1ZLHg76oshd2stIJdhqVWXMKx4m.jpg'
             ],
 
             // Danh mục 8: Dầu ăn
@@ -217,7 +205,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 50,
                 'max_stock_level' => 500,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/1eNU7afW3b2uXXjLjNBxGD6emrSyGtt6vP9j30qo.jpg'
             ],
             [
                 'name' => 'Dầu ô liu Borges 500ml',
@@ -230,7 +218,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 20,
                 'max_stock_level' => 200,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/E67YKH0e71wYhvhKJVrtR9LvhadXJDS4nCv8bm30.jpg'
             ],
 
             // Danh mục 9: Đồ uống có cồn
@@ -245,7 +233,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 100,
                 'max_stock_level' => 1000,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/PWmVKhI8O8LmqsXNS0Wd2TfgUADZD40RJh0C2if0.jpg'
             ],
             [
                 'name' => 'Rượu vang đỏ Chile 750ml',
@@ -258,7 +246,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 20,
                 'max_stock_level' => 200,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/iF6jLG2gg0J1JYGGyC8lpX2ayBHO22nHXVOVf9Mf.jpg'
             ],
 
             // Danh mục 10: Sản phẩm chăm sóc cá nhân
@@ -273,7 +261,7 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 30,
                 'max_stock_level' => 300,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/epv34MoIDlcJSzC1osTZ45Zim0lSf9Lku2rPfEn1.jpg'
             ],
             [
                 'name' => 'Dầu gội Head & Shoulders 650ml',
@@ -286,344 +274,11 @@ class ProductSeeder extends Seeder
                 'min_stock_level' => 30,
                 'max_stock_level' => 300,
                 'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
+                'image_url' => '/storage/product_images/O1BQrhuT1CRd5zCoPkChyVrsx5XUK5pBw9HF78HC.jpg'
             ],
 
             // Danh mục 11: Nước giải khát
-            [
-                'name' => 'Coca Cola Original 330ml',
-                'sku' => 'CCL-001',
-                'barcode' => '8935001234567',
-                'description' => 'Nước giải khát có ga Coca Cola lon 330ml',
-                'category_id' => 11,
-                'unit_id' => 7, // Lon
-                'selling_price' => 10000,
-                'min_stock_level' => 100,
-                'max_stock_level' => 1000,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Pepsi Black Lime 330ml',
-                'sku' => 'PBL-001',
-                'barcode' => '8935002345678',
-                'description' => 'Nước giải khát có ga Pepsi không đường hương chanh lon 330ml',
-                'category_id' => 11,
-                'unit_id' => 7, // Lon
-                'selling_price' => 10000,
-                'min_stock_level' => 100,
-                'max_stock_level' => 1000,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 12: Nước suối & Nước khoáng
-            [
-                'name' => 'Nước khoáng LaVie 500ml',
-                'sku' => 'LV-001',
-                'barcode' => '8935008901234',
-                'description' => 'Nước khoáng thiên nhiên LaVie',
-                'category_id' => 12,
-                'unit_id' => 1, // Chai
-                'selling_price' => 5000,
-                'min_stock_level' => 200,
-                'max_stock_level' => 2000,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Nước suối Aquafina 500ml',
-                'sku' => 'AQF-001',
-                'barcode' => '8935008901241',
-                'description' => 'Nước suối tinh khiết Aquafina',
-                'category_id' => 12,
-                'unit_id' => 1, // Chai
-                'selling_price' => 6000,
-                'min_stock_level' => 200,
-                'max_stock_level' => 2000,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 13: Cà phê & Trà
-            [
-                'name' => 'Cà phê Trung Nguyên Sáng tạo 2',
-                'sku' => 'TNST2-001',
-                'barcode' => '8935009012345',
-                'description' => 'Cà phê bột Trung Nguyên Sáng tạo 2 340g',
-                'category_id' => 13,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 65000,
-                'min_stock_level' => 30,
-                'max_stock_level' => 300,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Trà xanh C2 500ml',
-                'sku' => 'C2T-001',
-                'barcode' => '8935009012352',
-                'description' => 'Trà xanh C2 vị tự nhiên, đóng chai tiện lợi',
-                'category_id' => 13,
-                'unit_id' => 1, // Chai
-                'selling_price' => 8000,
-                'min_stock_level' => 100,
-                'max_stock_level' => 1000,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 14: Mì & Phở ăn liền
-            [
-                'name' => 'Mì Hảo Hảo Tôm Chua Cay 75g',
-                'sku' => 'MHH-001',
-                'barcode' => '8934563138165',
-                'description' => 'Mì ăn liền Hảo Hảo hương vị tôm chua cay đặc trưng',
-                'category_id' => 14,
-                'unit_id' => 2, // Gói
-                'selling_price' => 4000,
-                'min_stock_level' => 100,
-                'max_stock_level' => 1000,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Phở Gà Vifon Bowl 120g',
-                'sku' => 'PVF-001',
-                'barcode' => '8934563212458',
-                'description' => 'Phở ăn liền hương vị gà, kèm gói gia vị và rau thơm',
-                'category_id' => 14,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 15000,
-                'min_stock_level' => 50,
-                'max_stock_level' => 500,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 15: Đồ hộp & Chế biến
-            [
-                'name' => 'Cá hộp 3 Cô Gái 180g',
-                'sku' => '3CG-001',
-                'barcode' => '8935006789012',
-                'description' => 'Cá thu sốt cà chua đóng hộp',
-                'category_id' => 15,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 32000,
-                'min_stock_level' => 50,
-                'max_stock_level' => 300,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Thịt hộp Spam 340g',
-                'sku' => 'SPM-001',
-                'barcode' => '8935006789029',
-                'description' => 'Thịt hộp Spam nhập khẩu, tiện lợi',
-                'category_id' => 15,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 75000,
-                'min_stock_level' => 50,
-                'max_stock_level' => 300,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 16: Gạo & Ngũ cốc
-            [
-                'name' => 'Gạo ST25 5kg',
-                'sku' => 'ST25-001',
-                'barcode' => '8935005678901',
-                'description' => 'Gạo ST25 - Gạo ngon nhất thế giới năm 2019',
-                'category_id' => 16,
-                'unit_id' => 4, // Kg
-                'selling_price' => 180000,
-                'min_stock_level' => 20,
-                'max_stock_level' => 200,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Yến mạch Quaker 1kg',
-                'sku' => 'QKR-001',
-                'barcode' => '8935005678918',
-                'description' => 'Yến mạch Quaker nguyên cám, tốt cho sức khỏe',
-                'category_id' => 16,
-                'unit_id' => 2, // Gói
-                'selling_price' => 65000,
-                'min_stock_level' => 20,
-                'max_stock_level' => 200,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 17: Sữa bột & Dinh dưỡng
-            [
-                'name' => 'Sữa Ensure Gold 850g',
-                'sku' => 'EG-001',
-                'barcode' => '8935003456789',
-                'description' => 'Sữa bột dinh dưỡng Ensure Gold dành cho người lớn tuổi',
-                'category_id' => 17,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 675000,
-                'min_stock_level' => 10,
-                'max_stock_level' => 100,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Sữa Pediasure 900g',
-                'sku' => 'PDS-001',
-                'barcode' => '8935003456796',
-                'description' => 'Sữa bột Pediasure hỗ trợ phát triển trẻ em',
-                'category_id' => 17,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 720000,
-                'min_stock_level' => 10,
-                'max_stock_level' => 100,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 18: Tã & Khăn ướt
-            [
-                'name' => 'Tã Bobby Fresh L54',
-                'sku' => 'BBF-001',
-                'barcode' => '8935007890123',
-                'description' => 'Tã quần Bobby Fresh size L 54 miếng',
-                'category_id' => 18,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 280000,
-                'min_stock_level' => 20,
-                'max_stock_level' => 200,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Khăn ướt Huggies 80 miếng',
-                'sku' => 'HGS-001',
-                'barcode' => '8935007890130',
-                'description' => 'Khăn ướt Huggies an toàn cho da bé',
-                'category_id' => 18,
-                'unit_id' => 2, // Gói
-                'selling_price' => 35000,
-                'min_stock_level' => 50,
-                'max_stock_level' => 500,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 19: Sản phẩm vệ sinh
-            [
-                'name' => 'Nước rửa chén Sunlight 1L',
-                'sku' => 'SNL-001',
-                'barcode' => '8936011234567',
-                'description' => 'Nước rửa chén Sunlight hương chanh sạch bóng',
-                'category_id' => 19,
-                'unit_id' => 1, // Chai
-                'selling_price' => 40000,
-                'min_stock_level' => 50,
-                'max_stock_level' => 500,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Bột giặt Omo 3kg',
-                'sku' => 'OMO-001',
-                'barcode' => '8936011234574',
-                'description' => 'Bột giặt Omo sạch sâu, thơm lâu',
-                'category_id' => 19,
-                'unit_id' => 2, // Gói
-                'selling_price' => 110000,
-                'min_stock_level' => 30,
-                'max_stock_level' => 300,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 20: Vitamin & TPCN
-            [
-                'name' => 'Centrum Adults 30 viên',
-                'sku' => 'CTA-001',
-                'barcode' => '8935004567890',
-                'description' => 'Vitamin tổng hợp cho người trưởng thành',
-                'category_id' => 20,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 220000,
-                'min_stock_level' => 20,
-                'max_stock_level' => 200,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Dầu cá Omega-3 Fish Oil 100 viên',
-                'sku' => 'FO3-001',
-                'barcode' => '8935004567906',
-                'description' => 'Dầu cá Omega-3 hỗ trợ sức khỏe tim mạch',
-                'category_id' => 20,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 180000,
-                'min_stock_level' => 20,
-                'max_stock_level' => 200,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 21: Đồ dùng gia đình
-            [
-                'name' => 'Chổi quét nhà Lock&Lock',
-                'sku' => 'LNL-001',
-                'barcode' => '8936012345678',
-                'description' => 'Chổi quét nhà Lock&Lock bền, tiện dụng',
-                'category_id' => 21,
-                'unit_id' => 1, // Cái
-                'selling_price' => 65000,
-                'min_stock_level' => 20,
-                'max_stock_level' => 200,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Thùng rác nhựa 20L',
-                'sku' => 'TRC-001',
-                'barcode' => '8936012345685',
-                'description' => 'Thùng rác nhựa 20L có nắp tiện lợi',
-                'category_id' => 21,
-                'unit_id' => 1, // Cái
-                'selling_price' => 120000,
-                'min_stock_level' => 10,
-                'max_stock_level' => 100,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 22: Đồ chơi & Sản phẩm cho bé
-            [
-                'name' => 'Bộ đồ chơi xếp hình Lego 100 chi tiết',
-                'sku' => 'LGO-001',
-                'barcode' => '8936013456789',
-                'description' => 'Bộ xếp hình Lego phát triển trí tuệ cho bé',
-                'category_id' => 22,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 250000,
-                'min_stock_level' => 20,
-                'max_stock_level' => 200,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Sữa tắm Johnson’s Baby 500ml',
-                'sku' => 'JSB-001',
-                'barcode' => '8936013456796',
-                'description' => 'Sữa tắm Johnson’s Baby dịu nhẹ cho bé',
-                'category_id' => 22,
-                'unit_id' => 1, // Chai
-                'selling_price' => 85000,
-                'min_stock_level' => 30,
-                'max_stock_level' => 300,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
+            
         ];
         foreach ($products as $product) {
             $product['stock_quantity'] = rand($product['min_stock_level'], $product['max_stock_level']);
