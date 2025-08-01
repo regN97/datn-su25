@@ -48,6 +48,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('suppliers', SupplierController::class);
 
     // Purchase
+    Route::patch('/purchaseReturn/{purchaseReturn}/complete', [PurchaseReturnController::class, 'complete'])->name('purchaseReturn.complete');
+
     Route::resource('purchaseReturn', PurchaseReturnController::class);
 
 

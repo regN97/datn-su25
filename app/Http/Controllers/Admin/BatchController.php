@@ -438,7 +438,7 @@ class BatchController extends Controller
         } elseif ($paymentStatus === 'partially_paid') {
             $newReceiptStatus = 'partially_received';
         }
-        
+
         Log::info('Received paid_amount:', [
             'raw' => $request->input('paid_amount'),
             'converted' => (float) str_replace('.', '', $request->paid_amount)

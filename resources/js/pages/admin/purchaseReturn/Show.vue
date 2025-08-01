@@ -2,33 +2,40 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
 import { type BreadcrumbItem } from '@/types'
-import { PencilLine } from 'lucide-vue-next';
+import { PencilLine, Printer } from 'lucide-vue-next';
+import { ref } from 'vue';
 
-defineProps<{
-    purchaseReturn: {
-        return_number: string
-        id: number; // Add ID here as you use it in goToEdit(purchaseReturn.id)
-        purchase_order_code: string
-        supplier_name: string
+// Define the PurchaseReturn type, now with ref
+interface PurchaseReturn {
+    return_number: string
+    id: number
+    purchase_order_code: string
+    supplier_name: string
+    reason: string | null
+    return_date: string
+    status: 'pending' | 'approved' | 'completed' | 'rejected'
+    created_by: string
+    total_items_returned: number
+    total_value_returned: number
+    items: {
+        product_name: string
+        batch_number: string
+        product_sku: string
+        manufacturing_date: string | null
+        expiry_date: string | null
+        quantity_returned: number
+        unit_cost: number
+        subtotal: number
         reason: string | null
-        return_date: string
-        status: string
-        created_by: string
-        total_items_returned: number
-        total_value_returned: number
-        items: {
-            product_name: string
-            batch_number: string
-            product_sku: string
-            manufacturing_date: string | null
-            expiry_date: string | null
-            quantity_returned: number
-            unit_cost: number
-            subtotal: number
-            reason: string | null
-        }[]
-    }
+    }[]
+}
+
+const props = defineProps<{
+    purchaseReturn: PurchaseReturn
 }>()
+
+// Use ref to make the purchaseReturn object reactive
+const currentPurchaseReturn = ref<PurchaseReturn>(props.purchaseReturn);
 
 const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -51,15 +58,15 @@ const formatCurrency = (value: number | null): string => {
 const statusTextClass = (status: string) => {
     switch (status.toLowerCase()) {
         case 'rejected':
-            return 'text-red-500'
+            return 'text-red-500 bg-red-100'
         case 'approved':
-            return 'text-blue-500'
+            return 'text-blue-500 bg-blue-100'
         case 'pending':
-            return 'text-amber-500'
+            return 'text-amber-500 bg-amber-100'
         case 'completed':
-            return 'text-green-500'
+            return 'text-green-500 bg-green-100'
         default:
-            return 'text-gray-500'
+            return 'text-gray-500 bg-gray-100'
     }
 }
 
@@ -70,7 +77,7 @@ const translateStatus = (status: string) => {
         case 'approved':
             return 'Đã duyệt'
         case 'completed':
-            return 'Hoàn tất'
+            return 'Hoàn thành'
         case 'rejected':
             return 'Từ chối'
         default:
@@ -81,7 +88,8 @@ const translateStatus = (status: string) => {
 function goToIndex() {
     router.visit('/admin/purchaseReturn')
 }
-function goToEdit(id: number) { // Make sure ID is number as per your prop definition
+
+function goToEdit(id: number) {
     router.visit(`/admin/purchaseReturn/${id}/edit`)
 }
 
@@ -89,117 +97,158 @@ function printReturn() {
     window.print();
 }
 
+// New function to handle the status change
+function completePurchaseReturn() {
+    if (confirm('Bạn có chắc chắn muốn gửi yêu cầu và hoàn thành phiếu trả hàng này không?')) {
+        // Now we make the actual API call
+        router.patch(route('admin.purchaseReturn.complete', currentPurchaseReturn.value.id), {}, {
+            onSuccess: () => {
+                // Update the status on the frontend after successful API call
+                currentPurchaseReturn.value.status = 'completed';
+                alert('Phiếu trả hàng đã được câp nhật thành công.');
+            },
+            onError: (errors) => {
+                console.error('Lỗi khi cập nhật trạng thái:', errors);
+                alert('Có lỗi xảy ra khi cập nhật trạng thái phiếu trả hàng.');
+            }
+        });
+    }
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Quản lý phiếu trả hàng',
         href: '/admin/purchaseReturn',
     },
+    {
+        title: `Phiếu ${currentPurchaseReturn.value.return_number}`,
+        href: '#',
+    },
 ]
 </script>
 
 <template>
-
     <Head title="Chi tiết phiếu trả hàng" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-1 flex-col gap-6 rounded-2xl p-8 bg-gray-50 min-h-screen no-print">
-            <div class="bg-white border border-gray-200 rounded-2xl shadow-md p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h1 class="text-2xl font-bold text-gray-800 border-l-4 border-blue-500 pl-4">
-                        Chi tiết phiếu trả hàng
-                    </h1>
-                    <div class="flex items-center gap-2 mt-4">
-                        <button v-if="purchaseReturn.status.toLowerCase() !== 'completed'"
-                            @click="goToEdit(purchaseReturn.id)"
-                            class="flex items-center gap-1 text-sm text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-xl transition">
-                            <PencilLine class="h-4 w-4" />
-                            Sửa đơn
-                        </button>
-                        <button @click="printReturn"
-                            class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition"
-                            title="In đơn">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-500" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M6 9V4a2 2 0 012-2h8a2 2 0 012 2v5M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-6 0h4" />
-                            </svg>
-                            <span>In phiếu</span>
-                        </button>
-                        <button @click="goToIndex"
-                            class="flex items-center gap-1 px-4 py-2 text-sm text-gray-700 border border-gray-300 bg-white hover:bg-gray-100 rounded-lg transition">
-                            🔙 Quay lại danh sách
-                        </button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm space-y-2">
-                        <p><strong>Mã phiếu trả hàng:</strong> {{ purchaseReturn.return_number }}</p>
-                        <p><strong>Mã đơn đặt hàng:</strong> {{ purchaseReturn.purchase_order_code }}</p>
-                        <p><strong>Nhà cung cấp:</strong> {{ purchaseReturn.supplier_name }}</p>
-                        <p><strong>Lý do trả hàng:</strong> {{ purchaseReturn.reason || 'Không có' }}</p>
-                    </div>
-                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm space-y-2">
-                        <p><strong>Ngày trả hàng:</strong> {{ formatDate(purchaseReturn.return_date) }}</p>
-                        <p>
-                            <strong>Trạng thái:</strong>
-                            <span class="inline-block font-medium text-base px-3 py-1 rounded"
-                                :class="statusTextClass(purchaseReturn.status)">
-                                {{ translateStatus(purchaseReturn.status) }}
-                            </span>
-                        </p>
-                        <p><strong>Người tạo phiếu:</strong> {{ purchaseReturn.created_by }}</p>
-                    </div>
-                </div>
-
-                <div class="mb-8">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Danh sách sản phẩm</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm border-separate border-spacing-y-3">
-                            <thead class="bg-blue-50 text-gray-700 uppercase font-semibold">
-                                <tr>
-                                    <th class="px-6 py-4 text-left">Tên sản phẩm</th>
-                                    <th class="px-6 py-4 text-left">Mã lô</th>
-                                    <th class="px-6 py-4 text-left">Mã SKU</th>
-                                    <th class="px-6 py-4 text-left">NSX</th>
-                                    <th class="px-6 py-4 text-left">HSD</th>
-                                    <th class="px-6 py-4 text-center">Số lượng</th>
-                                    <th class="px-6 py-4 text-right">Đơn giá</th>
-                                    <th class="px-6 py-4 text-right">Tổng tiền</th>
-                                    <th class="px-6 py-4 text-left">Lý do trả</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="item in purchaseReturn.items" :key="item.product_sku"
-                                    class="bg-white border border-gray-200 rounded-lg shadow-sm">
-                                    <td class="px-6 py-4 rounded-l-lg">{{ item.product_name }}</td>
-                                    <td class="px-6 py-4">{{ item.batch_number }}</td>
-                                    <td class="px-6 py-4">{{ item.product_sku }}</td>
-                                    <td class="px-6 py-4">{{ item.manufacturing_date ?
-                                        formatDate(item.manufacturing_date) : '—' }}</td>
-                                    <td class="px-6 py-4">{{ item.expiry_date ? formatDate(item.expiry_date) : '—' }}
-                                    </td>
-                                    <td class="px-6 py-4 text-center">{{ item.quantity_returned }}</td>
-                                    <td class="px-6 py-4 text-right">{{ formatCurrency(item.unit_cost) }}</td>
-                                    <td class="px-6 py-4 text-right">{{ formatCurrency(item.subtotal) }}</td>
-                                    <td class="px-6 py-4 rounded-r-lg">{{ item.reason || '—' }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="flex flex-col md:flex-row justify-between text-gray-800 font-semibold mb-6">
-                    <p>Tổng số sản phẩm trả: {{ purchaseReturn.total_items_returned }}</p>
-                    <p>Tổng giá trị trả lại: {{ formatCurrency(purchaseReturn.total_value_returned) }}</p>
-                </div>
-
-                <div class="flex gap-4">
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                        Gửi yêu cầu
+            <div class="flex items-center justify-between mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    Chi tiết phiếu trả hàng
+                    <span class="text-gray-500 font-medium">{{ currentPurchaseReturn.return_number }}</span>
+                </h1>
+                <div class="flex items-center gap-2">
+                    <button
+                        class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100 transition"
+                        title="In đơn" @click="printReturn">
+                        <Printer class="w-4 h-4" />
+                        <span>In phiếu</span>
                     </button>
-                    <button class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
-                        Xoá
+                    <button v-if="currentPurchaseReturn.status === 'pending'"
+                        @click="goToEdit(currentPurchaseReturn.id)"
+                        class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100 transition">
+                        <PencilLine class="h-4 w-4" />
+                        <span>Sửa đơn</span>
                     </button>
+                    <button @click="goToIndex"
+                        class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100 transition">
+                        <span>Quay lại</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="col-span-2 space-y-6">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Thông tin chung</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                            <div>
+                                <p class="mb-1"><strong>Mã phiếu trả hàng:</strong> <span class="font-medium">{{
+                                    currentPurchaseReturn.return_number }}</span></p>
+                                <p class="mb-1"><strong>Mã đơn đặt hàng:</strong> <span class="font-medium">{{
+                                    currentPurchaseReturn.purchase_order_code }}</span></p>
+                                <p class="mb-1"><strong>Nhà cung cấp:</strong> <span class="font-medium">{{
+                                    currentPurchaseReturn.supplier_name }}</span></p>
+                                <p class="mb-1"><strong>Lý do trả hàng:</strong> <span class="font-medium">{{
+                                    currentPurchaseReturn.reason || 'Không có' }}</span></p>
+                            </div>
+                            <div>
+                                <p class="mb-1"><strong>Ngày trả hàng:</strong> <span class="font-medium">{{
+                                    formatDate(currentPurchaseReturn.return_date) }}</span></p>
+                                <p class="mb-1"><strong>Trạng thái:</strong>
+                                    <span class="inline-block font-medium px-3 py-1 rounded-full text-xs"
+                                        :class="statusTextClass(currentPurchaseReturn.status)">
+                                        {{ translateStatus(currentPurchaseReturn.status) }}
+                                    </span>
+                                </p>
+                                <p class="mb-1"><strong>Người tạo phiếu:</strong> <span class="font-medium">{{
+                                    currentPurchaseReturn.created_by }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Danh sách sản phẩm</h2>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-gray-50 text-gray-600 uppercase font-semibold">
+                                    <tr class="border-b">
+                                        <th class="px-4 py-3 text-left">Tên sản phẩm</th>
+                                        <th class="px-4 py-3 text-left">Mã lô</th>
+                                        <th class="px-4 py-3 text-left">Mã SKU</th>
+                                        <th class="px-4 py-3 text-left">NSX</th>
+                                        <th class="px-4 py-3 text-left">HSD</th>
+                                        <th class="px-4 py-3 text-center">SL</th>
+                                        <th class="px-4 py-3 text-right">Đơn giá</th>
+                                        <th class="px-4 py-3 text-right">Tổng tiền</th>
+                                        <th class="px-4 py-3 text-left">Lý do</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    <tr v-for="item in currentPurchaseReturn.items" :key="item.product_sku"
+                                        class="hover:bg-gray-50 transition-colors">
+                                        <td class="px-4 py-3 font-medium">{{ item.product_name }}</td>
+                                        <td class="px-4 py-3">{{ item.batch_number }}</td>
+                                        <td class="px-4 py-3">{{ item.product_sku }}</td>
+                                        <td class="px-4 py-3">{{ item.manufacturing_date ?
+                                            formatDate(item.manufacturing_date) : '—' }}</td>
+                                        <td class="px-4 py-3">{{ item.expiry_date ? formatDate(item.expiry_date) : '—' }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center">{{ item.quantity_returned }}</td>
+                                        <td class="px-4 py-3 text-right">{{ formatCurrency(item.unit_cost) }}</td>
+                                        <td class="px-4 py-3 text-right">{{ formatCurrency(item.subtotal) }}</td>
+                                        <td class="px-4 py-3">{{ item.reason || '—' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-1 space-y-6">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Tổng kết</h2>
+                        <div class="space-y-2 text-sm">
+                            <p class="flex justify-between items-center text-gray-600">
+                                <span>Tổng số sản phẩm trả:</span>
+                                <span class="font-medium text-gray-800">{{ currentPurchaseReturn.total_items_returned
+                                    }}</span>
+                            </p>
+                            <p class="flex justify-between items-center font-bold text-lg text-blue-600 border-t pt-4 mt-4">
+                                <span>Tổng giá trị trả lại:</span>
+                                <span>{{ formatCurrency(currentPurchaseReturn.total_value_returned) }}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6" v-if="currentPurchaseReturn.status === 'pending'">
+                        <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Hành động</h2>
+                        <div class="flex flex-col gap-3">
+                            <button @click="completePurchaseReturn"
+                                class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition">
+                                Gửi yêu cầu và hoàn thành
+                            </button>
+
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -210,13 +259,13 @@ const breadcrumbs: BreadcrumbItem[] = [
                     <h1 class="receipt-title">PHIẾU TRẢ HÀNG</h1>
                 </div>
                 <div class="receipt-details">
-                    <p><strong>Mã phiếu trả:</strong> {{ purchaseReturn.return_number }}</p>
-                    <p><strong>Mã đơn ĐH:</strong> {{ purchaseReturn.purchase_order_code }}</p>
-                    <p><strong>Ngày giờ trả:</strong> {{ formatDateTimeForPrint(purchaseReturn.return_date) }}</p>
-                    <p><strong>Nhà cung cấp:</strong> {{ purchaseReturn.supplier_name }}</p>
-                    <p><strong>Người tạo phiếu:</strong> {{ purchaseReturn.created_by }}</p>
-                    <p><strong>Trạng thái:</strong> {{ translateStatus(purchaseReturn.status) }}</p>
-                    <p><strong>Lý do trả:</strong> {{ purchaseReturn.reason || 'Không có' }}</p>
+                    <p><strong>Mã phiếu trả:</strong> {{ currentPurchaseReturn.return_number }}</p>
+                    <p><strong>Mã đơn ĐH:</strong> {{ currentPurchaseReturn.purchase_order_code }}</p>
+                    <p><strong>Ngày giờ trả:</strong> {{ formatDateTimeForPrint(currentPurchaseReturn.return_date) }}</p>
+                    <p><strong>Nhà cung cấp:</strong> {{ currentPurchaseReturn.supplier_name }}</p>
+                    <p><strong>Người tạo phiếu:</strong> {{ currentPurchaseReturn.created_by }}</p>
+                    <p><strong>Trạng thái:</strong> {{ translateStatus(currentPurchaseReturn.status) }}</p>
+                    <p><strong>Lý do trả:</strong> {{ currentPurchaseReturn.reason || 'Không có' }}</p>
                 </div>
 
                 <table class="receipt-table">
@@ -230,7 +279,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(item, index) in purchaseReturn.items" :key="item.product_sku">
+                        <tr v-for="(item, index) in currentPurchaseReturn.items" :key="item.product_sku">
                             <td style="text-align: center;">{{ index + 1 }}</td>
                             <td style="text-align: left;">{{ item.product_name }}</td>
                             <td style="text-align: center;">{{ item.quantity_returned }}</td>
@@ -241,9 +290,9 @@ const breadcrumbs: BreadcrumbItem[] = [
                 </table>
 
                 <div class="receipt-summary">
-                    <p><strong>Tổng SL trả:</strong> <span>{{ purchaseReturn.total_items_returned }}</span></p>
+                    <p><strong>Tổng SL trả:</strong> <span>{{ currentPurchaseReturn.total_items_returned }}</span></p>
                     <p class="total-line"><strong>Tổng giá trị trả:</strong> <span>{{
-                        formatCurrency(purchaseReturn.total_value_returned) }}</span></p>
+                        formatCurrency(currentPurchaseReturn.total_value_returned) }}</span></p>
                 </div>
 
                 <div class="receipt-footer">
@@ -257,12 +306,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 /* Base styles for screen (hide print-only content) */
 .no-print {
     display: block;
-    /* Mặc định hiển thị trên màn hình */
 }
 
 .print-only {
     display: none;
-    /* Mặc định ẩn trên màn hình */
 }
 
 /* Styles to hide main content when printing and show print-only content */
@@ -275,16 +322,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         -webkit-print-color-adjust: exact;
     }
 
-    /* Ẩn tất cả nội dung không phải là print-only */
     body>*:not(.print-only) {
-        display: none !important;
-    }
-
-    /* Ẩn cụ thể phần breadcrumbs nếu cần (điều chỉnh selector nếu nó không phải là con trực tiếp của body) */
-    /* Giả định breadcrumbs nằm trong một nav bên trong AppLayout. Bạn có thể cần điều chỉnh selector này */
-    /* Dựa trên cấu trúc HTML thực tế của AppLayout của bạn để đảm bảo nó được ẩn */
-    .app-layout-main-content nav {
-        /* Đây là một selector giả định, bạn cần kiểm tra HTML của AppLayout.vue */
         display: none !important;
     }
 
@@ -303,7 +341,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 
     .receipt-container {
         width: 78mm;
-        /* Chiều rộng giấy in nhiệt phổ biến */
         max-width: 78mm;
         margin: 0 auto;
         padding: 8mm 5mm;
@@ -316,12 +353,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     .receipt-header {
         text-align: center;
         margin-bottom: 18px;
-    }
-
-    .receipt-logo {
-        max-width: 80px;
-        height: auto;
-        margin-bottom: 10px;
     }
 
     .receipt-title {
@@ -366,39 +397,32 @@ const breadcrumbs: BreadcrumbItem[] = [
         text-align: center;
     }
 
-    /* Column specific alignments for receipt table */
     .receipt-table th:nth-child(1),
     .receipt-table td:nth-child(1) {
-        /* STT */
         text-align: center;
     }
 
     .receipt-table th:nth-child(2),
     .receipt-table td:nth-child(2) {
-        /* Tên SP */
         text-align: left;
         padding-left: 2px;
     }
 
     .receipt-table th:nth-child(3),
     .receipt-table td:nth-child(3) {
-        /* SL */
         text-align: center;
     }
 
     .receipt-table th:nth-child(4),
     .receipt-table td:nth-child(4) {
-        /* Đơn giá */
         text-align: right;
     }
 
     .receipt-table th:nth-child(5),
     .receipt-table td:nth-child(5) {
-        /* Thành tiền */
         text-align: right;
         padding-right: 2px;
     }
-
 
     .receipt-summary {
         text-align: right;

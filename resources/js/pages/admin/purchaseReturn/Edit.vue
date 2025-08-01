@@ -69,7 +69,7 @@ const formatDate = (dateString: string, includeTime: boolean = false) => {
 
 
 function goToBatchDetails(id: number) {
-   router.visit(`admin/batches/${id}`);
+    router.visit(`admin/batches/${id}`);
 
 }
 
@@ -134,7 +134,9 @@ function getImage(url?: string | null) {
     // Nếu chỉ là tên file thì thêm /storage phía trước
     return `/storage/${url}`;
 }
-
+function goBack() {
+    router.visit(route('admin.purchaseReturn.show', purchaseReturnData.value.id));
+}
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Quản lý phiếu trả hàng',
@@ -150,14 +152,17 @@ const breadcrumbs: BreadcrumbItem[] = [
         <div class="p-6 bg-gray-50 min-h-screen grid grid-cols-3 gap-6 pb-20">
             <div class="col-span-2 space-y-6">
                 <div class="flex items-center text-xl font-semibold text-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor" class="size-6 mr-2 cursor-pointer"
-                        @click="() => router.visit(route('admin.purchaseReturn.index'))">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                    </svg>
+                    <button @click="goBack" class="flex h-10 w-10 items-center justify-center rounded-full text-gray-600
+               hover:bg-gray-100 hover:text-gray-800 transition-all duration-200 ease-in-out
+               focus:outline-none focus:ring-2 focus:ring-gray-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                    </button>
                     <span class="text-gray-900">{{ purchaseReturnData.return_number }}</span>
                     <span class="text-gray-400 ml-2 text-base">
-                        {{ formatDate(purchaseReturnData.return_date, true) }}
+                        {{ formatDate(purchaseReturnData.return_date) }}
                     </span>
                 </div>
 

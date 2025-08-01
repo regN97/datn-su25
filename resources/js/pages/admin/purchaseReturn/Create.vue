@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, router } from '@inertiajs/vue3'
-import { ref, computed, watch } from 'vue'
-import { type BreadcrumbItem } from '@/types'
+import AppLayout from '@/layouts/AppLayout.vue';
+import { Head, router } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { type BreadcrumbItem } from '@/types';
+import Swal from 'sweetalert2'; // <--- Dòng này đã được thêm vào
 
 // Define props
 const props = defineProps<{
@@ -21,47 +22,40 @@ const props = defineProps<{
             quantity_received: number;
             unit_cost: number;
             product_image_url?: string | null;
+            batch_id?: number | null;
+            purchase_order_item_id?: number | null;
+            reason?: string | null;
+            batch_number?: string | null;
+            manufacturing_date?: string | null;
+            expiry_date?: string | null;
         }[];
     } | null;
     currentLocationName: string;
     error?: string;
-}>()
+}>();
 
 // Data for the return form
 const returnForm = ref({
     purchase_order_id: props.purchaseOrder?.id || null,
     return_order_code: props.purchaseOrder ? `TRA-${props.purchaseOrder.code}` : '',
     reason: '',
-    return_items: props.purchaseOrder?.items.map(item => ({
-        product_id: item.product_id,
-        batch_id: item.batch_id ?? null,
-        purchase_order_item_id: item.purchase_order_item_id ?? null, // BỔ SUNG DÒNG NÀY
-        product_name: item.product_name,
-        product_sku: item.product_sku,
-        product_image_url: item.product_image_url,
-        quantity_to_return: 0,
-        max_quantity_can_return: item.quantity_received,
-        unit_cost: item.unit_cost,
-    })) || [],
+    return_items: [] as any[],
     additional_cost: 0,
     deduction: 0,
     tags: [] as string[],
-})
-
+});
 
 const formatMoney = (amount: number) => {
     return amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
-}
+};
 
-// Get image
 const getImage = (url?: string | null) => {
     if (!url) return '/apple-touch-icon.png';
     if (url.startsWith('http')) return url;
     if (url.startsWith('/storage')) return url;
     return `/storage/${url}`;
-}
+};
 
-// Compute total return value and total refund value
 const totalReturnProductValue = computed(() => {
     return returnForm.value.return_items.reduce((sum, item) => {
         return sum + (item.quantity_to_return * item.unit_cost);
@@ -72,7 +66,6 @@ const totalRefundValue = computed(() => {
     return totalReturnProductValue.value - returnForm.value.additional_cost - returnForm.value.deduction;
 });
 
-// Logic for Cancel and Create Return Order buttons
 const cancelReturn = () => {
     if (confirm('Bạn có chắc muốn hủy tạo đơn trả hàng? Các thay đổi sẽ không được lưu.')) {
         router.visit(route('admin.purchaseReturn.index'));
@@ -84,24 +77,55 @@ const createReturnOrder = () => {
     const purchase_order_id = props.purchaseOrder?.id;
     const return_date = new Date().toISOString().slice(0, 10);
 
-    const items = returnForm.value.return_items
-        .filter(item => item.quantity_to_return > 0)
-        .map(item => ({
-            product_id: item.product_id,
-            batch_id: item.batch_id ?? null,
-            purchase_order_item_id: item.purchase_order_item_id ?? null,
-            product_name: item.product_name,
-            product_sku: item.product_sku,
-            quantity_returned: item.quantity_to_return,
-            unit_cost: item.unit_cost,
-            reason: item.reason ?? null,
-        }));
-
-
-    console.log('supplier_id:', supplier_id, 'purchase_order_id:', purchase_order_id, 'items:', items);
-
     if (!supplier_id || !purchase_order_id) {
         alert('Không có thông tin đơn nhập hoặc nhà cung cấp!');
+        return;
+    }
+
+    const itemsToReturn: any[] = [];
+    returnForm.value.return_items.forEach(groupedItem => {
+        let remainingQuantityToReturn = groupedItem.quantity_to_return;
+
+        if (remainingQuantityToReturn > 0) {
+            // Lấy tất cả các item gốc từ mảng đã lưu trong groupedItem
+            const originalItems = groupedItem.original_items;
+
+            originalItems?.forEach((originalItem: any) => {
+                if (remainingQuantityToReturn > 0) {
+                    const quantityFromOriginalItem = Math.min(
+                        remainingQuantityToReturn,
+                        originalItem.quantity_received
+                    );
+
+                    if (quantityFromOriginalItem > 0) {
+                        itemsToReturn.push({
+                            product_id: originalItem.product_id,
+                            product_name: originalItem.product_name,
+                            product_sku: originalItem.product_sku,
+                            quantity_returned: quantityFromOriginalItem,
+                            unit_cost: originalItem.unit_cost,
+                            reason: groupedItem.reason ?? null,
+
+                            // Gán các thông tin chi tiết về lô hàng từ item gốc
+                            purchase_order_item_id: originalItem.purchase_order_item_id,
+                            batch_id: originalItem.batch_id,
+                            batch_number: originalItem.batch_number,
+                            manufacturing_date: originalItem.manufacturing_date,
+                            expiry_date: originalItem.expiry_date,
+                        });
+                        remainingQuantityToReturn -= quantityFromOriginalItem;
+                    }
+                }
+            });
+        }
+    });
+
+    if (itemsToReturn.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Cảnh báo!',
+            text: 'Vui lòng chọn ít nhất một sản phẩm để trả hàng.',
+        });
         return;
     }
 
@@ -110,15 +134,23 @@ const createReturnOrder = () => {
         purchase_order_id,
         return_date,
         reason: returnForm.value.reason,
-        items,
+        items: itemsToReturn,
     }, {
         onSuccess: () => {
-            alert('Đơn trả hàng đã được tạo thành công!');
+            Swal.fire({
+                icon: 'success',
+                title: 'Thành công!',
+                text: 'Đơn trả hàng đã được tạo thành công!',
+            });
             router.visit(route('admin.purchaseReturn.index'));
         },
         onError: (errors) => {
             console.error('Lỗi khi tạo đơn trả hàng:', errors);
-            alert('Có lỗi xảy ra khi tạo đơn trả hàng. Vui lòng kiểm tra console để biết chi tiết.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi!',
+                text: 'Có lỗi xảy ra khi tạo đơn trả hàng. Vui lòng kiểm tra console để biết chi tiết.',
+            });
         }
     });
 };
@@ -133,7 +165,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         title: 'Tạo đơn trả hàng',
         href: '#',
     },
-]
+];
 
 // Logic for product quantity
 const updateQuantity = (productId: number, newQuantity: string | number) => {
@@ -167,29 +199,40 @@ const removeProduct = (productId: number) => {
     returnForm.value.return_items = returnForm.value.return_items.filter(item => item.product_id !== productId);
 };
 
-// Logic for Tags
-
-
 // Watch for props changes
 watch(() => props.purchaseOrder, (newPurchaseOrder) => {
     if (newPurchaseOrder) {
         returnForm.value.purchase_order_id = newPurchaseOrder.id;
         returnForm.value.return_order_code = `TRA-${newPurchaseOrder.code}`;
-        returnForm.value.return_items = newPurchaseOrder.items.map(item => ({
-            product_id: item.product_id,
-            batch_id: item.batch_id ?? null,
-            purchase_order_item_id: item.purchase_order_item_id ?? null, // ✅ BỔ SUNG LẠI
-            product_name: item.product_name,
-            product_sku: item.product_sku,
-            product_image_url: item.product_image_url,
-            quantity_to_return: 0,
-            max_quantity_can_return: item.quantity_received,
-            unit_cost: item.unit_cost,
-            reason: item.reason ?? null,
-            batch_number: item.batch_number ?? null,
-            manufacturing_date: item.manufacturing_date ?? null,
-            expiry_date: item.expiry_date ?? null,
-        }));
+
+        const aggregatedItems: any[] = [];
+        const itemMap = new Map();
+
+        newPurchaseOrder.items.forEach(item => {
+            if (itemMap.has(item.product_id)) {
+                const existingItem = itemMap.get(item.product_id);
+                existingItem.max_quantity_can_return += item.quantity_received;
+                // Lưu item gốc vào mảng original_items
+                existingItem.original_items.push(item);
+            } else {
+                const newItem = {
+                    product_id: item.product_id,
+                    product_name: item.product_name,
+                    product_sku: item.product_sku,
+                    product_image_url: item.product_image_url,
+                    quantity_to_return: 0,
+                    max_quantity_can_return: item.quantity_received,
+                    unit_cost: item.unit_cost,
+                    reason: null,
+                    // Lưu item gốc vào mảng original_items
+                    original_items: [item],
+                };
+                aggregatedItems.push(newItem);
+                itemMap.set(item.product_id, newItem);
+            }
+        });
+
+        returnForm.value.return_items = aggregatedItems;
     } else {
         returnForm.value.purchase_order_id = null;
         returnForm.value.return_order_code = '';
@@ -215,7 +258,7 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                     </button>
                     <h1 class="text-xl font-semibold text-gray-900">Tạo đơn trả hàng
                         <span v-if="props.purchaseOrder">
-                            cho lô {{ props.purchaseOrder.batch_number || props.purchaseOrder.code }}
+                            cho lô {{ props.purchaseOrder.code }}
                         </span>
                     </h1>
                 </div>
@@ -262,7 +305,7 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                                     <th class="py-2 px-2 text-center">Số lượng</th>
                                     <th class="py-2 px-2 text-center">Đơn giá</th>
                                     <th class="py-2 px-2 text-right">Thành tiền</th>
-                                    <th class="py-2 px-2 text-center">Lý do trả</th> <!-- Thêm dòng này -->
+                                    <th class="py-2 px-2 text-center">Lý do trả</th>
                                     <th class="py-2 px-2 w-10"></th>
                                 </tr>
                             </thead>
@@ -309,12 +352,8 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                                         {{ formatMoney(item.quantity_to_return * item.unit_cost) }}
                                     </td>
                                     <td class="px-2 text-center">
-                                        <input
-                                            v-model="item.reason"
-                                            type="text"
-                                            placeholder="Nhập lý do trả"
-                                            class="w-32 p-1 border border-gray-300 rounded-md text-sm"
-                                        />
+                                        <input v-model="item.reason" type="text" placeholder="Nhập lý do trả"
+                                            class="w-32 p-1 border border-gray-300 rounded-md text-sm" />
                                     </td>
                                     <td class="px-2">
                                         <button v-if="returnForm.return_items.length > 1"
@@ -409,8 +448,6 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                                 class="w-full p-2 border border-gray-300 rounded-md text-sm text-gray-800 focus:outline-none focus:border-blue-400 resize-y transition duration-150 ease-in-out"></textarea>
                         </div>
                     </div>
-
-
                 </div>
             </div>
         </div>
