@@ -214,7 +214,7 @@ class BatchController extends Controller
             'purchaseOrder' => $purchaseOrder,
             'purchaseOrderItem' => $purchaseOrderItems,
             'suppliers' => Supplier::all(),
-            'users' => User::all(),
+            'user' => auth()->user(),
         ]);
     }
 
