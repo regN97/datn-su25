@@ -48,4 +48,8 @@ class User extends Authenticatable
 {
     return $this->belongsTo(UserRole::class, 'role_id');
 }
+    public function userShifts()
+        {
+            return $this->hasMany(UserShift::class, 'user_id');
+        }
 }
