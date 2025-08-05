@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { Undo2, Trash2 } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quản lý đơn đặt hàng', href: '/admin/purchase-orders' },
@@ -165,14 +166,15 @@ function getOrderStatusClass(statusCode: string | undefined): string {
 }
 </script>
 <template>
+
     <Head title="Thùng rác đơn đặt hàng" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-4 p-4">
             <h1 class="text-2xl font-bold">Thùng rác đơn đặt hàng</h1>
 
             <div class="overflow-hidden rounded-lg bg-white shadow">
-                <table class="w-full table-auto text-left">
-                    <thead class="bg-gray-200">
+                <table table class="min-w-full text-sm text-left">
+                    <thead class="bg-gray-100 text-gray-800 font-semibold">
                         <tr>
                             <th class="p-3 text-sm font-semibold">Mã PO</th>
                             <th class="p-3 text-sm font-semibold">Nhà cung cấp</th>
@@ -184,7 +186,7 @@ function getOrderStatusClass(statusCode: string | undefined): string {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="order in orders" :key="order.id" class="border-t">
+                        <tr v-for="order in orders" :key="order.id" class="bg-white shadow-sm rounded-md">
                             <td class="p-3 text-sm">{{ order.po_number }}</td>
                             <td class="p-3 text-sm">
                                 {{ order.supplier ? order.supplier.name : 'N/A' }}
@@ -197,34 +199,33 @@ function getOrderStatusClass(statusCode: string | undefined): string {
                                     {{ order.status ? order.status.name : 'N/A' }}
                                 </span>
                             </td>
-
                             <td class="p-3 text-sm">{{ order.total_amount?.toLocaleString('vi-VN') }} đ</td>
-                            <td class="p-3 text-sm">
-                                <button @click="restoreOrder(order.id)" class="text-blue-600 hover:underline">Khôi phục</button>
-                                <button @click="forceDeleteOrder(order.id)" class="ml-2 text-red-600 hover:underline">Xóa vĩnh viễn</button>
+                            <td class="p-3 text-sm text-center">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <button @click="restoreOrder(order.id)"
+                                        class="rounded-md bg-green-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none">
+                                        <Undo2 class="h-4 w-4" />
+                                    </button>
+                                    <button @click="forceDeleteOrder(order.id)"
+                                        class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none">
+                                        <Trash2 class="h-4 w-4" />
+                                    </button>
+                                </div>
                             </td>
+
                         </tr>
                         <tr v-if="orders.length === 0">
-                            <td colspan="9" class="p-3 text-center text-sm">Không có đơn đặt hàng nào trong thùng rác</td>
+                            <td colspan="9" class="p-3 text-center text-sm">Không có đơn đặt hàng nào trong thùng rác
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="flex justify-end">
-                <button @click="comeback()" class="text-primary-700 rounded bg-gray-200 px-6 py-2 hover:bg-gray-300">Quay lại</button>
+                <button @click="comeback()"
+                    class="text-primary-700 rounded bg-gray-200 px-6 py-2 hover:bg-gray-300">Quay lại</button>
             </div>
         </div>
     </AppLayout>
 </template>
-<style scoped>
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th,
-td {
-    border: 1px solid #e5e7eb;
-}
-</style>

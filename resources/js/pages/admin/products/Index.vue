@@ -42,7 +42,7 @@ type Product = {
     description: string;
     category_id: number;
     unit_id: number;
-    // purchase_price: number; // Loại bỏ trường này khỏi Product type
+    stock_quantity: number;
     selling_price: number;
     image_url: string;
     min_stock_level: number;
@@ -63,7 +63,7 @@ const allSuppliers = (page.props.allSuppliers as Supplier[]) || [];
 const isSidebarOpen = ref(false);
 
 // Bộ lọc
-const filterName = ref('');
+const filterNameBarcode = ref('');
 const filterCategory = ref<number | null>(null);
 const filterStatus = ref<string>('all');
 const filterMinSellingPrice = ref<number | null>(null); // Đổi tên để tránh nhầm lẫn với giá nhập
@@ -73,7 +73,8 @@ const filterSuppliers = ref<number[]>([]);
 
 const filteredProducts = computed(() => {
     return products.filter((product) => {
-        const matchesName = product.name?.toLowerCase().includes(filterName.value.toLowerCase().trim());
+        const matchesNameBarcode =product.name?.toLowerCase().includes(filterNameBarcode.value.toLowerCase().trim()) ||
+                      product.barcode?.toLowerCase().includes(filterNameBarcode.value.toLowerCase().trim());
         const matchesCategory = filterCategory.value === null || product.category_id === filterCategory.value;
         const matchesStatus =
             filterStatus.value === 'all' ||
@@ -86,7 +87,7 @@ const filteredProducts = computed(() => {
             filterSuppliers.value.length === 0 ||
             (product.suppliers && product.suppliers.some((supplier) => filterSuppliers.value.includes(supplier.id)));
 
-        return matchesName && matchesCategory && matchesStatus && matchesMinSellingPrice && matchesMaxSellingPrice && matchesUnit && matchesSuppliers;
+        return matchesNameBarcode && matchesCategory && matchesStatus && matchesMinSellingPrice && matchesMaxSellingPrice && matchesUnit && matchesSuppliers;
     });
 });
 
@@ -189,7 +190,7 @@ function cancelDelete() {
 }
 
 function resetFilters() {
-    filterName.value = '';
+    filterNameBarcode.value = '';
     filterCategory.value = null;
     filterStatus.value = 'all';
     filterMinSellingPrice.value = null;
@@ -256,8 +257,8 @@ function toggleSidebar() {
                         <div class="mt-4 space-y-6">
                             <div>
 
-                                <label class="block text-sm font-medium text-gray-700">Tên sản phẩm</label>
-                                <input v-model="filterName" type="text" placeholder="Nhập tên sản phẩm..."
+                                <label class="block text-sm font-medium text-gray-700">Tên sản phẩm, barcode</label>
+                                <input v-model="filterNameBarcode" type="text" placeholder="Nhập tên sản phẩm, barcode..."
                                     class="focus:ring-opacity-50 mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500" />
                             </div>
                             <div>
@@ -335,10 +336,12 @@ function toggleSidebar() {
                             <thead>
                                 <tr class="bg-gray-200">
                                     <th class="w-[15%] p-3 text-center text-sm font-semibold">Hình ảnh</th>
-                                    <th class="w-[25%] p-3 text-left text-sm font-semibold">Tên sản phẩm</th>
-                                    <th class="w-[20%] p-3 text-center text-sm font-semibold">SKU</th>
-                                    <th class="w-[20%] p-3 text-center text-sm font-semibold">Trạng thái</th>
-                                    <th class="w-[20%] p-3 text-center text-sm font-semibold">Thao tác</th>
+                                    <th class="w-[15%] p-3 text-left text-sm font-semibold">Tên sản phẩm</th>
+                                    <th class="w-[15%] p-3 text-left text-sm font-semibold">Danh mục sản phẩm</th>
+                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Barcode</th>
+                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Số lượng tồn kho</th>
+                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Trạng thái</th>
+                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -348,20 +351,24 @@ function toggleSidebar() {
                                             <img v-if="product.image_url" :src="imageSrc(product.image_url)"
                                                 class="w-20 h-20 object-cover rounded-md" />
                                         </td>
-                                        <td class="w-[25%] p-3 text-left text-sm">
+                                        <td class="w-[15%] p-3 text-left text-sm">
                                             <button @click="goToShowPage(product.id)"
                                                 class="cursor-pointer hover:text-blue-500">
                                                 {{ product.name }}
                                             </button>
                                         </td>
-                                        <td class="w-[20%] p-3 text-center text-sm">{{ product.sku || 'Không có' }}</td>
-                                        <td class="w-[20%] p-3 text-center text-sm">
+                                        <td class="w-[15%] p-3 text-left text-sm">
+                                            {{ getCategoryName(product.category_id)}}
+                                        </td>
+                                        <td class="w-[15%] p-3 text-center text-sm">{{ product.barcode || 'Không có' }}</td>
+                                        <td class="w-[15%] p-3 text-center text-sm">{{ product.stock_quantity }}</td>
+                                        <td class="w-[15%] p-3 text-center text-sm">
                                             <span
                                                 :class="product.is_active ? 'font-medium text-green-600' : 'font-medium text-red-500'">
                                                 {{ product.is_active ? 'Hiện' : 'Ẩn' }}
                                             </span>
                                         </td>
-                                        <td class="w-[20%] p-3 text-left text-sm whitespace-nowrap">
+                                        <td class="w-[15%] p-3 text-left text-sm whitespace-nowrap">
                                             <div class="flex items-center justify-center space-x-2 text-center">
                                                 <button @click="toggleDetails(product.id)"
                                                     class="flex items-center gap-1 rounded-md bg-gray-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none">
