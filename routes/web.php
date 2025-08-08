@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\BillController;
 use Inertia\Inertia;
 
 use Illuminate\Support\Facades\Route;
@@ -74,6 +75,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('inventory', InventoryController::class);
     Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::resource('users', UserController::class);
+    Route::resource('bills', BillController::class);
 
     //Customer
     Route::get('customers/trashed', [CustomerController::class, 'trashed'])->name('customers.trashed');
