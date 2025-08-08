@@ -28,6 +28,8 @@ Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::get('/pos/check-batch/{productId}', [POSController::class, 'checkBatch'])->name('batch.check');
         Route::get('/pos/work-shifts', [POSController::class, 'getWorkShifts'])->name('work_shifts.get');
         Route::get('/pos/sync-inventory', [POSController::class, 'syncInventory'])->name('sync-inventory');
+        Route::get('/pos/products', [POSController::class, 'getProductsPublic'])->name('pos.products'); 
+        Route::get('/pos/product/barcode/{barcode}', [POSController::class, 'getProductByBarcode'])->name('pos.product.barcode');
 
         Route::get('/bill-lookup', [BillLookupController::class, 'index'])->name('bill.lookup');
         Route::post('/bill-lookup/search', [BillLookupController::class, 'search'])->name('bill.lookup.search');

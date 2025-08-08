@@ -47,7 +47,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/')
+        return redirect('/cashier/login')
             ->with('success', 'Đăng xuất thành công!');
     }
 }
