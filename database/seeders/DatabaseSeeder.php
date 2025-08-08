@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
             ProductUnitSeeder::class,     // Product Units
             SupplierSeeder::class,        // Suppliers
             UserSeeder::class,            // Users & Roles
-            UserShiftSeeder::class,       // UserShift
 
             // 2. Seed các bảng sản phẩm
             ProductSeeder::class,         // Products (phụ thuộc Category, ProductUnit)
