@@ -5,6 +5,9 @@ import { type BreadcrumbItem, type SharedData } from "@/types";
 import { Head, router, usePage } from "@inertiajs/vue3";
 import { Eye, EyeOff, FileDown, PackagePlus, Search } from "lucide-vue-next";
 import { computed, ref, watch } from "vue";
+import * as XLSX from 'xlsx';
+
+// Loại bỏ import * as XLSX từ "xlsx"; vì backend sẽ xử lý
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -28,8 +31,9 @@ type Batch = {
     id: number;
     batch_number: string;
     purchase_order_id: number;
+    purchase_order_number?: string;
     supplier_id: number | null;
-    supplier?: Supplier | null;
+    supplier_name?: string;
     received_date: string;
     invoice_number: string | null;
     total_amount: number;
@@ -72,14 +76,23 @@ type BatchItem = {
     };
 };
 
-const page = usePage<SharedData>();
+const page = usePage<SharedData & { importMessage?: string; importStatus?: 'success' | 'error' }>();
 const batches = ref([...(page.props.batches as Batch[])]);
+const suppliers = page.props.suppliers as Supplier[] || [];
+const purchaseOrders = page.props.purchaseOrders as any[] || []; // Bạn cần truyền danh sách này từ backend
 const isLoading = ref(false);
+const importMessage = ref<string | null>(page.props.importMessage || null);
+const importStatus = ref<'success' | 'error' | null>(page.props.importStatus || null);
+
+// Loại bỏ showPreviewModal và previewData vì frontend không còn xử lý preview
+// const showPreviewModal = ref(false);
+// const previewData = ref<any[][]>([]);
+// Loại bỏ batchesToImport vì frontend không còn xử lý dữ liệu trước khi gửi
+// const batchesToImport = ref<Batch[]>([]);
 
 const perPage = ref(10);
 const currentPage = ref(1);
 const perPageOptions = [10, 20, 50, 100];
-
 const searchTerm = ref("");
 const filterStatus = ref("");
 const filterPaymentStatus = ref("");
@@ -88,10 +101,35 @@ const filterStartDate = ref("");
 const filterEndDate = ref("");
 const filterInvoiceNumber = ref("");
 const isFiltersCollapsed = ref(true);
-
 const showDeleteModal = ref(false);
 const batchToDelete = ref<number | null>(null);
 const openBatchDetailsId = ref<number | null>(null);
+
+// Loại bỏ expectedHeaders vì backend sẽ kiểm tra
+// const expectedHeaders = [
+//     'Mã phiếu nhập',
+//     'Nhà cung cấp',
+//     'Ngày nhận hàng',
+//     'Số hóa đơn',
+//     'Ghi chú',
+//     'Trạng thái thanh toán',
+//     'Trạng thái nhận hàng',
+//     'Tổng tiền',
+//     'Số tiền đã thanh toán',
+//     'Tên sản phẩm',
+//     'Mã SKU',
+//     'Số lượng đặt',
+//     'Số lượng nhận',
+//     'Số lượng từ chối',
+//     'Số lượng còn lại',
+//     'Số lượng nhập',
+//     'Đơn giá',
+//     'Tổng giá',
+//     'Ngày sản xuất',
+//     'Ngày hết hạn',
+//     'Trạng thái tồn kho',
+//     'Đơn vị'
+// ];
 
 const filteredAndSortedBatches = computed(() => {
     let currentBatches = batches.value;
@@ -101,7 +139,7 @@ const filteredAndSortedBatches = computed(() => {
         currentBatches = currentBatches.filter(
             (batch) =>
                 batch.batch_number.toLowerCase().includes(trimmedSearch) ||
-                (batch.supplier?.name?.toLowerCase().includes(trimmedSearch) ?? false) ||
+                (batch.supplier_name?.toLowerCase().includes(trimmedSearch) ?? false) ||
                 (batch.notes?.toLowerCase().includes(trimmedSearch) ?? false)
         );
     }
@@ -129,7 +167,7 @@ const filteredAndSortedBatches = computed(() => {
     if (filterStartDate.value) {
         const start = new Date(filterStartDate.value + "T00:00:00");
         currentBatches = currentBatches.filter((batch) => {
-const batchDate = new Date(batch.received_date);
+            const batchDate = new Date(batch.received_date);
             return batchDate >= start;
         });
     }
@@ -196,12 +234,90 @@ function resetAllFilters() {
 
 function exportBatchesToExcel() {
     isLoading.value = true;
-    window.location.href = "/admin/batches/export";
-    setTimeout(() => {
-        isLoading.value = false;
-    }, 1000); // Giả lập thời gian tải
-}
+    try {
+        const exportData = batches.value.flatMap(batch => {
+            if (batch.batchItems?.length) {
+                return batch.batchItems.map(item => ({
+                    'Mã phiếu nhập': batch.batch_number || 'N/A',
+                    'Mã đơn đặt hàng': batch.purchase_order_number || 'N/A',
+                    'Nhà cung cấp': batch.supplier_name || 'N/A',
+                    'Ngày nhận hàng': formatDateTime(batch.received_date),
+                    'Số hóa đơn': batch.invoice_number || 'N/A',
+                    'Ghi chú': batch.notes || 'N/A',
+                    'Trạng thái thanh toán': getPaymentStatusDisplayName(batch.payment_status),
+                    'Trạng thái nhận hàng': getReceiptStatusDisplayName(batch.receipt_status),
+                    'Tổng tiền': batch.total_amount || 0,
+                    'Số tiền đã thanh toán': batch.paid_amount || 0,
+                    'Người tạo': batch.creator?.name || 'N/A',
+                    'Ngày tạo': formatDateTime(batch.created_at),
+                    'Ngày cập nhật': formatDateTime(batch.updated_at),
+                    'Tên sản phẩm': item.product?.name ?? item.product_name ?? 'N/A',
+                    'Mã SKU': item.product?.sku ?? item.product_sku ?? 'N/A',
+                    'Số lượng đặt': item.ordered_quantity ?? 0,
+                    'Số lượng nhận': item.received_quantity ?? 0,
+                    'Số lượng từ chối': item.rejected_quantity ?? 0,
+                    'Số lượng còn lại': item.remaining_quantity ?? 0,
+                    'Số lượng nhập': item.current_quantity ?? 0,
+                    'Đơn giá': item.purchase_price ?? 0,
+                    'Tổng giá': item.total_amount ?? 0,
+                    'Ngày sản xuất': formatDateTime(item.manufacturing_date),
+                    'Ngày hết hạn': formatDateTime(item.expiry_date),
+                    'Trạng thái tồn kho': getInventoryStatusDisplayName(item.inventory_status),
+                    'Đơn vị': item.product?.unit?.name ?? 'N/A'
+                }));
+            }
+            return [{
+                'Mã phiếu nhập': batch.batch_number || 'N/A',
+                'Mã đơn đặt hàng': batch.purchase_order_number || 'N/A',
+                'Nhà cung cấp': batch.supplier_name || 'N/A',
+                'Ngày nhận hàng': formatDateTime(batch.received_date),
+                'Số hóa đơn': batch.invoice_number || 'N/A',
+                'Ghi chú': batch.notes || 'N/A',
+                'Trạng thái thanh toán': getPaymentStatusDisplayName(batch.payment_status),
+                'Trạng thái nhận hàng': getReceiptStatusDisplayName(batch.receipt_status),
+                'Tổng tiền': batch.total_amount || 0,
+                'Số tiền đã thanh toán': batch.paid_amount || 0,
+                'Người tạo': batch.creator?.name || 'N/A',
+                'Ngày tạo': formatDateTime(batch.created_at),
+                'Ngày cập nhật': formatDateTime(batch.updated_at),
+                'Tên sản phẩm': '',
+                'Mã SKU': '',
+                'Số lượng đặt': '',
+                'Số lượng nhận': '',
+                'Số lượng từ chối': '',
+                'Số lượng còn lại': '',
+                'Số lượng nhập': '',
+                'Đơn giá': '',
+                'Tổng giá': '',
+                'Ngày sản xuất': '',
+                'Ngày hết hạn': '',
+                'Trạng thái tồn kho': '',
+                'Đơn vị': ''
+            }];
+        });
 
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách phiếu nhập');
+
+        const now = new Date();
+        const formattedDate = now.toLocaleString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).replace(/[, ]/g, '-').replace(/\//g, '-');
+        XLSX.writeFile(workbook, `DanhSachPhieuNhapHang_${formattedDate}.xlsx`);
+    } catch (error) {
+        console.error('Lỗi khi xuất file:', error);
+        importMessage.value = 'Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại!';
+        importStatus.value = 'error';
+    } finally {
+        isLoading.value = false;
+    }
+}
 function deleteBatch() {
     if (batchToDelete.value) {
         router.delete(route("admin.batches.destroy", batchToDelete.value), {
@@ -216,9 +332,7 @@ function deleteBatch() {
     }
 }
 
-function getPaymentStatusDisplayName(
-    status: "unpaid" | "partially_paid" | "paid"
-) {
+function getPaymentStatusDisplayName(status: "unpaid" | "partially_paid" | "paid") {
     switch (status) {
         case "unpaid":
             return "Chưa thanh toán";
@@ -231,9 +345,7 @@ function getPaymentStatusDisplayName(
     }
 }
 
-function getReceiptStatusDisplayName(
-    status: "partially_received" | "completed" | "cancelled"
-) {
+function getReceiptStatusDisplayName(status: "partially_received" | "completed" | "cancelled") {
     switch (status) {
         case "partially_received":
             return "Đã nhận một phần";
@@ -246,9 +358,7 @@ function getReceiptStatusDisplayName(
     }
 }
 
-function getInventoryStatusDisplayName(
-    status: "active" | "low_stock" | "out_of_stock" | "expired" | "damaged"
-) {
+function getInventoryStatusDisplayName(status: "active" | "low_stock" | "out_of_stock" | "expired" | "damaged") {
     switch (status) {
         case "active":
             return "Hoạt động";
@@ -283,27 +393,117 @@ function formatCurrency(amount: number): string {
     }).format(amount);
 }
 
-function formatDiscountDisplay(amount: number, type: string | null): string {
-    if (!amount || !type) return "—";
-    return type === "percent" ? `${amount}%` : formatCurrency(amount);
-}
-
 function calculateItemsSubtotalFromData(items: BatchItem[] | undefined): number {
     if (!items || items.length === 0) return 0;
     return items.reduce((sum, item) => sum + item.total_amount, 0);
 }
 
-// Đồng bộ batches khi props thay đổi
 watch(
     () => page.props.batches,
     (newBatches) => {
         batches.value = (newBatches as any[]).map((b: any) => ({
             ...b,
             batchItems: b.batch_items,
+            supplier_name: b.supplier?.name
         }));
     },
     { immediate: true }
 );
+
+watch(
+    () => page.props.importMessage,
+    (newMessage) => {
+        importMessage.value = newMessage || null;
+    }
+);
+
+watch(
+    () => page.props.importStatus,
+    (newStatus) => {
+        importStatus.value = newStatus || null;
+    }
+);
+
+// Loại bỏ validateBatchData vì backend sẽ kiểm tra
+// function validateBatchData(batches: Batch[]): string[] { ... }
+
+// Loại bỏ parseExcelDate vì backend sẽ xử lý
+// function parseExcelDate(value: any): string | null { ... }
+
+// Hàm mới để xử lý việc chọn file và gửi đi
+async function importBatchesFromExcel(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || !input.files[0]) {
+        importMessage.value = 'Vui lòng chọn file Excel!';
+        importStatus.value = 'error';
+        return;
+    }
+
+    isLoading.value = true;
+    importMessage.value = null; // Xóa thông báo cũ
+    importStatus.value = null; // Xóa trạng thái cũ
+
+    const file = input.files[0];
+
+    // Kiểm tra định dạng file
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls') && !file.name.endsWith('.csv')) {
+        importMessage.value = 'Vui lòng chọn file Excel (.xlsx, .xls hoặc .csv)!';
+        importStatus.value = 'error';
+        isLoading.value = false;
+        // Đặt lại giá trị của input file để có thể chọn lại cùng một file
+        (event.target as HTMLInputElement).value = '';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('excel_file', file); // Tên 'excel_file' phải khớp với tên trong Laravel Request validation
+
+    router.post(route('admin.batches.import'), formData, {
+        onSuccess: (page) => {
+            importMessage.value = page.props.importMessage as string || 'Import thành công!';
+            importStatus.value = page.props.importStatus as 'success' || 'success';
+            console.log('Import successful!', page.props);
+            // Tải lại dữ liệu batches để cập nhật bảng
+            router.reload({ only: ['batches'] });
+        },
+        onError: (errors) => {
+            console.error('Import error:', errors);
+            // Lấy thông báo lỗi từ backend nếu có
+            if (errors && typeof errors === 'object') {
+                if (errors.excel_file) {
+                    importMessage.value = errors.excel_file[0];
+                } else if (errors.importMessage) { // Lỗi chung từ backend
+                    importMessage.value = errors.importMessage;
+                } else {
+                    importMessage.value = 'Import thất bại! Vui lòng kiểm tra dữ liệu và thử lại.';
+                }
+            } else {
+                importMessage.value = 'Import thất bại! Đã xảy ra lỗi không xác định.';
+            }
+            importStatus.value = 'error';
+
+            if (errors.status === 419) { // CSRF token mismatch
+                importMessage.value = 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.';
+                router.visit('/login');
+            }
+        },
+        onFinish: () => {
+            isLoading.value = false;
+            // Đặt lại giá trị của input file để có thể chọn lại cùng một file
+            (event.target as HTMLInputElement).value = '';
+        },
+        // Rất quan trọng: Bắt buộc Inertia gửi FormData đúng cách
+        forceFormData: true,
+    });
+}
+
+// Loại bỏ confirmImport vì không còn cần bước xác nhận frontend sau khi đọc file
+// async function confirmImport() { ... }
+
+// Loại bỏ các hàm mapStatus vì backend sẽ xử lý
+// function mapPaymentStatus(value: string): "unpaid" | "partially_paid" | "paid" | "" { ... }
+// function mapReceiptStatus(value: string): "partially_received" | "completed" | "cancelled" | "" { ... }
+// function mapInventoryStatus(value: string): "active" | "low_stock" | "out_of_stock" | "expired" | "damaged" | "" { ... }
 </script>
 
 <template>
@@ -326,8 +526,18 @@ watch(
                                 :disabled="isLoading">
                                 <FileDown class="h-5 w-5" />
                                 <span class="ml-2 hidden md:inline">{{ isLoading ? "Đang xuất..." : "Xuất Excel"
-                                }}</span>
+                                    }}</span>
                             </button>
+                            <label
+                                class="inline-flex items-center rounded-3xl bg-emerald-500 px-4 py-2 text-white hover:bg-emerald-600 cursor-pointer"
+                                :class="{ 'opacity-50 cursor-not-allowed': isLoading }">
+                                <!-- Input file đã được liên kết với hàm importBatchesFromExcel -->
+                                <input type="file" accept=".xlsx,.xls,.csv" @change="importBatchesFromExcel"
+                                    class="hidden" :disabled="isLoading" />
+                                <span class="ml-2 hidden md:inline">{{ isLoading ? "Đang xử lý..." : "Import Excel"
+                                    }}</span>
+                            </label>
+
                             <button
                                 class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
                                 <PackagePlus class="h-5 w-5" />
@@ -335,6 +545,38 @@ watch(
                             </button>
                         </div>
                     </div>
+
+                    <div v-if="importMessage" class="mb-4 p-4 rounded-lg" :class="{
+                        'bg-green-100 text-green-800': importStatus === 'success',
+                        'bg-red-100 text-red-800': importStatus === 'error'
+                    }">
+                        {{ importMessage }}
+                    </div>
+
+                    <!-- Loại bỏ showPreviewModal vì không còn cần bước xem trước ở frontend -->
+                    <!-- <div v-if="showPreviewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-auto">
+                            <h2 class="text-xl font-bold mb-4">Xem trước dữ liệu import</h2>
+                            <table class="min-w-full border-collapse border border-gray-200">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th v-for="header in expectedHeaders" :key="header" class="p-2 text-left text-sm font-semibold">{{ header }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(row, index) in previewData" :key="index" class="border-t">
+                                        <td v-for="(cell, cellIndex) in row" :key="cellIndex" class="p-2 text-sm">{{ cell || '—' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="mt-4 flex justify-end gap-4">
+                                <button @click="showPreviewModal = false" class="px-4 py-2 bg-gray-300 rounded-md">Hủy</button>
+                                <button @click="confirmImport" class="px-4 py-2 bg-emerald-500 text-white rounded-md" :disabled="isLoading">
+                                    {{ isLoading ? 'Đang import...' : 'Xác nhận import' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div> -->
 
                     <div class="mb-6 flex flex-wrap items-center gap-4">
                         <div class="relative min-w-[250px] flex-1">
@@ -357,7 +599,6 @@ watch(
                         </button>
                     </div>
 
-                    <!-- Bộ lọc nâng cao -->
                     <div v-if="!isFiltersCollapsed"
                         class="mb-6 grid grid-cols-1 gap-4 rounded-lg bg-gray-50 p-4 md:grid-cols-3">
                         <div>
@@ -426,7 +667,7 @@ watch(
                                             </button>
                                         </td>
                                         <td class="supplier-column w-[15%] p-3 text-left text-sm">
-                                            {{ batch.supplier ? batch.supplier.name : "N/A" }}
+                                            {{ batch.supplier_name || "N/A" }}
                                         </td>
                                         <td class="truncate-column w-[10%] p-3 text-left text-sm">
                                             {{ formatDateTime(batch.received_date) }}
@@ -473,8 +714,8 @@ watch(
                                                         class="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-4 shadow-sm">
                                                         <p><strong>Mã phiếu nhập:</strong> {{ batch.batch_number ||
                                                             "Không có" }}</p>
-                                                        <p><strong>Nhà cung cấp:</strong> {{ batch.supplier ?
-                                                            batch.supplier.name : "N/A" }}</p>
+                                                        <p><strong>Nhà cung cấp:</strong> {{ batch.supplier_name ||
+                                                            "N/A" }}</p>
                                                         <p><strong>Ngày nhận hàng:</strong> {{
                                                             formatDateTime(batch.received_date) || "N/A" }}</p>
                                                         <p><strong>Số hóa đơn:</strong> {{ batch.invoice_number ||
@@ -565,7 +806,7 @@ watch(
                                                                         }"
                                                                             :title="getInventoryStatusDisplayName(item.inventory_status)">
                                                                             {{
-                                                                                getInventoryStatusDisplayName(item.inventory_status)
+                                                                            getInventoryStatusDisplayName(item.inventory_status)
                                                                             }}
                                                                         </span>
                                                                     </td>
@@ -589,7 +830,7 @@ watch(
                                                             </div>
                                                             <div class="text-right">{{
                                                                 formatCurrency(calculateItemsSubtotalFromData(batch.batchItems))
-                                                            }}</div>
+                                                                }}</div>
                                                             <div class="text-left"><strong>Tổng tiền:</strong></div>
                                                             <div class="text-right text-xl font-bold">{{
                                                                 formatCurrency(batch.total_amount) }}</div>

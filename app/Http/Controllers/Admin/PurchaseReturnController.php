@@ -10,6 +10,7 @@ use App\Models\PurchaseOrderItem;
 use App\Models\purchaseReturn;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -20,7 +21,7 @@ class PurchaseReturnController extends Controller
     public function index()
     {
         $purchaseReturns = PurchaseReturn::with(['supplier:id,name', 'createdBy:id,name'])
-            ->latest('return_date')
+            ->orderByDesc('id') // ← sắp xếp theo ID giảm dần
             ->get();
 
         return Inertia::render('admin/purchaseReturn/Index', [
@@ -29,7 +30,7 @@ class PurchaseReturnController extends Controller
                     'id' => $return->id,
                     'return_number' => $return->return_number,
                     'supplier_name' => $return->supplier->name ?? 'Không xác định',
-                    'return_date' => Carbon::parse($return->return_date)->format('d/m/Y'), // <-- sửa lỗi tại đây
+                    'return_date' => Carbon::parse($return->return_date)->format('d/m/Y'),
                     'status' => $return->status,
                     'total_value_returned' => number_format($return->total_value_returned),
                     'created_by' => $return->createdBy->name ?? 'Không xác định',
@@ -37,6 +38,7 @@ class PurchaseReturnController extends Controller
             }),
         ]);
     }
+
     public function show($id)
     {
         $purchaseReturn = PurchaseReturn::with([
@@ -149,30 +151,30 @@ class PurchaseReturnController extends Controller
                         'product:id,name,sku,image_url',
                         'purchaseOrderItem:id,ordered_quantity,unit_cost',
                     ])->select(
-                        'id',
-                        'batch_id',
-                        'product_id',
-                        'purchase_order_item_id',
-                        'ordered_quantity',
-                        'received_quantity',
-                        'remaining_quantity',
-                        'current_quantity',
-                        'purchase_price',
-                        'total_amount',
-                        'inventory_status'
-                    );
+                            'id',
+                            'batch_id',
+                            'product_id',
+                            'purchase_order_item_id',
+                            'ordered_quantity',
+                            'received_quantity',
+                            'remaining_quantity',
+                            'current_quantity',
+                            'purchase_price',
+                            'total_amount',
+                            'inventory_status'
+                        );
                 },
                 'purchaseOrder:id,po_number',
                 'supplier:id,name,email,phone,address',
             ])->select(
-                'id',
-                'batch_number',
-                'purchase_order_id',
-                'supplier_id',
-                'received_date',
-                'invoice_number',
-                'total_amount'
-            )->find($batchId);
+                    'id',
+                    'batch_number',
+                    'purchase_order_id',
+                    'supplier_id',
+                    'received_date',
+                    'invoice_number',
+                    'total_amount'
+                )->find($batchId);
 
             if (!$batch) {
                 $error = 'Batch not found or invalid.';
@@ -213,94 +215,114 @@ class PurchaseReturnController extends Controller
             'error' => $error,
         ]);
     }
-    public function store(Request $request)
+ public function store(Request $request)
     {
+        DB::beginTransaction();
 
-        $validatedData = $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
-            'purchase_order_id' => 'required|exists:purchase_orders,id',
-            'return_date' => 'required|date',
-            'reason' => 'nullable|string|max:255',
-            'items' => 'required|array|min:1',
-
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.batch_id' => 'nullable|exists:batches,id',
-            'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id',
-            'items.*.quantity_returned' => 'required|integer|min:1',
-            'items.*.unit_cost' => 'required|numeric|min:0',
-
-            'items.*.product_name' => 'nullable|string|max:255',
-            'items.*.product_sku' => 'nullable|string|max:255',
-            'items.*.batch_number' => 'nullable|string|max:255',
-            'items.*.manufacturing_date' => 'nullable|date',
-            'items.*.expiry_date' => 'nullable|date',
-            'items.*.reason' => 'nullable|string|max:255',
-        ]);
-
-        // Tính toán tổng giá trị trả hàng
-        $totalValueReturned = collect($validatedData['items'])->sum(function ($item) {
-            return $item['quantity_returned'] * $item['unit_cost'];
-        });
-
-        // Tạo PurchaseReturn
-        $purchaseReturn = PurchaseReturn::create([
-            'return_number' => 'TRA-' . now()->format('Ymd-His') . '-' . rand(100, 999),
-            'supplier_id' => $validatedData['supplier_id'],
-            'purchase_order_id' => $validatedData['purchase_order_id'],
-            'status' => 'completed',
-            'return_date' => Carbon::parse($validatedData['return_date']),
-            'reason' => $validatedData['reason'],
-            'total_items_returned' => count($validatedData['items']),
-            'total_value_returned' => $totalValueReturned,
-            'created_by' => auth()->id(),
-        ]);
-
-        // Tạo PurchaseReturnItems
-        foreach ($validatedData['items'] as $item) {
-            $batch = null;
-            $batchItem = null;
-
-            if (!empty($item['batch_id'])) {
-                $batch = Batch::find($item['batch_id']);
-                $batchItem = BatchItem::where('batch_id', $item['batch_id'])
-                    ->where('product_id', $item['product_id'])
-                    ->first();
-            }
-
-            $manufacturingDateToSave = $batchItem->manufacturing_date ?? ($item['manufacturing_date'] ?? null);
-            $expiryDateToSave = $batchItem->expiry_date ?? ($item['expiry_date'] ?? null);
-
-            // Lý do trả hàng chỉ lấy từ request
-            $itemReasonToSave = $item['reason'] ?? null;
-
-            $batchNumberToSave = $batch->batch_number ?? ($item['batch_number'] ?? null);
-            $productNameToSave = $item['product_name'] ?? '';
-            $productSkuToSave = $item['product_sku'] ?? '';
-
-            $purchaseReturn->items()->create([
-                'product_id' => $item['product_id'],
-                'batch_id' => $item['batch_id'] ?? null,
-                'purchase_order_item_id' => $item['purchase_order_item_id'] ?? null,
-                'product_name' => $productNameToSave,
-                'product_sku' => $productSkuToSave,
-                'batch_number' => $batchNumberToSave,
-                'manufacturing_date' => $manufacturingDateToSave,
-                'expiry_date' => $expiryDateToSave,
-                'quantity_returned' => $item['quantity_returned'],
-                'unit_cost' => $item['unit_cost'],
-                'subtotal' => $item['quantity_returned'] * $item['unit_cost'],
-                'reason' => $itemReasonToSave,
+        try {
+            $validatedData = $request->validate([
+                'supplier_id' => 'required|exists:suppliers,id',
+                'purchase_order_id' => 'required|exists:purchase_orders,id',
+                'return_date' => 'required|date',
+                'reason' => 'nullable|string|max:255',
+                'items' => 'required|array|min:1',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.batch_id' => 'nullable|exists:batches,id',
+                'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id',
+                'items.*.quantity_returned' => 'required|integer|min:1',
+                'items.*.unit_cost' => 'required|numeric|min:0',
+                'items.*.product_name' => 'nullable|string|max:255',
+                'items.*.product_sku' => 'nullable|string|max:255',
+                'items.*.batch_number' => 'nullable|string|max:255',
+                'items.*.manufacturing_date' => 'nullable|date',
+                'items.*.expiry_date' => 'nullable|date',
+                'items.*.reason' => 'nullable|string|max:255',
             ]);
 
-            // Trừ số lượng trong batch_items
-            if (!empty($item['batch_id'])) {
-                BatchItem::where('batch_id', $item['batch_id'])
-                    ->where('product_id', $item['product_id'])
-                    ->decrement('current_quantity', $item['quantity_returned']);
+            // Tính toán tổng giá trị trả hàng
+            $totalValueReturned = collect($validatedData['items'])->sum(function ($item) {
+                return $item['quantity_returned'] * $item['unit_cost'];
+            });
+
+            // Tạo PurchaseReturn
+            $purchaseReturn = PurchaseReturn::create([
+                'return_number' => 'TRA-' . now()->format('Ymd-His') . '-' . rand(100, 999),
+                'supplier_id' => $validatedData['supplier_id'],
+                'purchase_order_id' => $validatedData['purchase_order_id'],
+                'status' => 'pending',
+                'return_date' => Carbon::parse($validatedData['return_date']),
+                'reason' => $validatedData['reason'],
+                'total_items_returned' => count($validatedData['items']),
+                'total_value_returned' => $totalValueReturned,
+                'created_by' => auth()->id(),
+            ]);
+
+            // Tạo PurchaseReturnItems và cập nhật số lượng BatchItem
+            foreach ($validatedData['items'] as $item) {
+                $batch = null;
+                $batchItem = null;
+
+                if (!empty($item['batch_id'])) {
+                    $batch = Batch::find($item['batch_id']);
+                    $batchItem = BatchItem::where('batch_id', $item['batch_id'])
+                        ->where('product_id', $item['product_id'])
+                        ->first();
+                }
+
+                $manufacturingDateToSave = $batchItem->manufacturing_date ?? ($item['manufacturing_date'] ?? null);
+                $expiryDateToSave = $batchItem->expiry_date ?? ($item['expiry_date'] ?? null);
+                $itemReasonToSave = $item['reason'] ?? null;
+                $batchNumberToSave = $batch->batch_number ?? ($item['batch_number'] ?? null);
+                $productNameToSave = $item['product_name'] ?? '';
+                $productSkuToSave = $item['product_sku'] ?? '';
+
+                $purchaseReturn->items()->create([
+                    'product_id' => $item['product_id'],
+                    'batch_id' => $item['batch_id'] ?? null,
+                    'purchase_order_item_id' => $item['purchase_order_item_id'] ?? null,
+                    'product_name' => $productNameToSave,
+                    'product_sku' => $productSkuToSave,
+                    'batch_number' => $batchNumberToSave,
+                    'manufacturing_date' => $manufacturingDateToSave,
+                    'expiry_date' => $expiryDateToSave,
+                    'quantity_returned' => $item['quantity_returned'],
+                    'unit_cost' => $item['unit_cost'],
+                    'subtotal' => $item['quantity_returned'] * $item['unit_cost'],
+                    'reason' => $itemReasonToSave,
+                ]);
+
+                // Trừ số lượng trong batch_items
+                if ($batchItem) {
+                    $batchItem->current_quantity -= $item['quantity_returned'];
+                    $batchItem->received_quantity -= $item['quantity_returned'];
+                    $batchItem->save();
+                }
             }
+
+            DB::commit();
+
+            return redirect()->route('admin.purchaseReturn.index')
+                ->with('success', 'Phiếu trả hàng đã được tạo thành công.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Lỗi khi tạo phiếu trả hàng: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Tạo phiếu trả hàng thất bại. Vui lòng thử lại.');
+        }
+    }
+
+    public function complete(PurchaseReturn $purchaseReturn)
+    {
+        // Ensure the purchase return can be completed
+        if ($purchaseReturn->status !== 'pending') {
+            return back()->with('error', 'Phiếu trả hàng chỉ có thể hoàn thành khi ở trạng thái Chờ duyệt.');
         }
 
-        return redirect()->route('admin.purchaseReturn.index')
-            ->with('success', 'Phiếu trả hàng đã được tạo thành công.');
+        // Update the status to completed
+        $purchaseReturn->status = 'completed';
+        $purchaseReturn->save();
+
+        return back()->with('success', 'Đã hoàn thành phiếu trả hàng thành công!');
     }
 }

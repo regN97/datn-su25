@@ -36,9 +36,6 @@ const form = ref<Supplier>({
     address: null,
 });
 
-const showSuccessModal = ref(false);
-const successMessage = ref('');
-
 const goBack = () => {
     router.visit('/admin/suppliers');
 };
@@ -56,11 +53,7 @@ const resetForm = () => {
 const submitForm = () => {
     router.post(route('admin.suppliers.store'), form.value, {
         onSuccess: () => {
-            if (page.props.status === 'success') {
-                successMessage.value = page.props.message as string;
-                showSuccessModal.value = true;
-                resetForm();
-            }
+            resetForm();
         },
         onError: (errors) => {
             console.error('Validation errors:', errors);
@@ -187,70 +180,6 @@ const submitForm = () => {
             </div>
         </div>
 
-        <div
-            v-if="showSuccessModal"
-            class="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto p-4 outline-none focus:outline-none"
-        >
-            <div class="relative mx-auto w-full max-w-md">
-                <div class="relative flex w-full flex-col rounded-lg border-0 bg-white shadow-lg outline-none focus:outline-none dark:bg-gray-800">
-                    <div class="flex items-center justify-between rounded-t border-b border-solid border-gray-300 p-5 dark:border-gray-700">
-                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Thông báo thành công</h3>
-                        <button
-                            type="button"
-                            class="ml-auto inline-flex items-center rounded-lg bg-transparent p-1.5 text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-white"
-                            @click="showSuccessModal = false"
-                        >
-                            <svg aria-hidden="true" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                <path
-                                    fill-rule="evenodd"
-                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                    clip-rule="evenodd"
-                                ></path>
-                            </svg>
-                            <span class="sr-only">Close modal</span>
-                        </button>
-                    </div>
-                    <div class="relative p-6 text-center">
-                        <div class="mb-4 flex justify-center">
-                            <svg
-                                class="m-10 h-50 w-50 text-green-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                ></path>
-                            </svg>
-                        </div>
-                        <p class="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300">
-                            {{ successMessage }}
-                        </p>
-                    </div>
-                    <div class="flex items-center justify-end space-x-2 rounded-b border-t border-solid border-gray-300 p-6 dark:border-gray-700">
-                        <button
-                            type="button"
-                            @click="goBack"
-                            class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:ring-4 focus:ring-blue-300 focus:outline-none dark:border-gray-500 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white dark:focus:ring-gray-600"
-                        >
-                            Quay lại danh sách
-                        </button>
-                        <button
-                            type="button"
-                            @click="showSuccessModal = false"
-                            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                        >
-                            Thêm nhà cung cấp khác
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div v-if="showSuccessModal" class="fixed inset-0 z-40 bg-black opacity-50"></div>
     </AppLayout>
 </template>
 

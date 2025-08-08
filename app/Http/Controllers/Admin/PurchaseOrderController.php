@@ -38,7 +38,7 @@ class PurchaseOrderController extends Controller
                         ->with('unit:id,name'); // Tải thông tin đơn vị và chỉ lấy id, name
                 });
             }
-        ])->get(); // Lấy tất cả các đơn hàng sau khi đã tải các mối quan hệ
+        ])->orderByDesc('created_at')->get(); // Lấy tất cả các đơn hàng sau khi đã tải các mối quan hệ
 
         return Inertia::render('admin/purchase_orders/Index')->with([
             'purchaseOrders' => $purchaseOrders,
@@ -47,7 +47,7 @@ class PurchaseOrderController extends Controller
 
     public function create(Request $request)
     {
-        $query = Product::query();
+        $query = Product::where('is_active', true);
 
         // Get suppliers with search if provided
         $suppliersQuery = Supplier::query();
@@ -72,7 +72,7 @@ class PurchaseOrderController extends Controller
 
         $products = ['data' => $query->get()];
 
-        $user = User::all();
+        $user = User::find(Auth::id())->toArray();
 
         return Inertia::render('admin/purchase_orders/Create', [
             'products' => $products,
@@ -133,6 +133,10 @@ class PurchaseOrderController extends Controller
 
         $po_items_data = [];
         foreach ($request->products as $product) {
+            $dbProduct = Product::find($product['id']);
+            if (!$dbProduct || !$dbProduct->is_active) {
+                return back()->withErrors(['products' => "Sản phẩm {$product['name']} đã bị ẩn và không thể nhập hàng."]);
+            }
             $po_items_data[] = [
                 'purchase_order_id' => $purchaseOrderId,
                 'product_id'        => $product['id'],

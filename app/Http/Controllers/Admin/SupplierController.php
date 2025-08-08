@@ -77,10 +77,7 @@ class SupplierController extends Controller
         // Create the supplier using the validated data
         Supplier::create($validatedData);
 
-        return Inertia::render('admin/suppliers/Create', [
-            'status' => 'success',
-            'message' => 'Thêm nhà cung cấp thành công!'
-        ]);
+        return redirect()->route('admin.suppliers.index')->with('success', 'Thêm mới nhà cung cấp thành công!');
     }
 
     /**
