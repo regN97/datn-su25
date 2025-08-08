@@ -15,7 +15,7 @@ use App\Http\Controllers\Admin\{
     PurchaseOrderController,
     InventoryController,
     UserController,
-    TestInventoryController
+    BillController
 };
 use App\Http\Controllers\TestController;
 
@@ -80,6 +80,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
     Route::delete('customers/{customer}/force-delete', [CustomerController::class, 'forceDelete'])->name('customers.forceDelete');
     Route::resource('customers', CustomerController::class);
+
+    // Bills
+    Route::resource('bills', BillController::class);
 });
 Route::get('/test', [TestController::class, 'index']);
 require __DIR__ . '/settings.php';
