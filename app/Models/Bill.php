@@ -37,4 +37,8 @@ class Bill extends Model
     {
         return $this->belongsTo(OrderPaymentStatus::class, 'payment_status_id');
     }
+    public function cashier()
+    {
+        return $this->belongsTo(User::class, 'cashier_id');
+    }
 }

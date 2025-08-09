@@ -61,7 +61,7 @@ const form = useForm<ProductForm>({
     unit_id: null,
     description: '',
     min_stock_level: 20,
-    max_stock_level: 200,
+    max_stock_level: 1000,
     purchase_prices: {},
 });
 

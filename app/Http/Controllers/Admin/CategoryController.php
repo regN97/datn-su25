@@ -143,15 +143,28 @@ class CategoryController extends Controller
     // Xóa mềm danh mục
     public function destroy($id)
     {
-        $category = Category::find($id); // Tìm danh mục
-        if ($category) { // Đảm bảo danh mục tồn tại trước khi xóa
-            $category->delete(); // Thao tác này sẽ thực hiện xóa mềm do SoftDeletes
-            return redirect()->route('admin.categories.index')->with('success', 'Đã xóa thành công');
+        $category = Category::find($id);
+
+        if (!$category) {
+            return redirect()->route('admin.categories.index')->with('error', 'Không tìm thấy danh mục để xóa.');
         }
 
-        return redirect()->route('admin.categories.index')->with('error', 'Không tìm thấy danh mục để xóa.');
+        // Kiểm tra xem có sản phẩm nào thuộc danh mục này không
+        $hasLinkedProducts = $category->products()
+            ->where('stock_quantity', '>', 0)
+            ->exists();
+
+        if ($hasLinkedProducts) {
+            return redirect()->route('admin.categories.index')
+                ->with('error', 'Không thể xóa vì danh mục đang có sản phẩm tồn kho.');
+        }
+
+        $category->delete();
+
+        return redirect()->route('admin.categories.index')->with('success', 'Đã xóa thành công');
     }
-     /**
+
+    /**
      * Restore the specified trashed resource.
      */
     public function restore(string $id)

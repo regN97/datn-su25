@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { Undo2, Trash2 } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quản lý khách hàng', href: '/admin/customers' },
@@ -56,6 +57,7 @@ function forceDeleteCustomer(id: number) {
 </script>
 
 <template>
+
     <Head title="Thùng rác khách hàng" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -83,9 +85,17 @@ function forceDeleteCustomer(id: number) {
                             <td class="p-3 text-sm">{{ customer.address || 'N/A' }}</td>
                             <td class="p-3 text-sm">{{ customer.wallet.toLocaleString('vi-VN') }} VND</td>
                             <td class="p-3 text-sm text-gray-500">{{ customer.deleted_at }}</td>
-                            <td class="p-3 text-sm">
-                                <button @click="restoreCustomer(customer.id)" class="text-blue-600 hover:underline">Khôi phục</button>
-                                <button @click="forceDeleteCustomer(customer.id)" class="ml-2 text-red-600 hover:underline">Xóa vĩnh viễn</button>
+                            <td class="p-3 text-sm text-center">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <button @click="restoreCustomer(customer.id)"
+                                        class="rounded-md bg-green-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none">
+                                        <Undo2 class="h-4 w-4" />
+                                    </button>
+                                    <button @click="forceDeleteCustomer(customer.id)"
+                                        class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none">
+                                        <Trash2 class="h-4 w-4" />
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         <tr v-if="customers.length === 0">
@@ -103,6 +113,7 @@ table {
     width: 100%;
     border-collapse: collapse;
 }
+
 th,
 td {
     border: 1px solid #e5e7eb;
