@@ -27,28 +27,29 @@ interface Product {
 }
 
 interface Batch {
-  id: number;
-  batch_number: string;
-  purchase_order_id: number;
-  purchase_order?: PurchaseOrder | null;
-  supplier_id: number | null;
-  supplier?: Supplier | null;
-  received_date: string;
-  invoice_number: string | null;
-  total_amount: number;
-  payment_status: "unpaid" | "partially_paid" | "paid";
-  paid_amount: number;
-  receipt_status: "partially_received" | "completed" | "cancelled";
-  notes: string | null;
-  created_by: number;
-  creator?: User;
-  discount_amount: number;
-  discount_type: string;
-  updated_by: number | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  expected_delivery_date?: string;
+    id: number;
+    batch_number: string;
+    purchase_order_id: number;
+    purchase_order?: PurchaseOrder | null;
+    supplier_id: number | null;
+    supplier?: Supplier | null;
+    received_date: string;
+    invoice_number: string | null;
+    total_amount: number;
+    payment_status: "unpaid" | "partially_paid" | "paid";
+    paid_amount: number;
+    receipt_status: "partially_received" | "completed" | "cancelled";
+    notes: string | null;
+    created_by: number;
+    creator?: User;
+    discount_amount: number;
+    discount_type: string;
+    updated_by: number | null;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+    expected_delivery_date?: string;
+    shipping_fee?: number;
 }
 
 interface BatchItem {
@@ -107,28 +108,26 @@ interface POStatus {
     code: string;
 };
 
-// Kiểu mới cho PurchaseOrderItem (các mặt hàng trong đơn đặt hàng)
 interface PurchaseOrderItem {
     id: number;
     purchase_order_id: number;
     product_id: number;
-    product?: Product; // Mối quan hệ product, bao gồm cả unit
+    product?: Product;
     product_name: string;
     product_sku: string;
     ordered_quantity: number;
     received_quantity: number;
-    quantity_returned: number; // Đã thêm
+    quantity_returned: number;
     unit_cost: number;
     subtotal: number;
-    discount_amount: number | null; // Có thể null
-    discount_type: 'percent' | 'amount' | null; // Có thể null
-    notes: string | null; // Đã thêm
+    discount_amount: number | null;
+    discount_type: 'percent' | 'amount' | null;
+    notes: string | null;
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
 };
 
-// Kiểu cho PurchaseOrder, đã cập nhật theo cấu trúc database mới
 interface PurchaseOrder {
     id: number;
     po_number: string;
@@ -151,7 +150,7 @@ interface PurchaseOrder {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
-    items?: PurchaseOrderItem[]; // Mảng các mặt hàng trong đơn đặt hàng
+    items?: PurchaseOrderItem[];
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -161,19 +160,18 @@ const props = withDefaults(defineProps<Props>(), {
     batchItem: () => [],
 });
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Chi tiết lô hàng',
-        href: '/admin/batches/show',
-    },
-];
+// const breadcrumbs: BreadcrumbItem[] = [
+//     {
+//         title: 'Chi tiết lô hàng',
+//         href: '/admin/batches/show',
+//     },
+// ];
 
 const po_products = ref<BatchItem[]>(props.batchItem.map(item => ({
     ...item,
     received_quantity: item.received_quantity || 0,
 })));
 
-// === Logic mới để gộp sản phẩm ===
 const aggregatedProducts = computed(() => {
     const productMap = new Map();
 
@@ -192,10 +190,7 @@ const aggregatedProducts = computed(() => {
 
     return Array.from(productMap.values());
 });
-// === Kết thúc logic mới ===
 
-
-// Sử dụng computed để truy cập phần tử đầu tiên của mảng batch
 const currentBatch = computed(() => props.batch[0] || null);
 
 const selectedUser = computed(() =>
@@ -221,7 +216,6 @@ const formattedDiscount = computed(() => {
     return `-${currentBatch.value.discount_amount}%`;
 });
 
-// Sử dụng aggregatedProducts để tính toán các giá trị tổng
 const formattedSubtotal = computed(() => {
     const total = aggregatedProducts.value.reduce((sum, item) => sum + item.total_amount, 0);
     return new Intl.NumberFormat('vi-VN', {
@@ -230,11 +224,11 @@ const formattedSubtotal = computed(() => {
     }).format(total);
 });
 
-// Sử dụng aggregatedProducts để tính toán các giá trị tổng
 const totalAfterDiscount = computed(() => {
     const subtotal = aggregatedProducts.value.reduce((sum, item) => sum + item.total_amount, 0);
     const discountAmount = currentBatch.value?.discount_amount || 0;
     const discountType = currentBatch.value?.discount_type || 'amount';
+    const shippingFee = currentBatch.value?.shipping_fee || 0;
 
     let total = subtotal;
     if (discountType === 'amount') {
@@ -242,6 +236,7 @@ const totalAfterDiscount = computed(() => {
     } else if (discountType === 'percent') {
         total -= (subtotal * discountAmount) / 100;
     }
+    total += shippingFee;
 
     return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
@@ -300,12 +295,12 @@ const formattedPaidAmount = computed(() => {
     }).format(amount);
 });
 
-// Sử dụng aggregatedProducts để tính toán các giá trị tổng
 const formattedRemainingAmount = computed(() => {
     const subtotal = aggregatedProducts.value.reduce((sum, item) => sum + item.total_amount, 0);
     const discountAmount = currentBatch.value?.discount_amount || 0;
     const discountType = currentBatch.value?.discount_type || 'amount';
     const paid = currentBatch.value?.paid_amount || 0;
+    const shippingFee = currentBatch.value?.shipping_fee || 0;
 
     let total = subtotal;
     if (discountType === 'amount') {
@@ -313,6 +308,7 @@ const formattedRemainingAmount = computed(() => {
     } else if (discountType === 'percent') {
         total -= (subtotal * discountAmount) / 100;
     }
+    total += shippingFee;
 
     const remaining = total - paid;
 
@@ -322,12 +318,12 @@ const formattedRemainingAmount = computed(() => {
     }).format(remaining);
 });
 
-// Sử dụng aggregatedProducts để tính toán các giá trị tổng
 const remainingAmount = computed(() => {
     const subtotal = aggregatedProducts.value.reduce((sum, item) => sum + item.total_amount, 0);
     const discountAmount = currentBatch.value?.discount_amount || 0;
     const discountType = currentBatch.value?.discount_type || 'amount';
     const paid = currentBatch.value?.paid_amount || 0;
+    const shippingFee = currentBatch.value?.shipping_fee || 0;
 
     let total = subtotal;
     if (discountType === 'amount') {
@@ -335,6 +331,7 @@ const remainingAmount = computed(() => {
     } else if (discountType === 'percent') {
         total -= (subtotal * discountAmount) / 100;
     }
+    total += shippingFee;
 
     return total - paid;
 });
@@ -343,7 +340,7 @@ function handlePayment() {
     if (isUnpaidOrPartial.value) {
         const today = new Date().toISOString().split('T')[0];
         paymentForm.value = {
-            paymentAmount: remainingAmount.value, // Sử dụng remainingAmount đã tính toán
+            paymentAmount: remainingAmount.value,
             paymentDate: today,
             reference: '',
         };
@@ -362,7 +359,6 @@ const money = {
     allowNegative: false
 }
 
-// Hàm format tiền tệ
 function formatCurrency(value: number | null | undefined) {
     if (value === undefined || value === null) return '0₫';
     return new Intl.NumberFormat('vi-VN', {
@@ -371,7 +367,6 @@ function formatCurrency(value: number | null | undefined) {
     }).format(value);
 }
 
-// Hàm format ngày giờ
 function formatDateTime(dateString: string | null | undefined) {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -385,7 +380,6 @@ function formatDateTime(dateString: string | null | undefined) {
     return new Intl.DateTimeFormat('vi-VN', options).format(date);
 }
 
-// Hàm lấy tên trạng thái
 function getStatusDisplayName(status: string | undefined) {
     switch (status) {
         case 'paid':
@@ -399,15 +393,13 @@ function getStatusDisplayName(status: string | undefined) {
     }
 }
 
-defineExpose({}); // nếu chưa có
+defineExpose({});
 defineOptions({
     directives: {
         money: Money3Directive,
     },
 });
 
-// Tổng số lượng thực nhập (đã trừ rejected)
-// Sử dụng aggregatedProducts để tính toán các giá trị tổng
 const totalActualQuantity = computed(() => {
     return aggregatedProducts.value.reduce((sum, p) => sum + (p.received_quantity || 0), 0);
 });
@@ -416,7 +408,6 @@ const paymentMethod = ref('cash');
 
 const today = new Date();
 const formattedDate = today.toISOString().split('T')[0];
-// Add state for the payment form
 const showPaymentForm = ref(false);
 const paymentForm = ref({
     paymentAmount: 0,
@@ -424,7 +415,6 @@ const paymentForm = ref({
     reference: '',
 });
 
-// Handle payment form submission
 function handlePaymentSubmit() {
     const amount = Number(String(paymentForm.value.paymentAmount).replace(/[^\d.-]/g, ''));
     if (amount <= 0) {
@@ -494,8 +484,9 @@ function goBack() {
 <template>
 
     <Head title="Chi tiết lô hàng" />
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="min-h-screen bg-gray-50 p-4">
+    <!-- <AppLayout :breadcrumbs="breadcrumbs"> -->
+    <AppLayout>
+        <div class="min-h-screen bg-gray-50 p-4 no-print">
             <div class="mx-auto max-w-7xl">
                 <div class="mb-4 flex items-center justify-between">
                     <div class="flex items-center">
@@ -690,7 +681,7 @@ function goBack() {
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Ngày ghi
                                                 nhận</label>
                                             <input type="date" v-model="paymentForm.paymentDate"
-                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500" />
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                                         </div>
 
                                         <div>
@@ -768,82 +759,100 @@ function goBack() {
                     </div>
                 </div>
             </div>
-            <div class="print-only">
-                <div class="receipt-container">
-                    <div class="receipt-header">
-                        <h1 class="receipt-title">PHIẾU NHẬP HÀNG</h1>
-                    </div>
+        </div>
 
-                    <div class="receipt-details" v-if="currentBatch">
-                        <p><strong>Mã phiếu:</strong> {{ currentBatch.batch_number }}</p>
-                        <p><strong>Ngày giờ:</strong> {{ formatDateTime(currentBatch.received_date) }}</p>
-                        <p><strong>Nhà cung cấp:</strong> {{ currentBatch.supplier?.name || 'N/A' }}</p>
-                        <p><strong>Người tạo phiếu:</strong> {{ selectedUser?.name || 'N/A' }}</p>
-                        <p><strong>Trạng thái TT:</strong> {{ getStatusDisplayName(currentBatch.payment_status) }}</p>
-                    </div>
-
-                    <table class="receipt-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 5%;">STT</th>
-                                <th style="width: 45%; text-align: left;">Tên sản phẩm</th>
-                                <th style="width: 15%;">SL</th>
-                                <th style="width: 20%;">Đơn giá</th>
-                                <th style="width: 15%; text-align: right;">Thành tiền</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(item, index) in aggregatedProducts" :key="item.product_id">
-                                <td style="text-align: center;">{{ index + 1 }}</td>
-                                <td style="text-align: left;">{{ item.product_name }}</td>
-                                <td style="text-align: center;">{{ item.received_quantity }}</td>
-                                <td style="text-align: right;">{{ formatCurrency(item.purchase_price) }}</td>
-                                <td style="text-align: right;">{{ formatCurrency(item.total_amount) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="receipt-summary" v-if="currentBatch">
-                        <p><strong>Tạm tính:</strong> <span>{{formatCurrency(aggregatedProducts.reduce((sum, item) =>
-                            sum + item.total_amount, 0))}}</span></p>
-                        <p><strong>Giảm giá:</strong> <span>-{{ formatCurrency(currentBatch.discount_amount || 0)
-                        }}</span>
-                        </p>
-                        <p><strong>Phí vận chuyển:</strong> <span>{{ formatCurrency(currentBatch.shipping_fee || 0)
-                        }}</span>
-                        </p>
-                        <p class="total-line"><strong>Tổng tiền cần trả:</strong> <span>{{
-                            formatCurrency(remainingAmount + (currentBatch?.paid_amount || 0)) }}</span></p>
-                        <p><strong>Đã trả:</strong> <span>{{ formatCurrency(currentBatch.paid_amount) }}</span></p>
-                        <p><strong>Còn phải trả:</strong> <span>{{ formatCurrency(remainingAmount) }}</span></p>
-                    </div>
-
-                    <div class="receipt-footer">
-                        <p>Cảm ơn quý khách!</p>
-                        <p>(Vui lòng kiểm tra kỹ trước khi rời đi)</p>
-                    </div>
-
-            <!-- Additional Info -->
-            <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-              <div class="border-b border-gray-200 p-4">
-                <h2 class="text-lg font-semibold">Thông tin bổ sung</h2>
-              </div>
-              <div class="space-y-4 p-4">
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-gray-700">Nhân viên phụ trách</label>
-                  <input type="text" disabled :value="selectedUser ? selectedUser.name : ''"
-                    class="h-10 w-full rounded-md border border-gray-300 pl-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+        <div class="print-only">
+            <div class="receipt-container">
+                <div class="receipt-header">
+                    <h1 class="receipt-title">ĐƠN NHẬP HÀNG</h1>
                 </div>
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhận hàng</label>
-                  <input type="text" disabled :value="formattedReceivedDate"
-                    class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng</label>
-                  <input type="text" disabled :value="props.batch[0]?.purchase_order?.po_number"
-                    class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
 
+                <div class="receipt-details" v-if="currentBatch && selectedSupplier && selectedUser">
+                    <div class="flex-container">
+                        <p class="col-6">
+                            <span class="label">Nhà cung cấp:</span>
+                            <span class="value">{{ selectedSupplier.name }}</span>
+                        </p>
+                        <p class="col-6">
+                            <span class="label">Mã đơn nhập:</span>
+                            <span class="value">{{ currentBatch.batch_number }}</span>
+                        </p>
+                    </div>
+                    <div class="flex-container">
+                        <p class="col-6">
+                            <span class="label">Ngày nhập:</span>
+                            <span class="value">{{ formattedReceivedDate }}</span>
+                        </p>
+                        <p class="col-6">
+                            <span class="label">Ngày tạo:</span>
+                            <span class="value">{{ new Date(currentBatch.created_at).toLocaleDateString('vi-VN')
+                                }}</span>
+                        </p>
+                    </div>
+                </div>
+
+                <table class="receipt-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">STT</th>
+                            <th style="width: 45%; text-align: left;">Tên sản phẩm</th>
+                            <th style="width: 15%;">SL</th>
+                            <th style="width: 20%;">Đơn giá</th>
+                            <th style="width: 15%; text-align: right;">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(item, index) in aggregatedProducts" :key="item.product_id">
+                            <td style="text-align: center;">{{ index + 1 }}</td>
+                            <td style="text-align: left;">
+                                {{ item.product_name }}
+                            </td>
+                            <td style="text-align: center;">{{ item.received_quantity }}</td>
+                            <td style="text-align: right;">{{ formatPrice(item.purchase_price) }}</td>
+                            <td style="text-align: right;">{{ formatPrice(item.total_amount) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="receipt-summary" v-if="currentBatch">
+                    <p>
+                        <span class="label">Số lượng:</span>
+                        <span class="value">{{ totalActualQuantity }}</span>
+                    </p>
+                    <p>
+                        <span class="label">Tổng tiền:</span>
+                        <span class="value">{{ formattedSubtotal }}</span>
+                    </p>
+                    <p>
+                        <span class="label">Chiết khấu:</span>
+                        <span class="value">{{ formattedDiscount.replace('-', '') }}</span>
+                    </p>
+
+                    <p>
+                        <span class="label">Phí vận chuyển:</span>
+                        <span class="value">{{ formatCurrency(currentBatch.shipping_fee) }}</span>
+                    </p>
+                    <div class="divider"></div>
+                    <p class="total-line">
+                        <span class="label">Tổng giá trị:</span>
+                        <span class="value">{{ totalAfterDiscount }}</span>
+                    </p>
+                </div>
+
+                <div class="receipt-footer">
+                    <div class="signature-section">
+                        <div class="signature">
+                            <p><strong>Người nhập hàng</strong></p>
+                            <p>(Ký, họ tên)</p>
+                            <br /><br /><br />
+                            <p>{{ selectedUser?.name || 'N/A' }}</p>
+                        </div>
+                        <div class="signature">
+                            <p><strong>Thủ kho</strong></p>
+                            <p>(Ký, họ tên)</p>
+                            <br /><br /><br />
+                            <p>.............................</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -855,200 +864,205 @@ function goBack() {
     display: none;
 }
 
-/* Styles to hide main content when printing */
-@media print {
+.no-print {
+    display: block;
+}
 
-    /* Đảm bảo chỉ nội dung in hiển thị */
+/* Styles to hide main content and show print-only content when printing */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .print-only {
+        display: block !important;
+        visibility: visible !important;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
     body {
         margin: 0;
         padding: 0;
         background: white;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        /* Font dễ đọc */
         -webkit-print-color-adjust: exact;
-        /* Đảm bảo in màu chính xác */
-    }
-
-    body>* {
-        display: none !important;
-        /* Ẩn tất cả nội dung trên trang */
-    }
-
-    .no-print {
-        display: none !important;
-        /* Đảm bảo ẩn các phần tử có class no-print */
-    }
-
-    /* Hiển thị chỉ phần phiếu in */
-    .print-only {
-        display: block !important;
-        visibility: visible !important;
-        width: 100%;
-        /* Chiếm toàn bộ chiều rộng trang in */
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        /* Đảm bảo padding không làm tràn width */
     }
 
     .receipt-container {
-        width: 78mm;
-        /* Chiều rộng giấy in nhiệt phổ biến */
-        max-width: 78mm;
-        /* Đảm bảo không vượt quá */
+        width: 100%;
+        max-width: 800px;
         margin: 0 auto;
-        /* Căn giữa phiếu trên trang */
-        padding: 8mm 5mm;
-        /* Padding trên dưới nhiều hơn, hai bên vừa phải */
+        padding: 20px;
         background: white;
         color: #000;
-        /* Đảm bảo màu chữ đen */
-        font-size: 10pt;
-        /* Kích thước chữ cơ bản */
-        line-height: 1.4;
+        font-size: 11pt;
+        line-height: 1.6;
     }
 
     .receipt-header {
         text-align: center;
-        margin-bottom: 18px;
-        /* Tăng khoảng cách dưới header */
-    }
-
-    .receipt-logo {
-        max-width: 80px;
-        /* Tăng kích thước logo một chút cho dễ nhìn */
-        height: auto;
-        margin-bottom: 10px;
-        /* Khoảng cách giữa logo và tiêu đề */
+        margin-bottom: 30px;
     }
 
     .receipt-title {
-        font-size: 18pt;
-        /* Kích thước tiêu đề lớn hơn */
+        font-size: 24pt;
         font-weight: bold;
         margin: 0;
         text-transform: uppercase;
+        border-bottom: 2px solid #000;
+        padding-bottom: 10px;
     }
 
     .receipt-details {
-        margin-bottom: 18px;
-        /* Tăng khoảng cách dưới thông tin chi tiết chung */
-        border-bottom: 1px dashed #aaa;
-        /* Đường kẻ phân cách */
-        padding-bottom: 12px;
-        /* Tăng padding dưới */
+        margin-bottom: 25px;
+        font-size: 11pt;
     }
 
-    .receipt-details p {
-        margin-bottom: 5px;
-        /* Tăng khoảng cách giữa các dòng thông tin */
+    .flex-container {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
     }
 
-    .receipt-details strong {
-        display: inline-block;
-        width: 120px;
-        /* Điều chỉnh độ rộng để căn chỉnh các nhãn */
+    .flex-container .col-6 {
+        width: 48%;
+        /* Adjust for spacing */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .receipt-details .label {
+        font-weight: bold;
+        min-width: 120px;
+        text-align: left;
+    }
+
+    .receipt-details .value {
+        text-align: right;
+        flex-grow: 1;
     }
 
     .receipt-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 15px;
-        /* Tăng khoảng cách trên bảng */
-        margin-bottom: 15px;
-        /* Tăng khoảng cách dưới bảng */
-        font-size: 9pt;
-        /* Kích thước chữ cho bảng */
+        margin-top: 20px;
+        margin-bottom: 20px;
+        font-size: 10pt;
     }
 
-    .receipt-table th,
-    .receipt-table td {
-        border-bottom: 1px dashed #ddd;
-        /* Đường kẻ mờ hơn */
-        padding: 6px 0;
-        /* Tăng padding để giãn cách các dòng trong bảng */
-        vertical-align: top;
-        /* Căn trên cho nội dung dài */
-    }
-
-    .receipt-table th {
+    .receipt-table thead th {
+        border-bottom: 1px solid #000;
+        padding: 8px 5px;
         font-weight: bold;
         text-align: center;
-        /* Căn giữa tiêu đề cột */
     }
 
-    /* Điều chỉnh căn chỉnh cụ thể cho các cột trong bảng */
-    .receipt-table th:nth-child(1),
-    /* STT */
-    .receipt-table td:nth-child(1) {
-        text-align: center;
+    .receipt-table tbody td {
+        padding: 8px 5px;
+        border-bottom: 1px dashed #ddd;
+        vertical-align: top;
     }
 
     .receipt-table th:nth-child(2),
-    /* Tên sản phẩm */
     .receipt-table td:nth-child(2) {
         text-align: left;
         padding-left: 2px;
     }
 
     .receipt-table th:nth-child(3),
-    /* SL */
     .receipt-table td:nth-child(3) {
         text-align: center;
     }
 
     .receipt-table th:nth-child(4),
-    /* Đơn giá */
     .receipt-table td:nth-child(4) {
         text-align: right;
     }
 
     .receipt-table th:nth-child(5),
-    /* Thành tiền */
     .receipt-table td:nth-child(5) {
         text-align: right;
     }
 
     .receipt-summary {
         margin-top: 20px;
-        /* Tăng khoảng cách trên phần tổng kết */
         text-align: right;
-        font-size: 10pt;
-        border-top: 1px dashed #aaa;
-        padding-top: 12px;
-        /* Tăng padding trên */
+        font-size: 11pt;
     }
 
     .receipt-summary p {
-        margin-bottom: 5px;
+        margin: 0;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 20px;
     }
 
-    .receipt-summary strong {
-        display: inline-block;
+    .receipt-summary .label,
+    .receipt-summary .value {
         width: 150px;
+        display: inline-block;
+        text-align: left;
     }
 
-    .receipt-summary span {
-        display: inline-block;
-        width: 120px;
+    .receipt-summary .value {
         text-align: right;
     }
 
-    .total-line {
-        font-size: 11pt;
-        /* Kích thước chữ cho dòng tổng tiền */
+    .receipt-summary p {
+        padding-bottom: 5px;
+    }
+
+    .divider {
+        border-top: 1px dashed #000;
+        margin: 10px 0;
+    }
+
+    .receipt-summary .total-line {
+        font-size: 12pt;
         font-weight: bold;
-        border-top: 1px dashed #aaa;
         padding-top: 10px;
         margin-top: 10px;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .receipt-summary .total-line .label,
+    .receipt-summary .total-line .value {
+        width: 150px;
+        display: inline-block;
+        text-align: left;
+    }
+
+    .receipt-summary .total-line .value {
+        text-align: right;
     }
 
     .receipt-footer {
+        margin-top: 50px;
         text-align: center;
-        margin-top: 30px;
-        /* Tăng khoảng cách trên footer */
-        font-size: 9pt;
-        line-height: 1.5;
+        font-size: 10pt;
+    }
+
+    .signature-section {
+        display: flex;
+        justify-content: space-around;
+        text-align: center;
+    }
+
+    .signature {
+        width: 40%;
+    }
+
+    .signature p {
+        margin: 0;
     }
 }
 </style>
