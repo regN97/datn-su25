@@ -130,6 +130,11 @@ public function update(Request $request, string $id)
     public function destroy(string $id)
     {
         $supplier = Supplier::findOrFail($id);
+
+        if ($supplier->products()->exists()) {
+            return redirect()->route('admin.suppliers.index')
+                ->with('error', 'Không thể xóa nhà cung cấp vì vì vẫn còn sản phẩm đang sử dụng nhà cung cấp này.');
+        }
         $supplier->delete();
 
         return redirect()->back()->with('success', 'Nhà cung cấp đã được xóa mềm!');

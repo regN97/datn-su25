@@ -47,9 +47,9 @@ const createNewOrder = () => {
 const addToCart = async (product) => {
     try {
         const response = await axios.post(route('cashier.addToCart'), {
-            product_id: product.id, // Giả sử product có trường id
+            product_id: product.id,
         });
-        alert(response.data.message); // Thông báo cho cashier
+        alert(response.data.message);
         console.log('Cart updated:', response.data.cart);
     } catch (error) {
         console.error('Error adding to cart:', error);
@@ -100,14 +100,14 @@ onUnmounted(() => {
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
                     <div>
-                        <h6 class="text-sm font-medium text-gray-600">Doanh thu ca {{ activeShift }}</h6>
+                        <h6 class="text-sm font-medium text-gray-600">Doanh thu {{ activeShift }}</h6>
                         <h4 class="text-xl font-bold text-green-600">{{ currentShiftRevenue }}</h4>
                     </div>
                     <DollarSign class="text-3xl text-green-600" />
                 </div>
                 <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
                     <div>
-                        <h6 class="text-sm font-medium text-gray-600">Đơn hàng</h6>
+                        <h6 class="text-sm font-medium text-gray-600">Đơn hàng trong ca</h6>
                         <h4 class="text-xl font-bold text-blue-600">{{ todayOrders }}</h4>
                     </div>
                     <Package class="text-3xl text-blue-600" />
@@ -195,7 +195,7 @@ onUnmounted(() => {
                 <div class="bg-white shadow-md rounded-lg">
                     <div class="p-4 border-b bg-gray-50">
                         <h6 class="text-sm font-medium text-gray-600 flex items-center">
-                            <Package class="mr-2" /> Hóa đơn ca {{ activeShift }}
+                            <Package class="mr-2" /> Hóa đơn {{ activeShift }}
                         </h6>
                     </div>
                     <div id="shift-bills-table" class="overflow-y-auto max-h-96">
@@ -219,9 +219,9 @@ onUnmounted(() => {
                                     <td class="p-3 text-sm">{{ bill.total_amount }}</td>
                                     <td class="p-3 text-sm">{{ bill.created_at }}</td>
                                 </tr>
-                                <tr v-if="!shiftBills.find((s) => s.shift_name === activeShift)?.bills.length" class="border-t">
+                                <tr v-if="!shiftBills.find((s) => s.shift_name === activeShift)?.bills?.length" class="border-t">
                                     <td colspan="4" class="p-3 text-sm text-center text-gray-500">
-                                        Không có hóa đơn trong ca {{ activeShift }}
+                                        Không có hóa đơn trong {{ activeShift }}
                                     </td>
                                 </tr>
                             </tbody>

@@ -3,16 +3,15 @@ import CashierLayout from '@/layouts/CashierLayout.vue';
 import POSKeyboardHandler from '@/components/cashier/POSKeyboardHandler.vue';
 import { Head, usePage, useForm } from '@inertiajs/vue3';
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-import { MenuIcon, BadgeInfo, X, FileText, LogOutIcon, Loader2, ScanLine } from 'lucide-vue-next';
+import { MenuIcon, BadgeInfo, X, FileText, LogOutIcon, Loader2 } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import axios from 'axios';
 import { DateTime } from 'luxon';
-import { StreamBarcodeReader } from 'vue-barcode-reader';
-import QRCode from 'qrcode';
 
+// Lấy props từ Inertia
 const { props } = usePage();
 
-// Predefined notes list
+// Danh sách ghi chú mặc định cho ca làm việc
 const defaultNotes = [
     'Hoàn thành ca không có sự cố',
     'Thiếu tiền mặt',
@@ -21,7 +20,7 @@ const defaultNotes = [
     'Khác (vui lòng ghi rõ)',
 ];
 
-// Initialize state
+// Khởi tạo state
 const products = ref(props.products || []);
 const customers = ref(props.customers || []);
 const hasActiveSession = ref(props.hasActiveSession || false);
@@ -50,21 +49,18 @@ const errorMessage = ref(props.errors?.server || '');
 const shiftReport = ref(null);
 const isLoadingReport = ref(false);
 const isLoadingSessionAction = ref(false);
-const showShiftExpiredModal = ref(false);
-const showShiftEndingSoonModal = ref(false);
-const shiftEndingSoonMessage = ref('');
-const shiftAutoCloseTimeout = ref(null);
 const quickAmounts = [100000, 200000, 500000, 1000000];
-const showScanner = ref(false);
-const manualBarcode = ref('');
 const pendingOrders = ref([]);
 const interval = ref(null);
+const bankQRCode = ref(null);
+const isLoadingBankQR = ref(false);
+const bankTransactionInfo = ref(null);
+
 // Forms
 const sessionForm = useForm({
     opening_amount: 0,
     closing_amount: 0,
     notes: '',
-    shift_id: '',
     selected_default_note: '',
     custom_note: '',
 });
@@ -80,12 +76,19 @@ const form = useForm({
     paymentMethod: 'cash',
     amountReceived: 0,
     orderNotes: '',
-    couponCode: null,
     printReceipt: true,
 });
 
+const cleanBarcode = (input) => {
+    return input.trim().replace(/[\r\n]+/g, ''); // Remove newlines and extra spaces
+};
 // Computed properties
-const categories = computed(() => ['Tất cả', ...new Set(products.value.map(p => p.category))]);
+const categories = computed(() => {
+    const productCategories = products.value
+        .map(p => p.category?.name || 'Không xác định')
+        .filter(category => category !== 'Không xác định');
+    return ['Tất cả', ...new Set(productCategories)];
+});
 
 const formattedOpenedAt = computed(() => {
     if (!activeShift.value?.opened_at) return 'Chưa bắt đầu';
@@ -94,11 +97,14 @@ const formattedOpenedAt = computed(() => {
 });
 
 const cartSubtotal = computed(() => {
-    console.log('Computing cartSubtotal:', cart.value); // Debug
-    return cart.value.reduce((total, item) => total + ((item.price || 0) * (item.quantity || 0)), 0);
+    return cart.value.reduce((total, item) => {
+        const price = Number(item.price) || 0;
+        const quantity = Number(item.quantity) || 0;
+        return total + (price * quantity);
+    }, 0);
 });
 
-const cartTax = computed(() => 0); // 0% VAT
+const cartTax = computed(() => 0); // VAT 0% theo yêu cầu
 
 const cartTotal = computed(() => cartSubtotal.value + cartTax.value);
 
@@ -109,58 +115,44 @@ const change = computed(() => {
     return 0;
 });
 
-const newOrder = () => {
-    cart.value = [];
-    selectedCustomer.value = null;
-    form.customer_id = null;
-    form.orderNotes = '';
-    form.paymentMethod = 'cash';
-    form.amountReceived = 0;
-    form.couponCode = null;
-    form.printReceipt = true;
-    successMessage.value = 'Đã tạo đơn hàng mới!';
-    showSuccessModal.value = true;
-    autoHideMessage();
-};
-
 const filteredProducts = computed(() => {
     let filtered = [...products.value];
 
     if (searchTerm.value.trim()) {
         const regex = new RegExp(searchTerm.value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         filtered = filtered.filter(p =>
-            regex.test(p.name) || regex.test(p.category) || regex.test(p.sku) || regex.test(p.barcode)
+            regex.test(p.name) || regex.test(p.category?.name || '') || regex.test(p.sku)
         );
     }
 
     if (selectedCategory.value !== 'Tất cả') {
-        filtered = filtered.filter(p => p.category === selectedCategory.value);
+        filtered = filtered.filter(p => p.category?.name === selectedCategory.value);
     }
 
     if (priceRange.value.min || priceRange.value.max) {
         const min = parseFloat(priceRange.value.min) || -Infinity;
         const max = parseFloat(priceRange.value.max) || Infinity;
-        filtered = filtered.filter(p => (p.price || 0) >= min && (p.price || 0) <= max);
+        filtered = filtered.filter(p => p.selling_price >= min && p.selling_price <= max);
     }
 
     if (stockRange.value.min || stockRange.value.max) {
         const min = parseInt(stockRange.value.min) || -Infinity;
         const max = parseInt(stockRange.value.max) || Infinity;
-        filtered = filtered.filter(p => (p.stock || 0) >= min && (p.stock || 0) <= max);
+        filtered = filtered.filter(p => p.stock_quantity >= min && p.stock_quantity <= max);
     }
 
     if (sortBy.value !== 'none') {
         filtered.sort((a, b) => {
-            const aValue = sortBy.value === 'price' ? (a.price || 0) : (a.stock || 0);
-            const bValue = sortBy.value === 'price' ? (b.price || 0) : (b.stock || 0);
+            const aValue = sortBy.value === 'price' ? a.selling_price : a.stock_quantity;
+            const bValue = sortBy.value === 'price' ? b.selling_price : b.stock_quantity;
             return sortOrder.value === 'asc' ? aValue - bValue : bValue - aValue;
         });
     }
 
     return filtered.sort((a, b) => {
-        if (a.stock === 0 && b.stock === 0) return 0;
-        if (a.stock === 0) return 1;
-        if (b.stock === 0) return -1;
+        if (a.stock_quantity === 0 && b.stock_quantity === 0) return 0;
+        if (a.stock_quantity === 0) return 1;
+        if (b.stock_quantity === 0) return -1;
         return 0;
     });
 });
@@ -177,52 +169,6 @@ const filteredCustomers = computed(() => {
 const formatCurrency = (amount) => {
     return (Number(amount) || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 };
-const holdOrder = () => {
-    if (cart.value.length === 0) {
-        errorMessage.value = 'Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi lưu đơn!';
-        autoHideMessage();
-        return;
-    }
-    if (pendingOrders.value.length >= 10) {
-        errorMessage.value = 'Đã đạt tối đa 10 đơn hàng chờ. Vui lòng xử lý hoặc xóa đơn hiện có!';
-        autoHideMessage();
-        return;
-    }
-    const orderId = pendingOrders.value.length + 1;
-    pendingOrders.value.push({
-        id: orderId,
-        cart: [...cart.value],
-        customer: selectedCustomer.value ? { ...selectedCustomer.value } : null,
-        orderNotes: form.orderNotes || '',
-        timestamp: DateTime.now().toISO(),
-    });
-    newOrder(); // Clear current order after saving
-    successMessage.value = `Đã lưu đơn hàng #${orderId}!`;
-    showSuccessModal.value = true;
-    autoHideMessage();
-};
-const removeOrder = (orderId) => {
-    pendingOrders.value = pendingOrders.value.filter(o => o.id !== orderId);
-    // Reassign IDs to maintain sequential order (1 to N)
-    pendingOrders.value = pendingOrders.value.map((order, index) => ({
-        ...order,
-        id: index + 1,
-    }));
-    successMessage.value = `Đã xóa đơn hàng #${orderId}!`;
-    showSuccessModal.value = true;
-    autoHideMessage();
-};
-const restoreOrder = (orderId) => {
-    const order = pendingOrders.value.find(o => o.id === orderId);
-    if (!order) return;
-    cart.value = [...order.cart];
-    selectedCustomer.value = order.customer ? { ...order.customer } : null;
-    form.customer_id = order.customer ? order.customer.id : null;
-    form.orderNotes = order.orderNotes;
-    successMessage.value = `Đã khôi phục đơn hàng #${orderId}!`;
-    showSuccessModal.value = true;
-    autoHideMessage();
-};
 
 const formatDateTime = (dateTime) => {
     if (!dateTime || typeof dateTime !== 'string') return 'Chưa xác định';
@@ -236,12 +182,9 @@ const autoHideMessage = () => {
             successMessage.value = '';
             errorMessage.value = '';
             showSuccessModal.value = false;
-            showShiftEndingSoonModal.value = false;
-            showShiftExpiredModal.value = false;
         }, 5000);
     }
 };
-
 
 const sanitizeHTML = (str) => {
     const div = document.createElement('div');
@@ -260,79 +203,6 @@ const getSuitableShift = () => {
         }
         return currentTime >= start_time && currentTime <= end_time;
     });
-};
-
-const checkShiftExpiration = () => {
-    if (!activeShift.value || !hasActiveSession.value) return;
-
-    const now = DateTime.now().setZone('Asia/Ho_Chi_Minh');
-    const currentTime = now.toFormat('HH:mm:ss');
-    const shift = workShifts.value.find(s => s.id === activeShift.value.shift_id);
-
-    if (shift) {
-        const { start_time, end_time, name } = shift;
-        const endTime = DateTime.fromFormat(end_time, 'HH:mm:ss', { zone: 'Asia/Ho_Chi_Minh' });
-        let isExpired = false;
-        let timeUntilEnd;
-
-        if (start_time > end_time) {
-            isExpired = currentTime > end_time && currentTime < start_time;
-            timeUntilEnd = endTime > now ? endTime.diff(now, 'minutes').minutes : endTime.plus({ days: 1 }).diff(now, 'minutes').minutes;
-        } else {
-            isExpired = currentTime > end_time;
-            timeUntilEnd = endTime.diff(now, 'minutes').minutes;
-        }
-
-        if (timeUntilEnd <= 10 && timeUntilEnd > 0 && !showShiftExpiredModal.value && !showShiftEndingSoonModal.value) {
-            shiftEndingSoonMessage.value = `Ca "${name}" sẽ kết thúc sau ${Math.ceil(timeUntilEnd)} phút.`;
-            showShiftEndingSoonModal.value = true;
-            autoHideMessage();
-        }
-
-        if (isExpired && !showShiftExpiredModal.value) {
-            errorMessage.value = `Ca "${name}" đã hết giờ. Bạn muốn đóng ca ngay?`;
-            showShiftExpiredModal.value = true;
-            showShiftEndingSoonModal.value = false;
-            autoHideMessage();
-
-            if (shiftAutoCloseTimeout.value) clearTimeout(shiftAutoCloseTimeout.value);
-            shiftAutoCloseTimeout.value = setTimeout(autoCloseShift, 60 * 60 * 1000);
-        }
-    }
-};
-
-const autoCloseShift = async () => {
-    if (!hasActiveSession.value) return;
-
-    isLoadingSessionAction.value = true;
-    sessionForm.notes = sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)' ?
-        sessionForm.custom_note : sessionForm.selected_default_note;
-
-    try {
-        const response = await axios.post('/cashier/pos/session/close', {
-            closing_amount: Number(sessionForm.closing_amount) || 0,
-            notes: sessionForm.notes || 'Tự động đóng ca do hết giờ',
-        });
-        hasActiveSession.value = false;
-        activeShift.value = null;
-        successMessage.value = response.data.success || 'Ca đã được đóng tự động!';
-        showSuccessModal.value = true;
-        showShiftExpiredModal.value = false;
-        showShiftEndingSoonModal.value = false;
-        sessionForm.reset();
-        shiftReport.value = null;
-        autoHideMessage();
-        await fetchShiftReport();
-        if (shiftAutoCloseTimeout.value) {
-            clearTimeout(shiftAutoCloseTimeout.value);
-            shiftAutoCloseTimeout.value = null;
-        }
-    } catch (error) {
-        errorMessage.value = error.response?.data?.errors?.server || 'Lỗi đóng ca tự động.';
-        autoHideMessage();
-    } finally {
-        isLoadingSessionAction.value = false;
-    }
 };
 
 const fetchWorkShifts = async () => {
@@ -388,11 +258,6 @@ const fetchShiftReport = async () => {
 };
 
 const openShift = async () => {
-    if (!sessionForm.shift_id) {
-        errorMessage.value = 'Vui lòng chọn ca làm việc.';
-        autoHideMessage();
-        return;
-    }
     if (!confirm('Xác nhận mở ca làm việc?')) return;
     isLoadingSessionAction.value = true;
     sessionForm.notes = sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)' ?
@@ -402,16 +267,15 @@ const openShift = async () => {
         const response = await axios.post('/cashier/pos/session/start', {
             opening_amount: Number(sessionForm.opening_amount) || 0,
             notes: sessionForm.notes || '',
-            shift_id: sessionForm.shift_id,
         });
         hasActiveSession.value = true;
         activeShift.value = {
             ...response.data.activeShift,
             opened_at: response.data.activeShift.opened_at || DateTime.now().toISO(),
+            shift_name: response.data.activeShift.shift_name || 'Ca hiện tại',
         };
         successMessage.value = response.data.success || 'Ca đã mở thành công!';
         showSuccessModal.value = true;
-        showShiftExpiredModal.value = false;
         sessionForm.reset();
         autoHideMessage();
         await fetchShiftReport();
@@ -441,16 +305,10 @@ const closeShift = async () => {
         activeShift.value = null;
         successMessage.value = response.data.success || 'Ca đã đóng thành công!';
         showSuccessModal.value = true;
-        showShiftExpiredModal.value = false;
-        showShiftEndingSoonModal.value = false;
         sessionForm.reset();
         shiftReport.value = null;
         autoHideMessage();
         await fetchShiftReport();
-        if (shiftAutoCloseTimeout.value) {
-            clearTimeout(shiftAutoCloseTimeout.value);
-            shiftAutoCloseTimeout.value = null;
-        }
     } catch (error) {
         errorMessage.value = error.response?.data?.errors?.server || 'Lỗi đóng ca.';
         if (error.response?.data?.errors) {
@@ -495,8 +353,180 @@ const generateShiftReport = async () => {
     }
 };
 
+// Cart management
+const newOrder = () => {
+    cart.value = [];
+    selectedCustomer.value = null;
+    form.customer_id = null;
+    form.orderNotes = '';
+    form.paymentMethod = 'cash';
+    form.amountReceived = 0;
+    form.printReceipt = true;
+    successMessage.value = 'Đã tạo đơn hàng mới!';
+    showSuccessModal.value = true;
+    autoHideMessage();
+};
+const holdOrder = () => {
+    if (cart.value.length === 0) {
+        errorMessage.value = 'Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi lưu đơn!';
+        autoHideMessage();
+        return;
+    }
+    if (pendingOrders.value.length >= 10) {
+        errorMessage.value = 'Đã đạt tối đa 10 đơn hàng chờ. Vui lòng xử lý hoặc xóa đơn hiện có!';
+        autoHideMessage();
+        return;
+    }
+    const orderId = pendingOrders.value.length + 1;
+    const newOrder = {
+        id: orderId,
+        cart: [...cart.value],
+        customer: selectedCustomer.value ? { ...selectedCustomer.value } : null,
+        orderNotes: form.orderNotes || '',
+        timestamp: DateTime.now().toISO(),
+    };
+    pendingOrders.value.push(newOrder);
+    // Lưu vào localStorage
+    localStorage.setItem('pendingOrders', JSON.stringify(pendingOrders.value));
+    newOrder();
+    successMessage.value = `Đã lưu đơn hàng #${orderId}!`;
+    showSuccessModal.value = true;
+    autoHideMessage();
+};
+const removeOrder = (orderId) => {
+    pendingOrders.value = pendingOrders.value.filter(o => o.id !== orderId);
+    pendingOrders.value = pendingOrders.value.map((order, index) => ({
+        ...order,
+        id: index + 1,
+    }));
+    // Cập nhật localStorage
+    localStorage.setItem('pendingOrders', JSON.stringify(pendingOrders.value));
+    successMessage.value = `Đã xóa đơn hàng #${orderId}!`;
+    showSuccessModal.value = true;
+    autoHideMessage();
+};
+
+const restoreOrder = (orderId) => {
+    const order = pendingOrders.value.find(o => o.id === orderId);
+    if (!order) return;
+    cart.value = [...order.cart];
+    selectedCustomer.value = order.customer ? { ...order.customer } : null;
+    form.customer_id = order.customer ? order.customer.id : null;
+    form.orderNotes = order.orderNotes;
+    // Xóa đơn hàng đã khôi phục khỏi pendingOrders
+    pendingOrders.value = pendingOrders.value.filter(o => o.id !== orderId);
+    pendingOrders.value = pendingOrders.value.map((order, index) => ({
+        ...order,
+        id: index + 1,
+    }));
+    // Cập nhật localStorage
+    localStorage.setItem('pendingOrders', JSON.stringify(pendingOrders.value));
+    successMessage.value = `Đã khôi phục đơn hàng #${orderId}!`;
+    showSuccessModal.value = true;
+    autoHideMessage();
+};
+
+const addToCart = async (product) => {
+    if (!hasActiveSession.value) {
+        errorMessage.value = 'Vui lòng mở ca trước khi thêm sản phẩm.';
+        autoHideMessage();
+        return;
+    }
+    if (product.stock_quantity === 0) {
+        errorMessage.value = `Sản phẩm ${product.name} đã hết hàng.`;
+        autoHideMessage();
+        return;
+    }
+    if (!product.price || isNaN(Number(product.price))) {
+        errorMessage.value = `Sản phẩm ${product.name} có giá không hợp lệ.`;
+        autoHideMessage();
+        return;
+    }
+    try {
+        const response = await axios.get(`/cashier/pos/check-batch/${product.id}`, { params: { quantity: 1 } });
+        if (!response.data.hasValidBatch) {
+            errorMessage.value = response.data.message || `Sản phẩm ${product.name} không có lô hợp lệ.`;
+            products.value = products.value.map(p => p.id === product.id ? { ...p, stock_quantity: response.data.availableStock || 0 } : p);
+            autoHideMessage();
+            return;
+        }
+        const existingItem = cart.value.find(item => item.id === product.id);
+        if (existingItem) {
+            const newQuantity = existingItem.quantity + 1;
+            const stockResponse = await axios.get(`/cashier/pos/check-batch/${product.id}`, { params: { quantity: newQuantity } });
+            if (stockResponse.data.hasValidBatch) {
+                console.log(`Tăng số lượng sản phẩm ${product.name}, số lượng mới: ${newQuantity}`);
+                existingItem.quantity = newQuantity;
+            } else {
+                errorMessage.value = stockResponse.data.message || `Số lượng tối đa cho ${product.name} là ${product.stock_quantity}.`;
+                autoHideMessage();
+            }
+        } else {
+            console.log(`Thêm mới sản phẩm ${product.name} vào giỏ hàng`);
+            cart.value.push({
+                id: product.id,
+                name: product.name,
+                price: Number(product.price) || 0,
+                quantity: 1,
+            });
+        }
+        products.value = products.value.map(p => p.id === product.id ? { ...p, stock_quantity: response.data.availableStock || 0 } : p);
+    } catch (error) {
+        errorMessage.value = error.response?.data?.errors?.server || `Lỗi kiểm tra lô hàng ${product.name}.`;
+        autoHideMessage();
+    }
+};
+
+const updateQuantity = async (productId, quantity) => {
+    const item = cart.value.find(item => item.id === productId);
+    if (!item) return;
+
+    const product = products.value.find(p => p.id === productId);
+    try {
+        const response = await axios.get(`/cashier/pos/check-batch/${productId}`, { params: { quantity } });
+        if (!response.data.hasValidBatch) {
+            errorMessage.value = response.data.message || `Không đủ lô cho ${product.name} với số lượng ${quantity}.`;
+            removeFromCart(productId);
+            products.value = products.value.map(p => p.id === productId ? { ...p, stock_quantity: response.data.availableStock || 0 } : p);
+            autoHideMessage();
+            return;
+        }
+        if (quantity <= response.data.availableStock && quantity >= 1) {
+            item.quantity = quantity;
+        } else if (quantity < 1) {
+            removeFromCart(productId);
+        } else {
+            errorMessage.value = `Số lượng tối đa cho ${product.name} là ${response.data.availableStock}.`;
+            item.quantity = response.data.availableStock;
+            autoHideMessage();
+        }
+        products.value = products.value.map(p => p.id === productId ? { ...p, stock_quantity: response.data.availableStock || 0 } : p);
+    } catch (error) {
+        if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
+            errorMessage.value = error.response.data.errors.server;
+        } else {
+            errorMessage.value = error.response?.data?.errors?.server || `Lỗi kiểm tra lô ${product.name}.`;
+            removeFromCart(productId);
+        }
+        autoHideMessage();
+    }
+};
+
+const removeFromCart = (productId) => {
+    cart.value = cart.value.filter(item => item.id !== productId);
+};
+
+// Payment handling
+const setAmountReceived = (amount) => {
+    form.amountReceived = amount;
+};
+const setExactAmount = () => {
+    console.log('Nội dung giỏ hàng:', cart.value);
+    console.log('Tổng giỏ hàng:', cartTotal.value);
+    form.amountReceived = cartTotal.value;
+};
+
 const showPayment = () => {
-    console.log('showPayment called, cart:', cart.value);
     if (!hasActiveSession.value) {
         errorMessage.value = 'Vui lòng mở ca trước khi thanh toán.';
         autoHideMessage();
@@ -514,112 +544,6 @@ const showPayment = () => {
     }
     billNumber.value = 'HD' + Date.now();
     showPaymentModal.value = true;
-};
-
-
-// Cart management
-const addToCart = async (product) => {
-    console.log('addToCart called, product:', product); // Debug
-    if (!hasActiveSession.value) {
-        errorMessage.value = 'Vui lòng mở ca trước khi thêm sản phẩm.';
-        autoHideMessage();
-        return;
-    }
-    if (product.stock === 0) {
-        errorMessage.value = `Sản phẩm ${product.name} đã hết hàng.`;
-        autoHideMessage();
-        return;
-    }
-    try {
-        const response = await axios.get(`/cashier/pos/check-batch/${product.id}`, { params: { quantity: 1 } });
-        console.log('check-batch response:', response.data); // Debug
-        if (!response.data.hasValidBatch) {
-            errorMessage.value = response.data.message || `Sản phẩm ${product.name} không có lô hợp lệ.`;
-            products.value = products.value.map(p => p.id === product.id ? { ...p, stock: response.data.availableStock || 0 } : p);
-            autoHideMessage();
-            return;
-        }
-        const existingItem = cart.value.find(item => item.id === product.id);
-        if (existingItem) {
-            const newQuantity = existingItem.quantity + 1;
-            const stockResponse = await axios.get(`/cashier/pos/check-batch/${product.id}`, { params: { quantity: newQuantity } });
-            console.log('check-batch for quantity update:', stockResponse.data); // Debug
-            if (stockResponse.data.hasValidBatch) {
-                existingItem.quantity = newQuantity;
-            } else {
-                errorMessage.value = stockResponse.data.message || `Số lượng tối đa cho ${product.name} là ${product.stock}.`;
-                autoHideMessage();
-            }
-        } else {
-            cart.value.push({ ...product, quantity: 1 });
-        }
-        products.value = products.value.map(p => p.id === product.id ? { ...p, stock: response.data.availableStock || 0 } : p);
-        console.log('Cart after add:', cart.value); // Debug
-    } catch (error) {
-        console.error('addToCart error:', error); // Debug
-        if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
-            showShiftExpiredModal.value = true;
-            errorMessage.value = error.response.data.errors.server;
-        } else {
-            errorMessage.value = error.response?.data?.errors?.server || `Lỗi kiểm tra lô hàng ${product.name}.`;
-        }
-        autoHideMessage();
-    }
-};
-
-const updateQuantity = async (productId, quantity) => {
-    console.log('updateQuantity called, productId:', productId, 'quantity:', quantity); // Debug
-    const item = cart.value.find(item => item.id === productId);
-    if (!item) return;
-
-    const product = products.value.find(p => p.id === productId);
-    try {
-        const response = await axios.get(`/cashier/pos/check-batch/${productId}`, { params: { quantity } });
-        console.log('check-batch for updateQuantity:', response.data); // Debug
-        if (!response.data.hasValidBatch) {
-            errorMessage.value = response.data.message || `Không đủ lô cho ${product.name} với số lượng ${quantity}.`;
-            removeFromCart(productId);
-            products.value = products.value.map(p => p.id === productId ? { ...p, stock: response.data.availableStock || 0 } : p);
-            autoHideMessage();
-            return;
-        }
-        if (quantity <= response.data.availableStock && quantity >= 1) {
-            item.quantity = quantity;
-        } else if (quantity < 1) {
-            removeFromCart(productId);
-        } else {
-            errorMessage.value = `Số lượng tối đa cho ${product.name} là ${response.data.availableStock}.`;
-            item.quantity = response.data.availableStock;
-            autoHideMessage();
-        }
-        products.value = products.value.map(p => p.id === productId ? { ...p, stock: response.data.availableStock || 0 } : p);
-        console.log('Cart after update:', cart.value); // Debug
-    } catch (error) {
-        console.error('updateQuantity error:', error); // Debug
-        if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
-            showShiftExpiredModal.value = true;
-            errorMessage.value = error.response.data.errors.server;
-        } else {
-            errorMessage.value = error.response?.data?.errors?.server || `Lỗi kiểm tra lô ${product.name}.`;
-            removeFromCart(productId);
-        }
-        autoHideMessage();
-    }
-};
-
-const removeFromCart = (productId) => {
-    console.log('removeFromCart called, productId:', productId); // Debug
-    cart.value = cart.value.filter(item => item.id !== productId);
-    console.log('Cart after remove:', cart.value); // Debug
-};
-
-// Payment handling
-const setAmountReceived = (amount) => {
-    form.amountReceived = amount;
-};
-
-const setExactAmount = () => {
-    form.amountReceived = cartTotal.value;
 };
 
 const submitSale = async () => {
@@ -664,25 +588,24 @@ const submitSale = async () => {
             paymentMethod: form.paymentMethod,
             amountReceived: form.paymentMethod === 'cash' ? Number(form.amountReceived) : cartTotal.value,
             orderNotes: form.orderNotes || '',
-            couponCode: form.couponCode || null,
+            discount_amount: 0, // Không có khuyến mãi
         };
-        // Add orderId for bank_transfer
         if (form.paymentMethod === 'bank_transfer') {
             payload.orderId = billNumber.value || 'HD' + Date.now();
         }
-        console.log('Submitting sale with payload:', payload); // Debug
         const response = await axios.post('/cashier/pos/sale', payload);
-        console.log('submitSale response:', response.data);
+
+        // Tải lại toàn bộ danh sách sản phẩm
+        const productResponse = await axios.get('/cashier/pos/products');
+        products.value = productResponse.data.products || []; // Cập nhật danh sách sản phẩm đầy đủ
+
         cart.value = [];
-        form.reset('cart', 'customer_id', 'paymentMethod', 'amountReceived', 'orderNotes', 'couponCode', 'printReceipt');
+        form.reset('cart', 'customer_id', 'paymentMethod', 'amountReceived', 'orderNotes', 'printReceipt');
         clearCustomer();
-        products.value = response.data.products || products.value;
         hasActiveSession.value = response.data.hasActiveSession || true;
         await fetchShiftReport();
     } catch (error) {
-        console.error('submitSale error:', error);
         if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
-            showShiftExpiredModal.value = true;
             errorMessage.value = error.response.data.errors.server;
         } else {
             errorMessage.value = error.response?.data?.errors?.server || 'Lỗi xử lý thanh toán.';
@@ -694,7 +617,285 @@ const submitSale = async () => {
     }
 };
 
-// Filters and UI
+const generateBankQR = async () => {
+    if (!hasActiveSession.value) {
+        errorMessage.value = 'Vui lòng mở ca trước khi tạo mã QR ngân hàng.';
+        autoHideMessage();
+        return;
+    }
+    if (cart.value.length === 0) {
+        errorMessage.value = 'Giỏ hàng trống. Vui lòng thêm sản phẩm!';
+        autoHideMessage();
+        return;
+    }
+
+    isLoadingBankQR.value = true;
+    bankQRCode.value = null;
+    bankTransactionInfo.value = null;
+
+    try {
+        const amount = cartTotal.value;
+        const billCode = billNumber.value || 'HD' + Date.now();
+        const description = `Thanh toan hoa don ${billCode}`;
+        const encodedDesc = encodeURIComponent(description);
+        const accountName = encodeURIComponent('Nguyen Van Huy');
+
+        const qrCodeUrl = `https://img.vietqr.io/image/MB-0986690271-compact2.png?amount=${amount}&addInfo=${encodedDesc}&accountName=${accountName}`;
+
+        bankQRCode.value = qrCodeUrl;
+        bankTransactionInfo.value = {
+            bankCode: 'MB',
+            accountNo: '0986690271',
+            accountName: 'Nguyễn Văn Huy',
+            amount,
+            description,
+        };
+        successMessage.value = 'Mã QR ngân hàng đã được tạo!';
+        showSuccessModal.value = true;
+        autoHideMessage();
+    } catch (error) {
+        errorMessage.value = 'Lỗi khi tạo mã QR ngân hàng. Vui lòng thử lại.';
+        autoHideMessage();
+    } finally {
+        isLoadingBankQR.value = false;
+    }
+};
+
+const confirmPayment = async () => {
+    if (form.paymentMethod === 'cash' && Number(form.amountReceived) < cartTotal.value) {
+        errorMessage.value = 'Số tiền khách đưa không đủ.';
+        autoHideMessage();
+        return;
+    }
+    if (form.paymentMethod === 'wallet' && (!selectedCustomer.value || selectedCustomer.value.wallet < cartTotal.value)) {
+        errorMessage.value = 'Số dư ví không đủ hoặc chưa chọn khách hàng.';
+        autoHideMessage();
+        return;
+    }
+    if (form.paymentMethod === 'bank_transfer' && !bankQRCode.value) {
+        errorMessage.value = 'Vui lòng tạo mã QR ngân hàng trước khi xác nhận.';
+        autoHideMessage();
+        return;
+    }
+
+    try {
+        const cartSnapshot = [...cart.value];
+        const paymentMethodSnapshot = form.paymentMethod;
+        const amountReceivedSnapshot = form.paymentMethod === 'cash' ? form.amountReceived : cartTotal.value;
+        const customerSnapshot = { ...selectedCustomer.value };
+        await submitSale();
+        if (form.printReceipt) {
+            printReceipt(cartSnapshot, paymentMethodSnapshot, amountReceivedSnapshot, customerSnapshot);
+        }
+        showPaymentModal.value = false;
+        successMessage.value = 'Thanh toán thành công!';
+        showSuccessModal.value = true;
+        bankQRCode.value = null;
+        bankTransactionInfo.value = null;
+        autoHideMessage();
+    } catch (error) {
+        if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
+            errorMessage.value = error.response.data.errors.server;
+        } else {
+            errorMessage.value = error.response?.data?.message || error.response?.data?.errors?.server || 'Lỗi thanh toán.';
+            if (error.response?.data?.errors) {
+                Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
+            }
+        }
+        autoHideMessage();
+    }
+};
+
+const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod, amountReceived = form.amountReceived, customer = selectedCustomer.value) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        errorMessage.value = 'Không thể mở cửa sổ in. Vui lòng kiểm tra trình chặn popup.';
+        autoHideMessage();
+        return;
+    }
+
+    const subtotal = cartData.reduce((total, item) => total + (item.price * item.quantity), 0); 
+    const tax = 0;
+    const total = subtotal + tax;
+
+    try {
+        printWindow.document.write(`
+      <html>
+        <head>
+          <title>Hóa đơn #${sanitizeHTML(billNumber.value)}</title>
+          <style>
+            @media print {
+              @page { size: 80mm auto; margin: 5mm; }
+              body { 
+                font-family: 'Courier New', monospace; 
+                font-size: 10pt; 
+                width: 80mm; 
+                margin: 0; 
+                padding: 5mm; 
+                line-height: 1.4; 
+                color: #000; 
+                background: #fff; 
+              }
+              .header { 
+                text-align: center; 
+                border-bottom: 2px dashed #000; 
+                padding-bottom: 8px; 
+                margin-bottom: 8px; 
+              }
+              .store-info { 
+                font-size: 9pt; 
+                text-align: center; 
+                margin-bottom: 8px; 
+              }
+              .bill-info { 
+                font-size: 9pt; 
+                margin-bottom: 8px; 
+              }
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin: 8px 0; 
+              }
+              th, td { 
+                padding: 4px 2px; 
+                font-size: 9pt; 
+                text-align: left; 
+              }
+              th { 
+                border-bottom: 1px solid #000; 
+                font-weight: bold; 
+              }
+              .text-right { 
+                text-align: right; 
+              }
+              .text-center { 
+                text-align: center; 
+              }
+              .total-section { 
+                border-top: 1px dashed #000; 
+                padding-top: 8px; 
+                margin-top: 8px; 
+                font-size: 9pt; 
+              }
+              .total { 
+                font-size: 10pt; 
+                font-weight: bold; 
+              }
+              .footer { 
+                text-align: center; 
+                font-size: 8pt; 
+                margin-top: 8px; 
+                border-top: 2px dashed #000; 
+                padding-top: 8px; 
+              }
+              .no-print { 
+                display: none; 
+              }
+            }
+            /* Screen preview styles to mimic print */
+            body { 
+              font-family: 'Courier New', monospace; 
+              font-size: 10pt; 
+              width: 80mm; 
+              margin: 10px auto; 
+              padding: 5mm; 
+              line-height: 1.4; 
+              color: #000; 
+              background: #fff; 
+              border: 1px solid #ccc; 
+              box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+            }
+            .no-print { 
+              display: block; 
+              margin-top: 10px; 
+              width: 100%; 
+              padding: 5px; 
+              background: #007bff; 
+              color: #fff; 
+              border: none; 
+              border-radius: 3px; 
+              cursor: pointer; 
+              text-align: center; 
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2 style="margin: 0; font-size: 12pt;">Hóa Đơn Bán Hàng</h2>
+            <div class="store-info">
+              <p style="margin: 2px 0;">Cửa hàng bán lẻ G7 Mart</p>
+              <p style="margin: 2px 0;">Trịnh Văn Bô, Hà Nội</p>
+              <p style="margin: 2px 0;">Hotline: 4444 6666</p>
+            </div>
+          </div>
+          <div class="bill-info">
+            <p><strong>Mã hóa đơn:</strong> ${sanitizeHTML(billNumber.value)}</p>
+            <p><strong>Ngày giờ:</strong> ${sanitizeHTML(formatDateTime(DateTime.now().toISO()))}</p>
+            <p><strong>Nhân viên:</strong> ${sanitizeHTML(props.auth?.user?.name || 'N/A')}</p>
+            <p><strong>Khách hàng:</strong> ${sanitizeHTML(customer?.customer_name || 'Khách lẻ')}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40%;">Tên hàng</th>
+                <th style="width: 15%; text-align: center;">SL</th>
+                <th style="width: 25%; text-align: right;">Đơn giá</th>
+                <th style="width: 20%; text-align: right;">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${cartData.length > 0 ? cartData.map(item => `
+                <tr>
+                  <td>${sanitizeHTML(item.name || 'Unknown')}</td>
+                  <td class="text-center">${item.quantity || 0}</td>
+                  <td class="text-right">${sanitizeHTML(formatCurrency(item.selling_price || 0))}</td>
+                  <td class="text-right">${sanitizeHTML(formatCurrency((item.selling_price || 0) * (item.quantity || 0)))}</td>
+                </tr>
+              `).join('') : `
+                <tr>
+                  <td colspan="4" class="text-center">Không có sản phẩm</td>
+                </tr>
+              `}
+            </tbody>
+          </table>
+          <div class="total-section">
+            <p class="text-right"><strong>Tổng tiền hàng:</strong> ${sanitizeHTML(formatCurrency(subtotal))}</p>
+            <p class="text-right"><strong>Giảm giá:</strong> ${sanitizeHTML(formatCurrency(0))}</p>
+            <p class="text-right total"><strong>Tổng thanh toán:</strong> ${sanitizeHTML(formatCurrency(total))}</p>
+            <p class="text-right"><strong>Phương thức:</strong> ${sanitizeHTML(
+            paymentMethod === 'cash' ? 'Tiền mặt' :
+                paymentMethod === 'credit_card' ? 'Thẻ ngân hàng' :
+                    paymentMethod === 'bank_transfer' ? 'Chuyển khoản ngân hàng' :
+                        'Ví khách hàng'
+        )}</p>
+            ${paymentMethod === 'cash' ? `
+              <p class="text-right"><strong>Khách đưa:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) || 0))}</p>
+              <p class="text-right"><strong>Tiền thối:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) - total || 0))}</p>
+            ` : paymentMethod === 'bank_transfer' && bankTransactionInfo.value ? `
+              <p class="text-right"><strong>Mô tả:</strong> ${sanitizeHTML(bankTransactionInfo.value.description)}</p>
+            ` : ''}
+            <p class="text-right"><strong>Ghi chú:</strong> ${sanitizeHTML(form.orderNotes || 'Không có')}</p>
+          </div>
+          <div class="footer">
+            <p>Cảm ơn quý khách!</p>
+            <p>Vui lòng kiểm tra hàng trước khi rời đi.</p>
+          </div>
+          <button class="no-print" onclick="window.print(); window.close();">In hóa đơn</button>
+        </body>
+      </html>
+    `);
+        printWindow.document.close();
+        printWindow.onload = () => {
+            printWindow.focus();
+            printWindow.print();
+        };
+    } catch (error) {
+        errorMessage.value = 'Lỗi khi tạo hóa đơn in. Vui lòng thử lại.';
+        autoHideMessage();
+        printWindow.close();
+    }
+};
+
 const resetFilters = () => {
     searchTerm.value = '';
     selectedCategory.value = 'Tất cả';
@@ -734,7 +935,6 @@ const toggleReportSidebar = async () => {
     }
 };
 
-// Customer management
 const selectCustomer = (customer) => {
     selectedCustomer.value = customer;
     form.customer_id = customer.id;
@@ -782,8 +982,6 @@ const submitNewCustomer = async () => {
         showSuccessModal.value = true;
         toggleAddCustomerForm();
         if (response.data.newCustomer) selectCustomer(response.data.newCustomer);
-        customersKey.value += 1;
-        autoHideMessage();
     } catch (error) {
         errorMessage.value = error.response?.data?.errors?.server || 'Lỗi thêm khách hàng.';
         if (error.response?.data?.errors) {
@@ -793,7 +991,6 @@ const submitNewCustomer = async () => {
     }
 };
 
-// Logout
 const initiateLogout = () => {
     if (hasActiveSession.value) {
         showLogoutModal.value = true;
@@ -832,7 +1029,6 @@ const performLogout = async (closeShiftFlag = false) => {
     }
 };
 
-// Event handlers
 const closeModalsAndSidebars = () => {
     selectedProduct.value = null;
     showFilterSidebar.value = false;
@@ -843,387 +1039,97 @@ const closeModalsAndSidebars = () => {
     customerSearch.value = '';
     showAddCustomerForm.value = false;
     errorMessage.value = '';
-    showShiftExpiredModal.value = false;
-    showShiftEndingSoonModal.value = false;
 };
 
 const handleKeydown = (event) => {
     if (event.key === 'Escape') closeModalsAndSidebars();
     if (event.key === 'F9') {
         event.preventDefault();
-        emit('new-order');
+        newOrder();
     }
 };
 
 const handleClickOutside = (event) => {
     if (selectedProduct.value && !event.target.closest('.modal-content')) selectedProduct.value = null;
     if (showLogoutModal.value && !event.target.closest('.logout-modal-content')) showLogoutModal.value = false;
-    if (showShiftExpiredModal.value && !event.target.closest('.shift-expired-modal-content')) showShiftExpiredModal.value = false;
-    if (showShiftEndingSoonModal.value && !event.target.closest('.shift-ending-soon-modal-content')) showShiftEndingSoonModal.value = false;
     if (showPaymentModal.value && !event.target.closest('.modal-content')) showPaymentModal.value = false;
 };
 
-// Keyboard shortcuts
 const showHelp = () => alert('Chức năng trợ giúp (F1) chưa triển khai.');
 const addItem = () => alert('Chức năng thêm sản phẩm (F2) chưa triển khai.');
 const focusSearch = () => document.querySelector('input[placeholder*="Tìm kiếm sản phẩm (F3)"]')?.focus();
 const reprintReceipt = () => alert('Chức năng in lại hóa đơn (F7) chưa triển khai.');
-
 const removeLastCartItem = () => {
     if (cart.value.length > 0) cart.value.pop();
 };
-const checkout = () => showPayment();
-
-
 onMounted(async () => {
-    console.log('onMounted, products:', props.products, 'cart:', cart.value);
+    console.log('Danh sách sản phẩm:', products.value);
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('click', handleClickOutside);
-    await fetchWorkShifts();
     if (hasActiveSession.value) {
         await fetchShiftReport();
-        checkShiftExpiration();
-        interval.value = setInterval(checkShiftExpiration, 30 * 1000); // Check every 30 seconds
     }
     if (props.flash?.success) {
         showSuccessModal.value = true;
         autoHideMessage();
     }
-    pendingOrders.value = [];
+    const savedOrders = localStorage.getItem('pendingOrders');
+    pendingOrders.value = savedOrders ? JSON.parse(savedOrders) : [];
 });
+
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown);
     window.removeEventListener('click', handleClickOutside);
-    if (shiftAutoCloseTimeout.value) clearTimeout(shiftAutoCloseTimeout.value);
-    stopBarcodeScanner(); // Stop barcode scanner
-    if (interval.value) clearInterval(interval.value); // Clear interval using ref
 });
-const onBarcodeScanned = async (barcode) => {
-    if (barcode && showScanner.value) {
-        manualBarcode.value = barcode; // Lưu mã vạch vào manualBarcode
-        await handleManualBarcode(barcode); // Xử lý mã vạch
-        showScanner.value = false; // Đóng modal sau khi quét
-    }
-};
-
-// Hàm mở modal quét mã vạch
-const openScanner = () => {
-    if (!hasActiveSession.value) {
-        errorMessage.value = 'Vui lòng mở ca trước khi quét mã vạch.';
-        autoHideMessage();
-        return;
-    }
-    showScanner.value = true;
-    nextTick(() => {
-        // Đảm bảo StreamBarcodeReader được khởi tạo sau khi modal hiển thị
-        const scannerElement = document.querySelector('#barcode-scanner');
-        if (scannerElement) {
-            scannerElement.innerHTML = ''; // Xóa nội dung cũ nếu có
-        }
-    });
-};
-
-// Hàm xử lý mã vạch (giữ nguyên từ mã gốc)
-const handleManualBarcode = async (barcode) => {
-    if (!hasActiveSession.value) {
-        errorMessage.value = 'Vui lòng mở ca trước khi quét mã vạch.';
-        autoHideMessage();
-        return;
-    }
-    if (!barcode) {
-        errorMessage.value = 'Mã vạch không hợp lệ.';
-        autoHideMessage();
-        return;
-    }
-    const normalizedBarcode = barcode.trim();
-    console.log('Handling barcode:', normalizedBarcode);
+const refreshProducts = async () => {
     try {
-        // Kiểm tra định dạng mã vạch
-        const validateResponse = await axios.get(`/cashier/pos/barcode/validate/${normalizedBarcode}`);
-        if (!validateResponse.data.isValid) {
-            errorMessage.value = validateResponse.data.message || 'Mã vạch không hợp lệ.';
-            autoHideMessage();
-            return;
-        }
+        const response = await axios.get('/cashier/pos/products');
+        products.value = response.data.products || [];
+        console.log('Refreshed products:', products.value);
+    } catch (error) {
+        console.error('Error refreshing products:', error);
+        errorMessage.value = 'Lỗi tải danh sách sản phẩm.';
+        autoHideMessage();
+    }
+};
+let isProcessingBarcode = false;
 
-        const response = await axios.get(`/cashier/pos/product-by-barcode/${normalizedBarcode}`);
-        const { product, hasValidBatch, availableStock, message } = response.data;
+const searchByBarcode = async (barcode) => {
+    if (isProcessingBarcode) return; 
+    isProcessingBarcode = true;
 
-        if (!product || !hasValidBatch) {
-            errorMessage.value = message || `Không tìm thấy sản phẩm với mã vạch "${normalizedBarcode}".`;
-            autoHideMessage();
-            return;
-        }
-
-        if (availableStock <= 0) {
-            errorMessage.value = `Sản phẩm "${product.name}" đã hết hàng.`;
-            autoHideMessage();
-            return;
-        }
-
-        const cartItem = cart.value.find(item => item.id === product.id);
-        if (cartItem) {
-            const newQuantity = cartItem.quantity + 1;
-            const stockResponse = await axios.get(`/cashier/pos/check-batch/${product.id}`, {
-                params: { quantity: newQuantity },
-            });
-            if (stockResponse.data.hasValidBatch) {
-                cartItem.quantity = newQuantity;
-            } else {
-                errorMessage.value = stockResponse.data.message || `Số lượng tối đa cho ${product.name} là ${availableStock}.`;
+    try {
+        const response = await axios.get(`/cashier/pos/product/barcode/${encodeURIComponent(barcode)}`, {
+            params: { t: Date.now() }
+        });
+        const product = response.data.product;
+        if (product && product.stock_quantity > 0) {
+            if (!product.price || isNaN(Number(product.price))) {
+                errorMessage.value = `Sản phẩm ${product.name} có giá không hợp lệ.`;
+                await refreshProducts();
                 autoHideMessage();
                 return;
             }
-        } else {
-            cart.value.push({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                quantity: 1,
-                barcode: product.barcode,
+            await addToCart(product); 
+            searchTerm.value = '';
+            successMessage.value = `Đã thêm ${product.name} vào giỏ hàng!`;
+            showSuccessModal.value = true;
+            autoHideMessage();
+            nextTick(() => {
+                const searchInput = document.querySelector('input[placeholder*="Tìm kiếm sản phẩm (F3)"]');
+                if (searchInput) searchInput.focus();
             });
-        }
-
-        // Cập nhật products.value để đồng bộ tồn kho
-        products.value = products.value.map(p =>
-            p.id === product.id ? { ...p, stock: availableStock } : p
-        );
-
-        manualBarcode.value = '';
-        successMessage.value = `Đã thêm "${product.name}" vào giỏ hàng.`;
-        autoHideMessage();
-    } catch (error) {
-        console.error('Error in handleManualBarcode:', error);
-        if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
-            showShiftExpiredModal.value = true;
-            errorMessage.value = error.response.data.errors.server;
         } else {
-            errorMessage.value = error.response?.data?.message || `Lỗi khi xử lý mã vạch "${normalizedBarcode}".`;
+            errorMessage.value = product ? `Sản phẩm ${product.name} đã hết hàng.` : 'Không tìm thấy sản phẩm.';
+            await refreshProducts();
+            autoHideMessage();
         }
-        autoHideMessage();
-    }
-};
-
-const stopBarcodeScanner = () => {
-    showScanner.value = false;
-    manualBarcode.value = ''; // Xóa mã vạch thủ công khi đóng
-};
-
-
-
-
-
-const bankQRCode = ref(null);
-const isLoadingBankQR = ref(false);
-const bankTransactionInfo = ref(null);
-
-const generateBankQR = async () => {
-    if (!hasActiveSession.value) {
-        errorMessage.value = 'Vui lòng mở ca trước khi tạo mã QR ngân hàng.';
-        autoHideMessage();
-        return;
-    }
-    if (cart.value.length === 0) {
-        errorMessage.value = 'Giỏ hàng trống. Vui lòng thêm sản phẩm!';
-        autoHideMessage();
-        return;
-    }
-
-    isLoadingBankQR.value = true;
-    bankQRCode.value = null;
-    bankTransactionInfo.value = null;
-
-    try {
-        const amount = cartTotal.value;
-        const billCode = billNumber.value || 'HD' + Date.now();
-        const description = `Thanh toan hoa don ${billCode}`;
-        const encodedDesc = encodeURIComponent(description);
-        const accountName = encodeURIComponent('Nguyen Van Huy');
-
-        const qrCodeUrl = `https://img.vietqr.io/image/MB-0986690271-compact2.png?amount=${amount}&addInfo=${encodedDesc}&accountName=${accountName}`;
-
-        bankQRCode.value = qrCodeUrl;
-        bankTransactionInfo.value = {
-            bankCode: 'MB',
-            accountNo: '0986690271',
-            accountName: 'Nguyễn Văn Huy',
-            amount,
-            description,
-        };
-        successMessage.value = 'Mã QR ngân hàng đã được tạo!';
-        showSuccessModal.value = true;
-        autoHideMessage();
     } catch (error) {
-        console.error('generateBankQR error:', error);
-        errorMessage.value = 'Lỗi khi tạo mã QR ngân hàng. Vui lòng thử lại.';
+        errorMessage.value = error.response?.data?.errors?.server || 'Lỗi tìm kiếm mã vạch.';
+        await refreshProducts();
         autoHideMessage();
     } finally {
-        isLoadingBankQR.value = false;
-    }
-};
-// Cập nhật hàm confirmPayment để xử lý chuyển khoản ngân hàng
-const confirmPayment = async () => {
-    console.log('confirmPayment called, cart:', cart.value, 'form:', form, 'selectedCustomer:', selectedCustomer.value);
-    if (form.paymentMethod === 'cash' && Number(form.amountReceived) < cartTotal.value) {
-        errorMessage.value = 'Số tiền khách đưa không đủ.';
-        autoHideMessage();
-        return;
-    }
-    if (form.paymentMethod === 'wallet' && (!selectedCustomer.value || selectedCustomer.value.wallet < cartTotal.value)) {
-        errorMessage.value = 'Số dư ví không đủ hoặc chưa chọn khách hàng.';
-        autoHideMessage();
-        return;
-    }
-    if (form.paymentMethod === 'bank_transfer' && !bankQRCode.value) {
-        errorMessage.value = 'Vui lòng tạo mã QR ngân hàng trước khi xác nhận.';
-        autoHideMessage();
-        return;
-    }
-
-    try {
-        const cartSnapshot = [...cart.value];
-        const paymentMethodSnapshot = form.paymentMethod;
-        const amountReceivedSnapshot = form.paymentMethod === 'cash' ? form.amountReceived : cartTotal.value;
-        const customerSnapshot = { ...selectedCustomer.value };
-        console.log('Snapshots:', { cartSnapshot, paymentMethodSnapshot, amountReceivedSnapshot, customerSnapshot });
-
-        await submitSale();
-        if (form.printReceipt) {
-            printReceipt(cartSnapshot, paymentMethodSnapshot, amountReceivedSnapshot, customerSnapshot);
-        }
-        showPaymentModal.value = false;
-        successMessage.value = 'Thanh toán thành công!';
-        showSuccessModal.value = true;
-        bankQRCode.value = null;
-        bankTransactionInfo.value = null;
-        autoHideMessage();
-    } catch (error) {
-        console.error('confirmPayment error:', error);
-        if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
-            showShiftExpiredModal.value = true;
-            errorMessage.value = error.response.data.errors.server;
-        } else {
-            errorMessage.value = error.response?.data?.message || error.response?.data?.errors?.server || 'Lỗi thanh toán.';
-            if (error.response?.data?.errors) {
-                Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
-            }
-        }
-        autoHideMessage();
-    }
-};
-
-// Cập nhật printReceipt để hỗ trợ phương thức chuyển khoản ngân hàng
-const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod, amountReceived = form.amountReceived, customer = selectedCustomer.value) => {
-    console.log('printReceipt called, cartData:', cartData, 'paymentMethod:', paymentMethod, 'amountReceived:', amountReceived, 'customer:', customer);
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        errorMessage.value = 'Không thể mở cửa sổ in. Vui lòng kiểm tra trình chặn popup.';
-        autoHideMessage();
-        return;
-    }
-
-    const subtotal = cartData.reduce((total, item) => total + ((item.price || 0) * (item.quantity || 0)), 0);
-    const tax = 0;
-    const total = subtotal + tax;
-
-    try {
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Hóa đơn #${sanitizeHTML(billNumber.value)}</title>
-                    <style>
-                        @media print {
-                            @page { size: 80mm auto; margin: 5mm; }
-                            body { font-family: 'Arial', sans-serif; font-size: 10pt; width: 80mm; margin: 0; padding: 5mm; line-height: 1.4; color: #000; }
-                            .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
-                            .store-info { font-size: 9pt; text-align: center; margin-bottom: 8px; }
-                            .bill-info { font-size: 9pt; margin-bottom: 8px; }
-                            table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-                            th, td { padding: 4px 2px; font-size: 9pt; text-align: left; }
-                            th { border-bottom: 1px solid #000; font-weight: bold; }
-                            .text-right { text-align: right; }
-                            .text-center { text-align: center; }
-                            .total-section { border-top: 1px dashed #000; padding-top: 8px; margin-top: 8px; font-size: 9pt; }
-                            .total { font-size: 10pt; font-weight: bold; }
-                            .footer { text-align: center; font-size: 8pt; margin-top: 8px; border-top: 2px dashed #000; padding-top: 8px; }
-                            .no-print { display: none; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h2 style="margin: 0; font-size: 12pt;">Hóa Đơn Bán Hàng</h2>
-                        <div class="store-info">
-                            <p style="margin: 2px 0;">Cửa hàng bán lẻ G7 Mart</p>
-                            <p style="margin: 2px 0;">Trịnh Văn Bô, Hà Nội</p>
-                            <p style="margin: 2px 0;">Hotline: 4444 6666</p>
-                        </div>
-                    </div>
-                    <div class="bill-info">
-                        <p><strong>Mã hóa đơn:</strong> ${sanitizeHTML(billNumber.value)}</p>
-                        <p><strong>Ngày giờ:</strong> ${sanitizeHTML(formatDateTime(DateTime.now().toISO()))}</p>
-                        <p><strong>Nhân viên:</strong> ${sanitizeHTML(props.auth?.user?.name || 'N/A')}</p>
-                        <p><strong>Khách hàng:</strong> ${sanitizeHTML(customer?.customer_name || 'Khách lẻ')}</p>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 40%;">Tên hàng</th>
-                                <th style="width: 15%; text-align: center;">Số lượng</th>
-                                <th style="width: 25%; text-align: right;">Đơn giá</th>
-                                <th style="width: 20%; text-align: right;">Thành tiền</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${cartData.length > 0 ? cartData.map(item => `
-                                <tr>
-                                    <td>${sanitizeHTML(item.name || 'Unknown')}</td>
-                                    <td class="text-center">${item.quantity || 0}</td>
-                                    <td class="text-right">${sanitizeHTML(formatCurrency(item.price || 0))}</td>
-                                    <td class="text-right">${sanitizeHTML(formatCurrency((item.price || 0) * (item.quantity || 0)))}</td>
-                                </tr>
-                            `).join('') : `
-                                <tr>
-                                    <td colspan="4" class="text-center">Không có sản phẩm</td>
-                                </tr>
-                            `}
-                        </tbody>
-                    </table>
-                    <div class="total-section">
-                        <p class="text-right"><strong>Tổng tiền hàng:</strong> ${sanitizeHTML(formatCurrency(subtotal))}</p>
-                        <p class="text-right"><strong>Giảm giá:</strong> ${sanitizeHTML(formatCurrency(0))}</p>
-                        <p class="text-right total"><strong>Tổng thanh toán:</strong> ${sanitizeHTML(formatCurrency(total))}</p>
-                        <p class="text-right"><strong>Phương thức:</strong> ${sanitizeHTML(
-            paymentMethod === 'cash' ? 'Tiền mặt' :
-                paymentMethod === 'credit_card' ? 'Thẻ ngân hàng' :
-                    paymentMethod === 'bank_transfer' ? 'Chuyển khoản ngân hàng' :
-                        'Ví khách hàng'
-        )}</p>
-                        ${paymentMethod === 'cash' ? `
-                            <p class="text-right"><strong>Khách đưa:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) || 0))}</p>
-                            <p class="text-right"><strong>Tiền thối:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) - total || 0))}</p>
-                        ` : paymentMethod === 'bank_transfer' && bankTransactionInfo.value ? `
-                            
-                            <p class="text-right"><strong>Mô tả:</strong> ${sanitizeHTML(bankTransactionInfo.value.description)}</p>
-                        ` : ''}
-                        <p class="text-right"><strong>Ghi chú:</strong> ${sanitizeHTML(form.orderNotes || 'Không có')}</p>
-                    </div>
-                    <div class="footer">
-                        <p>Cảm ơn quý khách!</p>
-                        <p>Vui lòng kiểm tra hàng trước khi rời đi.</p>
-                    </div>
-                    <button class="no-print" onclick="window.print(); window.close();" style="margin-top: 10px; width: 100%; padding: 5px; background: #007bff; color: #fff; border: none; border-radius: 3px; cursor: pointer;">
-                        In hóa đơn
-                    </button>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-    } catch (error) {
-        console.error('printReceipt error:', error);
-        errorMessage.value = 'Lỗi khi tạo hóa đơn in. Vui lòng thử lại.';
-        autoHideMessage();
-        printWindow.close();
+        isProcessingBarcode = false;
     }
 };
 </script>
@@ -1249,81 +1155,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                 {{ successMessage }}
                 <button @click="showSuccessModal = false" class="ml-2 text-green-900 hover:text-green-700">✖</button>
             </div>
-            <!-- Shift Ending Soon Modal -->
-            <div v-if="showShiftEndingSoonModal"
-                class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
-                <div
-                    class="bg-white/70 backdrop-blur-md border border-white/30 shadow-xl rounded-xl p-4 max-w-sm w-[90%] text-sm text-gray-800 transition transform scale-95 animate-pulse shift-ending-soon-modal-content">
-                    <button @click="showShiftEndingSoonModal = false"
-                        class="absolute top-2 right-2 text-gray-700 hover:text-black text-lg">✖</button>
-                    <h3 class="text-base font-bold mb-3 text-center">Cảnh báo ca làm việc</h3>
-                    <p class="mb-3 text-center">{{ shiftEndingSoonMessage }}</p>
-                    <div class="flex space-x-2">
-                        <button @click="showShiftEndingSoonModal = false"
-                            class="w-full bg-gray-300 text-gray-700 py-1.5 rounded text-xs hover:bg-gray-400">Đóng</button>
-                    </div>
-                </div>
-            </div>
-            <!-- Shift Expired Modal -->
-            <div v-if="showShiftExpiredModal"
-                class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
-                <div
-                    class="bg-white/70 backdrop-blur-md border border-white/30 shadow-xl rounded-xl p-4 max-w-sm w-[90%] text-sm text-gray-800 transition transform scale-95 animate-pulse shift-expired-modal-content">
-                    <button @click="showShiftExpiredModal = false"
-                        class="absolute top-2 right-2 text-gray-700 hover:text-black text-lg">✖</button>
-                    <h3 class="text-base font-bold mb-3 text-center">Ca làm việc đã hết hạn</h3>
-                    <p class="mb-3 text-center">{{ errorMessage }}</p>
-                    <div class="flex space-x-2">
-                        <button @click="closeShift"
-                            class="w-full bg-blue-600 text-white py-1.5 rounded text-xs font-semibold hover:bg-blue-700">Đóng
-                            ca</button>
-                    </div>
-                </div>
-            </div>
-            <!-- Logout Modal -->
-            <div v-if="showLogoutModal"
-                class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
-                <div
-                    class="bg-white/70 backdrop-blur-md border border-white/30 shadow-xl rounded-xl p-4 max-w-sm w-[90%] text-sm text-gray-800 transition transform scale-95 animate-pulse logout-modal-content">
-                    <button @click="showLogoutModal = false"
-                        class="absolute top-2 right-2 text-gray-700 hover:text-black text-lg">✖</button>
-                    <h3 class="text-base font-bold mb-3 text-center">Xác nhận đăng xuất</h3>
-                    <p class="mb-3 text-center">Bạn có muốn đóng ca làm việc trước khi đăng xuất?</p>
-                    <form @submit.prevent="performLogout(true)">
-                        <div class="mb-2">
-                            <label for="logout_closing_amount" class="block text-xs font-medium text-gray-700 mb-1">Số
-                                tiền đóng ca (VND)</label>
-                            <input type="number" v-model.number="sessionForm.closing_amount"
-                                class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                id="logout_closing_amount" min="0" required />
-                            <InputError class="mt-0.5 text-[10px]" :message="sessionForm.errors.closing_amount" />
-                        </div>
-                        <div class="mb-2">
-                            <label for="logout_notes" class="block text-xs font-medium text-gray-700 mb-1">Ghi
-                                chú</label>
-                            <select v-model="sessionForm.selected_default_note"
-                                class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                id="logout_notes_select">
-                                <option value="" disabled>Chọn ghi chú</option>
-                                <option v-for="note in defaultNotes" :key="note" :value="note">{{ note }}</option>
-                            </select>
-                            <textarea v-if="sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)'"
-                                v-model="sessionForm.custom_note"
-                                class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
-                                id="logout_notes_custom" rows="3" placeholder="Nhập ghi chú tùy chỉnh"></textarea>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button type="button" @click="performLogout(false)"
-                                class="w-1/2 bg-gray-300 text-gray-700 py-1.5 rounded text-xs hover:bg-gray-400"
-                                :disabled="isLoadingSessionAction">Đăng xuất không đóng ca</button>
-                            <button type="submit"
-                                class="w-1/2 bg-blue-600 text-white py-1.5 rounded text-xs font-semibold hover:bg-blue-700"
-                                :disabled="isLoadingSessionAction || sessionForm.processing">Đóng ca và đăng
-                                xuất</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+
             <!-- Filter Sidebar -->
             <div :class="{ 'translate-x-full': !showFilterSidebar, 'translate-x-0': showFilterSidebar }"
                 class="fixed inset-y-0 right-0 w-80 bg-white shadow-xl z-50 transform transition-transform duration-300">
@@ -1342,7 +1174,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                 <select v-model="selectedCategory"
                                     class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option v-for="category in categories" :key="category" :value="category">{{ category
-                                        }}</option>
+                                    }}</option>
                                 </select>
                             </div>
                             <div class="mb-2">
@@ -1438,7 +1270,6 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                     :class="{ 'border-red-500': form.errors.address }" />
                                 <InputError class="mt-0.5 text-[10px]" :message="form.errors.address" />
                             </div>
-
                             <div class="flex space-x-2">
                                 <button type="button" @click="toggleAddCustomerForm"
                                     class="w-1/2 bg-gray-300 text-gray-700 py-1.5 rounded text-xs hover:bg-gray-400">Hủy</button>
@@ -1475,50 +1306,10 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                             class="bg-gray-200 text-gray-800 py-1 px-2 rounded text-xs hover:bg-gray-300 transition">Đóng</button>
                     </div>
                     <div class="flex-1 overflow-y-auto space-y-4">
-                        <div class="space-y-3">
-                            <button v-if="!hasActiveSession" @click="openShift"
-                                class="w-full bg-green-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition shadow-md"
-                                :disabled="isLoadingSessionAction || sessionForm.processing">
-                                <Loader2 v-if="isLoadingSessionAction" class="animate-spin h-4 w-4 inline-block mr-1" />
-                                Mở Ca
-                            </button>
-                            <button @click="generateShiftReport"
-                                class="w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-blue-700 transition shadow-md"
-                                :disabled="!hasActiveSession || isLoadingSessionAction">
-                                <Loader2 v-if="isLoadingSessionAction" class="animate-spin h-4 w-4 inline-block mr-1" />
-                                Tạo Báo cáo
-                            </button>
-                            <button v-if="hasActiveSession" @click="closeShift"
-                                class="w-full bg-red-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-red-700 transition shadow-md"
-                                :disabled="isLoadingSessionAction || sessionForm.processing">
-                                <Loader2 v-if="isLoadingSessionAction" class="animate-spin h-4 w-4 inline-block mr-1" />
-                                Đóng Ca
-                            </button>
-                            <button @click="initiateLogout"
-                                class="w-full bg-gray-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-gray-700 transition shadow-md">
-                                <LogOutIcon class="w-4 h-4 inline-block mr-1" />
-                                Đăng xuất
-                            </button>
-                        </div>
                         <div v-if="!hasActiveSession"
                             class="space-y-3 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
                             <h4 class="text-xs font-semibold text-gray-800">Mở ca mới</h4>
                             <form @submit.prevent="openShift">
-                                <div class="mb-2">
-                                    <label for="shift_id" class="block text-xs font-medium text-gray-700 mb-1">Chọn ca
-                                        làm việc <span class="text-red-500">*</span></label>
-                                    <select v-model="sessionForm.shift_id"
-                                        class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                        id="shift_id" required>
-                                        <option value="" disabled>Chọn ca</option>
-                                        <option v-for="shift in workShifts" :key="shift.id" :value="shift.id"
-                                            :disabled="!shift.is_suitable">
-                                            {{ shift.name }} ({{ shift.start_time }} - {{ shift.end_time }}) {{
-                                                shift.is_suitable ? '' : '(Hết giờ)' }}
-                                        </option>
-                                    </select>
-                                    <InputError class="mt-0.5 text-[10px]" :message="sessionForm.errors.shift_id" />
-                                </div>
                                 <div class="mb-2">
                                     <label for="opening_amount" class="block text-xs font-medium text-gray-700 mb-1">Số
                                         tiền mở ca (VND)</label>
@@ -1555,10 +1346,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                         <div v-else class="space-y-3 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
                             <h4 class="text-xs font-semibold text-gray-800">Thông tin ca hiện tại</h4>
                             <div class="text-[11px] space-y-1">
-                                <p><strong>Ca làm việc:</strong> {{ activeShift?.shift_name || 'N/A' }}</p>
-                                <p><strong>Thời gian ca:</strong> {{ activeShift?.shift_time ?
-                                    `${activeShift.shift_time.start_time} - ${activeShift.shift_time.end_time}` : 'N/A'
-                                    }}</p>
+                                <p><strong>Ca làm việc:</strong> {{ activeShift?.shift_name || 'Ca hiện tại' }}</p>
                                 <p><strong>Bắt đầu:</strong> {{ formattedOpenedAt }}</p>
                             </div>
                             <h4 class="text-xs font-semibold text-gray-800 mt-3">Đóng ca</h4>
@@ -1600,140 +1388,26 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                             <Loader2 class="animate-spin h-5 w-5 mx-auto text-blue-500" />
                             Đang tải báo cáo...
                         </div>
-                        <div v-else-if="shiftReport?.hasActiveSession" class="space-y-4">
-                            <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                                <h4 class="text-xs font-semibold text-gray-800 mb-2">Thông tin ca</h4>
-                                <div class="text-[11px] space-y-1">
-                                    <p><strong>Ca làm việc:</strong> {{ shiftReport.session?.shift_name || 'N/A' }}</p>
-                                    <p><strong>Thời gian ca:</strong> {{ shiftReport.session?.shift_time ?
-                                        `${shiftReport.session.shift_time.start_time} -
-                                        ${shiftReport.session.shift_time.end_time}` : 'N/A' }}</p>
-                                    <p><strong>Bắt đầu:</strong> {{ shiftReport.session?.opened_at ?
-                                        formatDateTime(shiftReport.session.opened_at) : 'Chưa mở ca' }}</p>
-                                    <p><strong>Tiền mở ca:</strong> {{ shiftReport.session?.opening_amount ?
-                                        formatCurrency(shiftReport.session.opening_amount) : 'Chưa mở ca' }}</p>
-                                    <p><strong>Tiền đóng ca:</strong> {{ shiftReport.session?.closing_amount ?
-                                        formatCurrency(shiftReport.session.closing_amount) : 'Chưa đóng ca' }}</p>
-                                    <p><strong>Thời gian đóng ca:</strong> {{ shiftReport.session?.closed_at ?
-                                        formatDateTime(shiftReport.session.closed_at) : 'Chưa đóng ca' }}</p>
-                                    <p>
-                                        <strong>Chênh lệch (Đóng - Mở):</strong>
-                                        <span :class="{
-                                            'text-green-600': shiftReport.session?.difference > 0,
-                                            'text-red-600': shiftReport.session?.difference < 0,
-                                            'text-gray-600': shiftReport.session?.difference === 0
-                                        }">
-                                            {{ shiftReport.session?.difference ?
-                                                formatCurrency(shiftReport.session.difference) : 'N/A' }}
-                                        </span>
-                                    </p>
-                                    <p><strong>Ghi chú:</strong> {{ shiftReport.session?.notes || 'Không có' }}</p>
-                                </div>
-                            </div>
-                            <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                                <h4 class="text-xs font-semibold text-gray-800 mb-2">Thống kê doanh thu</h4>
-                                <div class="text-[11px] space-y-1">
-                                    <p><strong>Tổng doanh thu:</strong> {{
-                                        formatCurrency(shiftReport.report?.total_sales || 0) }}</p>
-                                    <p><strong>Tiền mặt:</strong> {{ formatCurrency(shiftReport.report?.total_cash || 0)
-                                        }}</p>
-                                    <p><strong>Thẻ ngân hàng:</strong> {{ formatCurrency(shiftReport.report?.total_card
-                                        || 0) }}</p>
-                                    <p><strong>Chuyển khoản:</strong> {{
-                                        formatCurrency(shiftReport.report?.total_transfer || 0) }}</p>
-                                    <p><strong>Ví khách hàng:</strong> {{
-                                        formatCurrency(shiftReport.report?.total_wallet || 0) }}</p>
-                                    <p><strong>Số hóa đơn:</strong> {{ shiftReport.report?.bill_count || 0 }}</p>
-                                    <p><strong>Tổng sản phẩm bán ra:</strong> {{ shiftReport.report?.total_products_sold
-                                        || 0 }}</p>
-                                </div>
-                            </div>
-                            <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-200"
-                                v-if="shiftReport.report?.top_products?.length">
-                                <h4 class="text-xs font-semibold text-gray-800 mb-2">Sản phẩm bán chạy</h4>
-                                <div class="text-[11px] space-y-2">
-                                    <div v-for="product in shiftReport.report.top_products" :key="product.product_id"
-                                        class="border-b border-gray-100 pb-2">
-                                        <p><strong>Tên:</strong> {{ product.product_name || 'N/A' }}</p>
-                                        <p><strong>Số lượng:</strong> {{ product.quantity_sold || 0 }}</p>
-                                        <p><strong>Doanh thu:</strong> {{ formatCurrency(product.total_revenue || 0) }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-200"
-                                v-if="shiftReport.report?.customers?.length">
-                                <h4 class="text-xs font-semibold text-gray-800 mb-2">Khách hàng</h4>
-                                <div class="text-[11px] space-y-2">
-                                    <div v-for="customer in shiftReport.report.customers"
-                                        :key="customer.customer_id || customer.customer_name"
-                                        class="border-b border-gray-100 pb-2">
-                                        <p><strong>Tên:</strong> {{ customer.customer_name || 'Khách lẻ' }}</p>
-                                        <p><strong>Tổng chi tiêu:</strong> {{ formatCurrency(customer.total_amount || 0)
-                                            }}</p>
-                                        <p><strong>Số hóa đơn:</strong> {{ customer.bill_count || 0 }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div v-else class="text-center text-gray-500 py-2 text-[11px]">
-                                Không có dữ liệu khách hàng
-                            </div>
-                        </div>
-                        <div v-else
-                            class="text-center text-gray-500 py-4 text-[11px] bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                            Không có dữ liệu báo cáo ca
-                        </div>
                     </div>
                 </div>
             </div>
             <!-- Main Content -->
             <div class="w-2/3 bg-white flex flex-col h-full">
-
                 <div class="p-1.5 border-b border-gray-200">
                     <div class="flex justify-between items-center mb-1">
                         <div class="flex items-center space-x-1">
-                            <!-- Barcode Scanner Modal -->
-                            <div v-if="showScanner"
-                                class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/40 transition-opacity duration-300">
-                                <div
-                                    class="relative bg-white/80 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl p-6 max-w-md w-[90%] text-gray-800 transform transition-all duration-300 modal-content">
-                                    <button @click="stopBarcodeScanner"
-                                        class="absolute top-4 right-4 text-gray-600 hover:text-red-600 text-2xl font-bold transition-all duration-200">
-                                        &times;
-                                    </button>
-                                    <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">Quét mã vạch</h3>
-                                    <div id="barcode-scanner" class="w-full h-64 bg-black"></div>
-                                    <div class="mt-4 text-center">
-                                        <p class="text-sm text-gray-600">Đưa mã vạch vào khung hình để quét</p>
-                                        <button @click="stopBarcodeScanner"
-                                            class="mt-4 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-red-700 transition-all shadow-md">
-                                            Hủy
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                             <!-- Nút mở báo cáo -->
                             <button @click="toggleReportSidebar"
                                 class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs hover:bg-gray-300"
                                 title="Xem báo cáo ca">
                                 <FileText class="w-4 h-4" />
                             </button>
-
                             <!-- Nút mở bộ lọc -->
                             <button @click="toggleFilterSidebar"
                                 class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs hover:bg-gray-300"
                                 title="Bộ lọc báo cáo">
                                 <MenuIcon class="w-4 h-4" />
                             </button>
-
-                            <!-- Nút mở trình quét mã vạch -->
-                            <button @click="openScanner"
-                                class="bg-blue-200 text-blue-700 px-2 py-0.5 rounded text-xs hover:bg-blue-300"
-                                title="Quét mã vạch">
-                                <ScanLine class="w-4 h-4" />
-                            </button>
-
-
                             <div class="flex justify-between items-center mt-1 text-[11px] text-gray-600">
                                 <button v-if="
                                     searchTerm ||
@@ -1751,12 +1425,14 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                         </div>
                         <div v-if="activeShift" class="text-[11px] text-gray-600">
                             <p><strong>Ca làm việc:</strong> {{ activeShift.shift_name }} (Bắt đầu: {{ formattedOpenedAt
-                                }})</p>
+                            }})</p>
                         </div>
                     </div>
                     <div class="mb-1">
-                        <input type="text" v-model="searchTerm" placeholder="Tìm kiếm sản phẩm (F3)"
-                            class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="text" v-model="searchTerm" placeholder="Tìm kiếm sản phẩm hoặc quét mã vạch (F3)"
+                            class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            @keydown.enter.prevent="searchByBarcode(cleanBarcode(searchTerm))"
+                            @input="console.log('searchTerm:', searchTerm.value)" />
                     </div>
                 </div>
                 <div class="flex-1 overflow-y-auto p-2">
@@ -1874,15 +1550,12 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                 </button>
                             </div>
                         </div>
-
-
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-xs font-semibold text-gray-700">Tổng cộng:</span>
                             <span class="text-base font-bold text-gray-800">
                                 {{ formatCurrency(cartTotal) }}
                             </span>
                         </div>
-
                         <button type="submit"
                             class="w-full bg-green-600 text-white py-1.5 rounded text-xs font-semibold hover:bg-green-700"
                             :disabled="form.processing || cart.length === 0">
@@ -1927,32 +1600,6 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                     </div>
                 </div>
             </div>
-            <div v-if="showScanner" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-white rounded-lg p-6 w-full max-w-lg">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold">Quét mã vạch</h2>
-                        <button @click="showScanner = false" class="text-gray-600 hover:text-gray-800">
-                            <X class="w-6 h-6" />
-                        </button>
-                    </div>
-                    <div class="mb-4">
-                        <StreamBarcodeReader @decode="onBarcodeScanned" :torch="false" class="w-full h-64" />
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Nhập mã vạch thủ công</label>
-                        <input v-model="manualBarcode" type="text"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Nhập mã vạch..." @keyup.enter="handleManualBarcode(manualBarcode)" />
-                    </div>
-                    <div class="flex justify-end">
-                        <button @click="showScanner = false"
-                            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-                            Đóng
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <!-- Payment Confirmation Modal -->
             <div v-if="showPaymentModal"
                 class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg bg-black/50 transition-opacity duration-300">
                 <div
@@ -1966,7 +1613,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-2xl font-bold text-gray-900">Xác nhận thanh toán</h2>
                             <span class="text-sm text-gray-600">Nhân viên: <strong>{{ props.auth?.user?.name || 'N/A'
-                                    }}</strong></span>
+                            }}</strong></span>
                         </div>
                         <!-- Bill Information in Rectangular Frame -->
                         <div class="bg-gray-50 border border-gray-300 rounded-lg p-6 shadow-sm">
@@ -2007,7 +1654,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                                 <td class="p-3 text-center">{{ item.quantity }}</td>
                                                 <td class="p-3 text-right">{{ formatCurrency(item.price) }}</td>
                                                 <td class="p-3 text-right">{{ formatCurrency(item.price * item.quantity)
-                                                    }}</td>
+                                                }}</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -2023,7 +1670,6 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                                     <span class="font-semibold">Giảm giá:</span>
                                     <span>{{ formatCurrency(0) }}</span>
                                 </div>
-
                                 <div class="flex justify-between text-lg font-bold text-green-600">
                                     <span>Tổng cần thanh toán:</span>
                                     <span>{{ formatCurrency(cartTotal) }}</span>
@@ -2133,5 +1779,4 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
             </div>
         </div>
     </CashierLayout>
-
 </template>

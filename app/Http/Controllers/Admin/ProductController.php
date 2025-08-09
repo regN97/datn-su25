@@ -243,6 +243,11 @@ class ProductController extends Controller
      */
     public function destroy(Product $product): RedirectResponse
     {
+        if ($product->batchItems()->exists()) {
+            return redirect()->route('admin.products.index')
+                ->with('error', 'Không thể xóa sản phẩm vì đã có trong phiếu nhập.');
+        }
+
         $product->delete();
 
         return redirect()->route('admin.products.index')->with('success', 'Sản phẩm đã được xóa mềm thành công.');
