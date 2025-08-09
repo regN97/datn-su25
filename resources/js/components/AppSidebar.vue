@@ -15,7 +15,7 @@ import SidebarDropdown from './SideBarDropdown.vue';
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="route('dashboard')">
+                        <Link :href="route('admin.dashboard')">
                         <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -33,17 +33,17 @@ import SidebarDropdown from './SideBarDropdown.vue';
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton as-child>
-                        <Link href="/dashboard" class="flex items-center gap-2">
+                        <Link :href="route('admin.dashboard')" class="flex items-center gap-2">
                         <LayoutGrid class="w-4 h-4" />
-                        Tổng quan nhập hàng
+                        Tổng quan bán hàng
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                     <SidebarMenuButton as-child>
-                        <Link href="/test" class="flex items-center gap-2">
+                        <Link :href="route('admin.dashboard.inventory')" class="flex items-center gap-2">
                         <TrendingUp class="w-4 h-4" />
-                        Thống kê thử nghiệm
+                        Thống kê
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
