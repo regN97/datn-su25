@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\BillController;
 use Inertia\Inertia;
 
 use Illuminate\Support\Facades\Route;

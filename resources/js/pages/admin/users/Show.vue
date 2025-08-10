@@ -32,17 +32,10 @@ interface UserShift {
     deleted_at: string | null;
 }
 
-// Định nghĩa giao diện cho dữ liệu ca làm việc chính (WorkShift)
-interface WorkShift {
-    id: number;
-    name: string;
-}
-
 // Định nghĩa các props được truyền vào từ controller, bao gồm cả workShifts
 const props = defineProps<{
     user: User;
     userShifts: UserShift[];
-    workShifts: WorkShift[];
 }>();
 
 // --- Trạng thái mới cho việc lọc dữ liệu và phân trang ---
@@ -93,12 +86,6 @@ const calculateWorkDuration = (checkIn: string | null, checkOut: string | null):
     const seconds = Math.floor((durationInMs % (1000 * 60)) / 1000);
 
     return `${hours}h ${minutes}m ${seconds}s`;
-};
-
-// Hàm để ánh xạ shift_id sang tên ca làm việc bằng cách tìm trong props.workShifts
-const getShiftName = (shiftId: number): string => {
-    const shift = props.workShifts.find(ws => ws.id === shiftId);
-    return shift ? shift.name : 'Khác';
 };
 
 // --- Logic lọc dữ liệu ---
@@ -196,7 +183,6 @@ const totalWorkDuration = computed(() => {
 const formattedUserShifts = computed(() => {
     return paginatedShifts.value.map(shift => ({
         ...shift,
-        shift_name: getShiftName(shift.shift_id),
         check_in_formatted: formatTime(shift.check_in),
         check_out_formatted: formatTime(shift.check_out),
         work_duration: calculateWorkDuration(shift.check_in, shift.check_out),
@@ -304,7 +290,6 @@ const formattedUserShifts = computed(() => {
                                 <thead class="bg-gray-200 text-sm font-semibold text-gray-700 uppercase">
                                     <tr>
                                         <th class="px-6 py-4 text-left">STT</th>
-                                        <th class="px-6 py-4 text-left">Ca</th>
                                         <th class="px-6 py-4 text-left">Ngày</th>
                                         <th class="px-6 py-4 text-left">Trạng thái</th>
                                         <th class="px-6 py-4 text-left">Giờ vào</th>
@@ -319,11 +304,13 @@ const formattedUserShifts = computed(() => {
                                         class="rounded-lg border border-gray-200 bg-white shadow-sm transition hover:bg-gray-100"
                                     >
                                         <td class="rounded-l-lg px-6 py-4">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
-                                        <td class="px-6 py-4">{{ shift.shift_name }}</td>
                                         <td class="px-6 py-4">{{ shift.shift_date_formatted }}</td>
                                         <td class="px-6 py-4">
                                             <!-- Hiển thị trạng thái dựa trên dữ liệu gốc -->
                                             <span v-if="shift.status === 'COMPLETED'" class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
+                                                <CheckCircle2 class="h-3 w-3" /> Hoàn thành
+                                            </span>
+                                            <span v-if="shift.status === 'CHECKED_OUT'" class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
                                                 <CheckCircle2 class="h-3 w-3" /> Hoàn thành
                                             </span>
                                             <span v-else class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">

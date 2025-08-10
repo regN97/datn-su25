@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
-use App\Models\WorkShift;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Validation\Rule;
@@ -21,17 +20,19 @@ class UserController extends Controller {
         'userRoles' => $userRoles,
     ]);
 }
-public function show(User $user)
+ /**
+     * Hiển thị chi tiết người dùng và danh sách ca làm việc của họ.
+     */
+    public function show(User $user)
     {
-        $userShifts = $user->userShifts()->orderBy('date', 'desc')->get();
-
-        // Lấy tất cả các ca làm việc để có thể hiển thị tên ca
-        $workShifts = WorkShift::all();
+        // Chỉ lấy các UserShift liên quan đến người dùng này, sắp xếp theo ngày
+        $userShifts = $user->userShifts()
+            ->orderBy('date', 'desc')
+            ->get();
 
         return Inertia::render('admin/users/Show', [
             'user' => $user->load('role'), // Tải vai trò của người dùng
             'userShifts' => $userShifts,
-            'workShifts' => $workShifts, // Truyền danh sách ca làm việc vào view
         ]);
     }
 public function store(Request $request)

@@ -17,6 +17,7 @@ class UserShift extends Model
         'date',
         'status',
         'check_in',
+        'total_hours',
         'check_out',
         'notes',
     ];
@@ -34,8 +35,4 @@ class UserShift extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function workShift()
-    {
-        return $this->belongsTo(WorkShift::class, 'shift_id');
-    }
 }
