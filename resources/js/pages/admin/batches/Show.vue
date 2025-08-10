@@ -27,28 +27,28 @@ interface Product {
 }
 
 interface Batch {
-  id: number;
-  batch_number: string;
-  purchase_order_id: number;
-  purchase_order?: PurchaseOrder | null;
-  supplier_id: number | null;
-  supplier?: Supplier | null;
-  received_date: string;
-  invoice_number: string | null;
-  total_amount: number;
-  payment_status: "unpaid" | "partially_paid" | "paid";
-  paid_amount: number;
-  receipt_status: "partially_received" | "completed" | "cancelled";
-  notes: string | null;
-  created_by: number;
-  creator?: User;
-  discount_amount: number;
-  discount_type: string;
-  updated_by: number | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  expected_delivery_date?: string;
+    id: number;
+    batch_number: string;
+    purchase_order_id: number;
+    purchase_order?: PurchaseOrder | null;
+    supplier_id: number | null;
+    supplier?: Supplier | null;
+    received_date: string;
+    invoice_number: string | null;
+    total_amount: number;
+    payment_status: "unpaid" | "partially_paid" | "paid";
+    paid_amount: number;
+    receipt_status: "partially_received" | "completed" | "cancelled";
+    notes: string | null;
+    created_by: number;
+    creator?: User;
+    discount_amount: number;
+    discount_type: string;
+    updated_by: number | null;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+    expected_delivery_date?: string;
 }
 
 interface BatchItem {
@@ -822,31 +822,34 @@ function goBack() {
                         <p>Cảm ơn quý khách!</p>
                         <p>(Vui lòng kiểm tra kỹ trước khi rời đi)</p>
                     </div>
-
-            <!-- Additional Info -->
-            <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-              <div class="border-b border-gray-200 p-4">
-                <h2 class="text-lg font-semibold">Thông tin bổ sung</h2>
-              </div>
-              <div class="space-y-4 p-4">
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-gray-700">Nhân viên phụ trách</label>
-                  <input type="text" disabled :value="selectedUser ? selectedUser.name : ''"
-                    class="h-10 w-full rounded-md border border-gray-300 pl-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhận hàng</label>
-                  <input type="text" disabled :value="formattedReceivedDate"
-                    class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng</label>
-                  <input type="text" disabled :value="props.batch[0]?.purchase_order?.po_number"
-                    class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
-
                 </div>
             </div>
         </div>
+
+            <!-- Additional Info -->
+            <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div class="border-b border-gray-200 p-4">
+                    <h2 class="text-lg font-semibold">Thông tin bổ sung</h2>
+                </div>
+                <div class="space-y-4 p-4">
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Nhân viên phụ trách</label>
+                        <input type="text" disabled :value="selectedUser ? selectedUser.name : ''"
+                            class="h-10 w-full rounded-md border border-gray-300 pl-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhận hàng</label>
+                        <input type="text" disabled :value="formattedReceivedDate"
+                            class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng</label>
+                        <input type="text" disabled :value="props.batch[0]?.purchase_order?.po_number"
+                            class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+
+                    </div>
+                </div>
+            </div>
     </AppLayout>
 </template>
 <style scoped>
