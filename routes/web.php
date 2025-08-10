@@ -1,6 +1,4 @@
 <?php
-
-use App\Http\Controllers\Admin\BillController;
 use Inertia\Inertia;
 
 use Illuminate\Support\Facades\Route;
@@ -86,8 +84,10 @@ Route::prefix('admin')
         Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
         Route::delete('customers/{customer}/force-delete', [CustomerController::class, 'forceDelete'])->name('customers.forceDelete');
         Route::resource('customers', CustomerController::class);
+
+        // Bills
+        Route::resource('bills', BillController::class);
     });
-Route::get('/test', [TestController::class, 'index']);
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/cashier.php';
