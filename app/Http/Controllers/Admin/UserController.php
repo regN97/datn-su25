@@ -35,26 +35,37 @@ class UserController extends Controller {
             'userShifts' => $userShifts,
         ]);
     }
-public function store(Request $request)
-{
-    $validated = $request->validate([
-        'name' => 'required|string|max:150',
-        'email' => 'nullable|email|max:255|unique:users,email',
-        'password' => 'required|string|min:6',
-        'phone_number' => 'nullable|string|max:20',
-        'role_id' => ['required', Rule::in(UserRole::pluck('id'))],
-    ]);
-    
-    User::create([
-    'name' => $validated['name'],
-    'email' => $validated['email'] ?? null,
-    'password' => Hash::make($validated['password']),
-    'phone_number' => $validated['phone_number'] ?? null,
-    'role_id' => $validated['role_id'],
-    ]);
+public function create()
+    {   
+        return Inertia::render('admin/users/Create', [
+            'userRoles' => UserRole::select('id', 'name')->get(),
+        ]);
+    }
 
-    return redirect()->back()->with('success', 'Thêm người dùng thành công');
-}
+    // Xử lý thêm mới
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email',
+        'phone_number' => 'required|string|unique:users,phone_number',
+        'password' => 'required|string|min:6',
+        'role_id' => 'required|exists:roles,id',
+    ], [
+        'email.unique' => 'Email đã tồn tại.',
+        'phone_number.unique' => 'Số điện thoại đã tồn tại.',
+    ]);
+        
+        User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'] ?? null,
+            'password' => Hash::make($validated['password']),
+            'phone_number' => $validated['phone_number'] ?? null,
+            'role_id' => $validated['role_id'],
+        ]);
+
+        return redirect()->route('admin.users.index')->with('success', 'Thêm người dùng thành công');
+    }
 // UserController.php
 
 public function edit($id)
@@ -73,11 +84,13 @@ public function update(Request $request, $id)
     $user = User::findOrFail($id);
 
     $validated = $request->validate([
-        'name' => 'required|string|max:150',
-        'email' => ['nullable', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-        'password' => 'nullable|string|min:6',
-        'phone_number' => 'nullable|string|max:20',
-        'role_id' => ['required', 'exists:user_roles,id'],
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email,' . $user->id,
+        'phone_number' => 'required|string|unique:users,phone_number,' . $user->id,
+        'role_id' => 'required|exists:roles,id',
+    ], [
+        'email.unique' => 'Email đã tồn tại.',
+        'phone_number.unique' => 'Số điện thoại đã tồn tại.',
     ]);
 
     $user->update([
