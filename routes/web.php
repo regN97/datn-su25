@@ -72,7 +72,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Others
     Route::resource('inventory', InventoryController::class);
-    Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+    
     Route::resource('users', UserController::class);
     Route::resource('bills', BillController::class);
 
@@ -86,6 +86,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('bills', BillController::class);
 });
 Route::get('/test', [TestController::class, 'index']);
+
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/cashier.php';
