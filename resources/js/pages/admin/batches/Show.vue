@@ -552,7 +552,7 @@ function goBack() {
                     <div class="flex flex-col gap-6 lg:col-span-2">
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
-                                <h2 class="text-lg font-semibold">Chi tiết lô hàng</h2>
+                                <h2 class="text-lg font-semibold">Chi tiết phiếu nhập hàng</h2>
                             </div>
                             <div class="space-y-6 p-6">
                                 <div v-if="aggregatedProducts.length > 0" class="space-y-3">
@@ -791,7 +791,6 @@ function goBack() {
                 <div class="receipt-header">
                     <h1 class="receipt-title">ĐƠN NHẬP HÀNG</h1>
                 </div>
-
                 <div class="receipt-details" v-if="currentBatch && selectedSupplier && selectedUser">
                     <div class="flex-container">
                         <p class="col-6">

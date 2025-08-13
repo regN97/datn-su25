@@ -54,6 +54,7 @@ onMounted(() => {
                         }
                     },
                     y: {
+                        min: 0,
                         beginAtZero: false,
                         ticks: {
                             stepSize: 1,
