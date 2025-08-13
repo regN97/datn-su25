@@ -1,6 +1,4 @@
 <?php
-
-// use App\Http\Controllers\Admin\BillController;
 use Inertia\Inertia;
 
 use Illuminate\Support\Facades\Route;
@@ -22,74 +20,74 @@ use App\Http\Controllers\TestController;
 
 Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
 
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified', 'admin']) // Chỉ admin mới được vào
-    ->name('dashboard');
-Route::prefix('admin')->name('admin.')->group(function () {
-    // Categories
-    Route::get('categories/trashed', [CategoryController::class, 'trashed'])->name('categories.trashed');
-    Route::post('categories/{cat}/restore', [CategoryController::class, 'restore'])->name('categories.restore');
-    Route::delete('categories/{cat}/force-delete', [CategoryController::class, 'forceDelete'])->name('categories.forceDelete');
-    Route::resource('categories', CategoryController::class);
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware(['auth', 'verified', 'admin'])
+    ->group(function () {
 
-    // Products, Units
-    Route::get('products/{id}/inventory-history', [InventoryController::class, 'index'])
-    ->name('admin.products.inventory_history');
-    Route::get('products/trashed', [ProductController::class, 'trashed'])->name('admin.products.trashed');
-    Route::post('products/{id}/restore', [ProductController::class, 'restore'])->name('admin.products.restore');
-    Route::delete('products/{id}/force', [ProductController::class, 'forceDelete'])->name('admin.products.forceDelete');
-    Route::resource('products', ProductController::class);
+        // Dashboard
+        Route::get('/dashboard', [DashboardController::class, 'salesDashboard'])->name('dashboard');
+        Route::get('/dashboard/inventory', [DashboardController::class, 'inventoryDashboard'])->name('dashboard.inventory');
 
-    Route::resource('units', UnitController::class);
+        // Categories
+        Route::get('categories/trashed', [CategoryController::class, 'trashed'])->name('categories.trashed');
+        Route::post('categories/{cat}/restore', [CategoryController::class, 'restore'])->name('categories.restore');
+        Route::delete('categories/{cat}/force-delete', [CategoryController::class, 'forceDelete'])->name('categories.forceDelete');
+        Route::resource('categories', CategoryController::class);
 
-    // Suppliers
-    Route::get('suppliers/trashed', [SupplierController::class, 'trashed'])->name('suppliers.trashed');
-    Route::post('suppliers/{supplier}/restore', [SupplierController::class, 'restore'])->name('suppliers.restore');
-    Route::delete('suppliers/{supplier}/force-delete', [SupplierController::class, 'forceDelete'])->name('suppliers.forceDelete');
-    Route::resource('suppliers', SupplierController::class);
+        // Products
+        Route::get('products/{id}/inventory-history', [InventoryController::class, 'index'])->name('products.inventory_history');
+        Route::get('products/trashed', [ProductController::class, 'trashed'])->name('products.trashed');
+        Route::post('products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore');
+        Route::delete('products/{id}/force', [ProductController::class, 'forceDelete'])->name('products.forceDelete');
+        Route::resource('products', ProductController::class);
 
-    // Purchase
-    Route::patch('/purchaseReturn/{purchaseReturn}/complete', [PurchaseReturnController::class, 'complete'])->name('purchaseReturn.complete');
-Route::patch('/admin/purchaseReturn/{purchaseReturn}/confirm-payment',
-    [PurchaseReturnController::class, 'confirmPayment']
-)->name('admin.purchaseReturn.confirmPayment');
+        // Units
+        Route::resource('units', UnitController::class);
 
-    Route::resource('purchaseReturn', PurchaseReturnController::class);
+        // Suppliers
+        Route::get('suppliers/trashed', [SupplierController::class, 'trashed'])->name('suppliers.trashed');
+        Route::post('suppliers/{supplier}/restore', [SupplierController::class, 'restore'])->name('suppliers.restore');
+        Route::delete('suppliers/{supplier}/force-delete', [SupplierController::class, 'forceDelete'])->name('suppliers.forceDelete');
+        Route::resource('suppliers', SupplierController::class);
 
+        // Purchase Return
+        Route::patch('purchaseReturn/{purchaseReturn}/complete', [PurchaseReturnController::class, 'complete'])->name('purchaseReturn.complete');
+        Route::resource('purchaseReturn', PurchaseReturnController::class);
 
-    Route::get('purchase-orders/trashed', [PurchaseOrderController::class, 'trashed'])->name('purchase-orders.trashed');
-    Route::post('purchase-orders/{supplier}/restore', [PurchaseOrderController::class, 'restore'])->name('purchase-orders.restore');
-    Route::delete('purchase-orders/{supplier}/force-delete', [PurchaseOrderController::class, 'forceDelete'])->name('purchase-orders.forceDelete');
-    Route::post('purchase-orders/{po_id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
-    Route::get('/purchase-orders/{id}/status', [PurchaseOrderController::class, 'getStatus'])->name('purchase-orders.status');
-    Route::get('/purchase-orders/{id}/imported-quantities', [PurchaseOrderController::class, 'getImportedQuantities'])->name('purchase-orders.imported-quantities');
-    Route::post('purchase-orders/{po_id}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-orders.approve');
-    Route::resource('purchase-orders', PurchaseOrderController::class);
+        // Purchase Orders
+        Route::get('purchase-orders/trashed', [PurchaseOrderController::class, 'trashed'])->name('purchase-orders.trashed');
+        Route::post('purchase-orders/{supplier}/restore', [PurchaseOrderController::class, 'restore'])->name('purchase-orders.restore');
+        Route::delete('purchase-orders/{supplier}/force-delete', [PurchaseOrderController::class, 'forceDelete'])->name('purchase-orders.forceDelete');
+        Route::post('purchase-orders/{po_id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
+        Route::get('purchase-orders/{id}/status', [PurchaseOrderController::class, 'getStatus'])->name('purchase-orders.status');
+        Route::get('purchase-orders/{id}/imported-quantities', [PurchaseOrderController::class, 'getImportedQuantities'])->name('purchase-orders.imported-quantities');
+        Route::post('purchase-orders/{po_id}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-orders.approve');
+        Route::resource('purchase-orders', PurchaseOrderController::class);
 
-    // Batches
-    Route::post('batches/{id}/pay', [BatchController::class, 'pay'])->name('batches.pay');
-    Route::get('batches/add/{po_id}', [BatchController::class, 'add'])->name('batches.add');
-    Route::post('batches/save', [BatchController::class, 'save'])->name('batches.save');
-    Route::post('/batches/import', [BatchController::class, 'import'])->name('batches.import');
+        // Batches
+        Route::post('batches/{id}/pay', [BatchController::class, 'pay'])->name('batches.pay');
+        Route::get('batches/add/{po_id}', [BatchController::class, 'add'])->name('batches.add');
+        Route::post('batches/save', [BatchController::class, 'save'])->name('batches.save');
+        Route::post('batches/import', [BatchController::class, 'import'])->name('batches.import');
+        Route::resource('batches', BatchController::class);
 
-    Route::resource('batches', BatchController::class);
+        // Inventory
+        Route::resource('inventory', InventoryController::class);
 
-    // Others
-    Route::resource('inventory', InventoryController::class);
-    Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
-    Route::resource('users', UserController::class);
-    Route::resource('bills', BillController::class);
+        // Users
+        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::resource('users', UserController::class);
 
-    //Customer
-    Route::get('customers/trashed', [CustomerController::class, 'trashed'])->name('customers.trashed');
-    Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
-    Route::delete('customers/{customer}/force-delete', [CustomerController::class, 'forceDelete'])->name('customers.forceDelete');
-    Route::resource('customers', CustomerController::class);
+        // Customers
+        Route::get('customers/trashed', [CustomerController::class, 'trashed'])->name('customers.trashed');
+        Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
+        Route::delete('customers/{customer}/force-delete', [CustomerController::class, 'forceDelete'])->name('customers.forceDelete');
+        Route::resource('customers', CustomerController::class);
 
-    // Bills
-    Route::resource('bills', BillController::class);
-});
-Route::get('/test', [TestController::class, 'index']);
+        // Bills
+        Route::resource('bills', BillController::class);
+    });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/cashier.php';

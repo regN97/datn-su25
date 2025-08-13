@@ -83,7 +83,8 @@ const renderChart = () => {
                     ticks: {
                         callback: (value) => {
                             const val = Number(value)
-                            return (val / 1000) + 'k đ'
+                            if (val < 1) return ''
+                            return val.toLocaleString('vi-VN') + ' đ'
                         }
                     },
                     grid: {

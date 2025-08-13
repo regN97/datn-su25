@@ -2,11 +2,10 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronLeft } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { CheckCircle, CircleAlert } from 'lucide-vue-next';
-import { Money3Directive } from 'v-money3';
+import { CheckCircle, ChevronLeft, CircleAlert } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
+import { Money3Directive } from 'v-money3';
+import { computed, ref } from 'vue';
 
 // Types
 interface Product {
@@ -68,7 +67,7 @@ interface BatchItem {
     total_amount: number;
     manufacturing_date: string | null;
     expiry_date: string | null;
-    inventory_status: "active" | "low_stock" | "out_of_stock" | "expired" | "damaged";
+    inventory_status: 'active' | 'low_stock' | 'out_of_stock' | 'expired' | 'damaged';
     product?: {
         name: string;
         sku: string;
@@ -106,7 +105,7 @@ interface POStatus {
     id: number;
     name: string;
     code: string;
-};
+}
 
 interface PurchaseOrderItem {
     id: number;
@@ -126,7 +125,7 @@ interface PurchaseOrderItem {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
-};
+}
 
 interface PurchaseOrder {
     id: number;
@@ -167,15 +166,17 @@ const props = withDefaults(defineProps<Props>(), {
 //     },
 // ];
 
-const po_products = ref<BatchItem[]>(props.batchItem.map(item => ({
-    ...item,
-    received_quantity: item.received_quantity || 0,
-})));
+const po_products = ref<BatchItem[]>(
+    props.batchItem.map((item) => ({
+        ...item,
+        received_quantity: item.received_quantity || 0,
+    })),
+);
 
 const aggregatedProducts = computed(() => {
     const productMap = new Map();
 
-    props.batchItem.forEach(item => {
+    props.batchItem.forEach((item) => {
         if (productMap.has(item.product_id)) {
             const existingItem = productMap.get(item.product_id);
             existingItem.received_quantity += item.received_quantity;
@@ -190,16 +191,14 @@ const aggregatedProducts = computed(() => {
 
     return Array.from(productMap.values());
 });
+// === Kết thúc logic mới ===
 
+// Sử dụng computed để truy cập phần tử đầu tiên của mảng batch
 const currentBatch = computed(() => props.batch[0] || null);
 
-const selectedUser = computed(() =>
-    props.users.find((u) => u.id === currentBatch.value?.created_by) || null
-);
+const selectedUser = computed(() => props.users.find((u) => u.id === currentBatch.value?.created_by) || null);
 
-const selectedSupplier = computed(() =>
-    props.suppliers.find((s) => s.id === currentBatch.value?.supplier_id) || null
-);
+const selectedSupplier = computed(() => props.suppliers.find((s) => s.id === currentBatch.value?.supplier_id) || null);
 
 const batchNumber = computed(() => currentBatch.value?.batch_number || 'Chưa có mã lô');
 
@@ -281,11 +280,8 @@ const paymentStatusInfo = computed(() => {
     };
 });
 
-
 const isPaid = computed(() => currentBatch.value?.payment_status === 'paid');
-const isUnpaidOrPartial = computed(() =>
-    ['unpaid', 'partially_paid'].includes(currentBatch.value?.payment_status)
-);
+const isUnpaidOrPartial = computed(() => ['unpaid', 'partially_paid'].includes(currentBatch.value?.payment_status));
 
 const formattedPaidAmount = computed(() => {
     const amount = currentBatch.value?.paid_amount || 0;
@@ -348,7 +344,6 @@ function handlePayment() {
     }
 }
 
-
 const money = {
     decimal: '.',
     thousands: ',',
@@ -356,14 +351,14 @@ const money = {
     suffix: '',
     precision: 0,
     masked: false,
-    allowNegative: false
-}
+    allowNegative: false,
+};
 
 function formatCurrency(value: number | null | undefined) {
     if (value === undefined || value === null) return '0₫';
     return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
     }).format(value);
 }
 
@@ -375,7 +370,7 @@ function formatDateTime(dateString: string | null | undefined) {
         month: 'numeric',
         day: 'numeric',
         hour: 'numeric',
-        minute: 'numeric'
+        minute: 'numeric',
     };
     return new Intl.DateTimeFormat('vi-VN', options).format(date);
 }
@@ -478,11 +473,9 @@ function cancelPayment() {
 function goBack() {
     router.visit(route('admin.batches.index'));
 }
-
 </script>
 
 <template>
-
     <Head title="Chi tiết lô hàng" />
     <!-- <AppLayout :breadcrumbs="breadcrumbs"> -->
     <AppLayout>
@@ -490,38 +483,65 @@ function goBack() {
             <div class="mx-auto max-w-7xl">
                 <div class="mb-4 flex items-center justify-between">
                     <div class="flex items-center">
-                        <button @click="goBack"
-                            class="mb-0 flex h-10 w-10 items-center justify-center rounded border border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:text-gray-800">
+                        <button
+                            @click="goBack"
+                            class="mb-0 flex h-10 w-10 items-center justify-center rounded border border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:text-gray-800"
+                        >
                             <ChevronLeft class="h-5 w-5" />
                         </button>
                         <h1 class="ml-4 text-3xl font-bold text-gray-900">{{ batchNumber }}</h1>
-                        <span class="ml-2 rounded-full px-3 py-1 text-sm font-medium" :class="{
-                            'bg-green-100 text-green-700': currentBatch?.receipt_status === 'completed',
-                            'bg-yellow-100 text-yellow-700': currentBatch?.receipt_status === 'partially_received',
-                            'bg-red-100 text-red-700': currentBatch?.receipt_status === 'cancelled'
-                        }">
+                        <span
+                            class="ml-2 rounded-full px-3 py-1 text-sm font-medium"
+                            :class="{
+                                'bg-green-100 text-green-700': currentBatch?.receipt_status === 'completed',
+                                'bg-yellow-100 text-yellow-700': currentBatch?.receipt_status === 'partially_received',
+                                'bg-red-100 text-red-700': currentBatch?.receipt_status === 'cancelled',
+                            }"
+                        >
                             {{ receiptStatusLabel }}
                         </span>
                     </div>
                     <div class="flex items-center gap-2 pr-2">
                         <button
                             v-if="currentBatch?.receipt_status === 'completed' || currentBatch?.receipt_status === 'partially_received'"
-                            @click="goReturn" class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm
-         hover:bg-gray-100 hover:border-gray-400 transition-all duration-300 ease-in-out" title="Tạo đơn hoàn trả">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-600" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            @click="goReturn"
+                            class="flex items-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-300 ease-in-out hover:border-gray-400 hover:bg-gray-100"
+                            title="Tạo đơn hoàn trả"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-5 w-5 text-gray-600"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                                />
                             </svg>
                             <span>Hoàn trả</span>
                         </button>
-                        <button @click="printOrder"
-                            class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition"
-                            title="In đơn">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-500" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M6 9V4a2 2 0 012-2h8a2 2 0 012 2v5M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-6 0h4" />
+                        <button
+                            @click="printOrder"
+                            class="flex items-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-300 hover:bg-gray-100"
+                            title="In đơn"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-5 w-5 text-gray-500"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M6 9V4a2 2 0 012-2h8a2 2 0 012 2v5M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-6 0h4"
+                                />
                             </svg>
                             <span>In đơn</span>
                         </button>
@@ -532,27 +552,23 @@ function goBack() {
                     <div class="flex flex-col gap-6 lg:col-span-2">
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
-                                <h2 class="text-lg font-semibold">Chi tiết lô hàng</h2>
+                                <h2 class="text-lg font-semibold">Chi tiết phiếu nhập hàng</h2>
                             </div>
                             <div class="space-y-6 p-6">
                                 <div v-if="aggregatedProducts.length > 0" class="space-y-3">
                                     <table class="min-w-full divide-y divide-gray-200">
                                         <thead class="bg-gray-50">
                                             <tr>
-                                                <th
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                                                     Sản phẩm
                                                 </th>
-                                                <th
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                                                     Số lượng
                                                 </th>
-                                                <th
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                                                     Đơn giá
                                                 </th>
-                                                <th
-                                                    class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                                                     Thành tiền
                                                 </th>
                                             </tr>
@@ -561,22 +577,21 @@ function goBack() {
                                             <tr v-for="p in aggregatedProducts" :key="p.product_id">
                                                 <td class="px-6 py-4 whitespace-nowrap">
                                                     <div class="flex items-center space-x-4">
-                                                        <img :src="p.product?.image_url || '/storage/piclumen-1747750187180.png'"
+                                                        <img
+                                                            :src="p.product?.image_url || '/storage/piclumen-1747750187180.png'"
                                                             :alt="p.product_name"
-                                                            class="h-12 w-12 rounded-lg border border-gray-200 object-cover" />
+                                                            class="h-12 w-12 rounded-lg border border-gray-200 object-cover"
+                                                        />
                                                         <div>
-                                                            <h4 class="font-medium text-gray-900">{{ p.product_name }}
-                                                            </h4>
-                                                            <p class="text-sm text-gray-500">SKU: {{ p.product_sku }}
-                                                            </p>
+                                                            <h4 class="font-medium text-gray-900">{{ p.product_name }}</h4>
+                                                            <p class="text-sm text-gray-500">SKU: {{ p.product_sku }}</p>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap">
                                                     <div class="flex flex-col">
                                                         <span>{{ p.received_quantity }}</span>
-                                                        <span v-if="p.rejected_quantity > 0"
-                                                            class="text-xs text-red-500">
+                                                        <span v-if="p.rejected_quantity > 0" class="text-xs text-red-500">
                                                             {{ p.rejected_quantity }}
                                                         </span>
                                                     </div>
@@ -584,8 +599,7 @@ function goBack() {
                                                 <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                                     <span>{{ formatPrice(p.purchase_price) }}</span>
                                                 </td>
-                                                <td
-                                                    class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">
+                                                <td class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">
                                                     {{ formatPrice(p.total_amount) }}
                                                 </td>
                                             </tr>
@@ -595,42 +609,41 @@ function goBack() {
                             </div>
                         </div>
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-                            <div class="p-4 border-b border-gray-100">
+                            <div class="border-b border-gray-100 p-4">
                                 <div class="flex items-center space-x-2">
-                                    <component :is="paymentStatusInfo.icon" class="h-5 w-5"
-                                        :class="paymentStatusInfo.class" />
-                                    <span :class="paymentStatusInfo.class + ' font-semibold text-base lg:text-lg'">
+                                    <component :is="paymentStatusInfo.icon" class="h-5 w-5" :class="paymentStatusInfo.class" />
+                                    <span :class="paymentStatusInfo.class + ' text-base font-semibold lg:text-lg'">
                                         {{ paymentStatusInfo.label }}
                                     </span>
                                 </div>
                             </div>
 
-                            <div class="p-4 space-y-4">
-                                <div class="flex justify-between items-center text-sm text-gray-800">
+                            <div class="space-y-4 p-4">
+                                <div class="flex items-center justify-between text-sm text-gray-800">
                                     <span class="w-1/3 font-medium">Tổng tiền</span>
-                                    <span class="w-1/3 text-center text-gray-600">
-                                        {{ totalActualQuantity }} sản phẩm
-                                    </span>
+                                    <span class="w-1/3 text-center text-gray-600"> {{ totalActualQuantity }} sản phẩm </span>
                                     <span class="w-1/3 text-right font-semibold text-black">
                                         {{ formattedSubtotal }}
                                     </span>
                                 </div>
 
-                                <div class="flex justify-between items-center text-sm">
-                                    <span class="text-blue-600 font-medium">Chiết khấu lô</span>
-                                    <span class="text-red-600 font-semibold text-right">
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="font-medium text-blue-600">Chiết khấu lô</span>
+                                    <span class="text-right font-semibold text-red-600">
                                         {{ formattedDiscount }}
                                     </span>
                                 </div>
 
-                                <div class="pt-3 border-t border-gray-200">
-                                    <div class="flex justify-between items-center text-base font-bold text-gray-900">
+                                <div class="border-t border-gray-200 pt-3">
+                                    <div class="flex items-center justify-between text-base font-bold text-gray-900">
                                         <span>Tiền cần trả NCC</span>
                                         <span class="text-right">{{ totalAfterDiscount }}</span>
                                     </div>
                                 </div>
-                                <div v-if="isPaid || currentBatch?.payment_status === 'partially_paid'"
-                                    class="pt-4 border-t border-gray-200 space-y-2">
+                                <div
+                                    v-if="isPaid || currentBatch?.payment_status === 'partially_paid'"
+                                    class="space-y-2 border-t border-gray-200 pt-4"
+                                >
                                     <div class="flex justify-between text-sm text-gray-800">
                                         <span class="font-medium">Đã trả</span>
                                         <span class="text-right">{{ formattedPaidAmount }}</span>
@@ -640,30 +653,33 @@ function goBack() {
                                         <span class="text-right text-red-600">{{ formattedRemainingAmount }}</span>
                                     </div>
                                 </div>
-                                <div v-if="isUnpaidOrPartial && remainingAmount > 0"
-                                    class="pt-4 border-t border-gray-200">
+                                <div v-if="isUnpaidOrPartial && remainingAmount > 0" class="border-t border-gray-200 pt-4">
                                     <div class="flex justify-end pr-2">
-                                        <button @click="handlePayment"
-                                            class="text-xs rounded-md bg-blue-600 px-2.5 py-1 text-white hover:bg-blue-700 focus:ring-1 focus:ring-offset-1 focus:ring-blue-500">
+                                        <button
+                                            @click="handlePayment"
+                                            class="rounded-md bg-blue-600 px-2.5 py-1 text-xs text-white hover:bg-blue-700 focus:ring-1 focus:ring-blue-500 focus:ring-offset-1"
+                                        >
                                             Xác nhận thanh toán
                                         </button>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
 
-                        <div v-if="showPaymentForm"
-                            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300">
-                            <div class="bg-white rounded-lg p-6 w-full max-w-2xl">
-                                <h2 class="text-xl font-semibold mb-6">Xác nhận thanh toán</h2>
+                        <div
+                            v-if="showPaymentForm"
+                            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300"
+                        >
+                            <div class="w-full max-w-2xl rounded-lg bg-white p-6">
+                                <h2 class="mb-6 text-xl font-semibold">Xác nhận thanh toán</h2>
                                 <form @submit.prevent="handlePaymentSubmit">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Hình thức thanh
-                                                toán</label>
-                                            <select v-model="paymentMethod"
-                                                class="w-full rounded-md border border-gray-300 px-3 py-2 bg-white focus:border-blue-500 focus:ring-blue-500">
+                                            <label class="mb-1 block text-sm font-medium text-gray-700">Hình thức thanh toán</label>
+                                            <select
+                                                v-model="paymentMethod"
+                                                class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                                            >
                                                 <option value="cash">Tiền mặt</option>
                                                 <option value="bank_transfer">Chuyển khoản</option>
                                                 <option value="credit_card">Thẻ</option>
@@ -671,10 +687,12 @@ function goBack() {
                                         </div>
 
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Số tiền thanh
-                                                toán</label>
-                                            <input v-model="paymentForm.paymentAmount" v-money="money"
-                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500" />
+                                            <label class="mb-1 block text-sm font-medium text-gray-700">Số tiền thanh toán</label>
+                                            <input
+                                                v-model="paymentForm.paymentAmount"
+                                                v-money="money"
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                                            />
                                         </div>
 
                                         <div>
@@ -685,28 +703,31 @@ function goBack() {
                                         </div>
 
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Tham
-                                                chiếu</label>
-                                            <input type="text" v-model="paymentForm.reference"
+                                            <label class="mb-1 block text-sm font-medium text-gray-700">Tham chiếu</label>
+                                            <input
+                                                type="text"
+                                                v-model="paymentForm.reference"
                                                 placeholder="Nhập mã tham chiếu"
-                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500" />
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                                            />
                                         </div>
                                     </div>
 
                                     <div class="mt-6 flex justify-end space-x-4">
-                                        <button type="button" @click="cancelPayment"
-                                            class="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
+                                        <button
+                                            type="button"
+                                            @click="cancelPayment"
+                                            class="rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-300"
+                                        >
                                             Hủy
                                         </button>
-                                        <button type="submit"
-                                            class="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                                        <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700">
                                             Xác nhận
                                         </button>
                                     </div>
                                 </form>
                             </div>
                         </div>
-
                     </div>
 
                     <div class="space-y-6">
@@ -720,13 +741,10 @@ function goBack() {
                                         <h3 class="font-medium text-gray-900">{{ selectedSupplier.name }}</h3>
                                     </div>
                                     <div class="space-y-1 text-sm">
-                                        <h3 class="font-bold text-black-900">Thông tin nhà cung cấp</h3>
-                                        <p v-if="selectedSupplier.email" class="text-black-400">{{
-                                            selectedSupplier.email }}</p>
-                                        <p v-if="selectedSupplier.phone" class="text-black-400">{{
-                                            selectedSupplier.phone }}</p>
-                                        <p v-if="selectedSupplier.address" class="text-black-400">{{
-                                            selectedSupplier.address }}</p>
+                                        <h3 class="text-black-900 font-bold">Thông tin nhà cung cấp</h3>
+                                        <p v-if="selectedSupplier.email" class="text-black-400">{{ selectedSupplier.email }}</p>
+                                        <p v-if="selectedSupplier.phone" class="text-black-400">{{ selectedSupplier.phone }}</p>
+                                        <p v-if="selectedSupplier.address" class="text-black-400">{{ selectedSupplier.address }}</p>
                                     </div>
                                 </div>
                                 <div v-else class="text-gray-500">Không có thông tin nhà cung cấp</div>
@@ -739,15 +757,22 @@ function goBack() {
                             </div>
                             <div class="space-y-4 p-4">
                                 <div>
-                                    <label class="mb-1 block text-sm font-medium text-gray-700">Nhân viên phụ
-                                        trách</label>
-                                    <input type="text" disabled :value="selectedUser ? selectedUser.name : ''"
-                                        class="h-10 w-full rounded-md border border-gray-300 pl-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Nhân viên phụ trách</label>
+                                    <input
+                                        type="text"
+                                        disabled
+                                        :value="selectedUser ? selectedUser.name : ''"
+                                        class="h-10 w-full rounded-md border border-gray-300 pl-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhận hàng</label>
-                                    <input type="text" disabled :value="formattedReceivedDate"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <input
+                                        type="text"
+                                        disabled
+                                        :value="formattedReceivedDate"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn nhập hàng</label>
@@ -766,7 +791,6 @@ function goBack() {
                 <div class="receipt-header">
                     <h1 class="receipt-title">ĐƠN NHẬP HÀNG</h1>
                 </div>
-
                 <div class="receipt-details" v-if="currentBatch && selectedSupplier && selectedUser">
                     <div class="flex-container">
                         <p class="col-6">
@@ -855,7 +879,7 @@ function goBack() {
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
     </AppLayout>
 </template>
 <style scoped>

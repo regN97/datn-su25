@@ -57,7 +57,7 @@ class POSController
                 'category' => $product->category ? $product->category->name : 'Chưa phân loại',
                 'price' => $product->selling_price ?? 0,
                 'stock' => $stocks[$product->id] ?? 0,
-                'image' => $product->image_url ?? '/storage/default-product.png',
+                'image' => $product->image_url ?? '/storage/piclumen-1747750187180.png',
                 'sku' => $product->sku,
                 'barcode' => $product->barcode,
             ];
@@ -1000,7 +1000,7 @@ class POSController
                         'category' => $product->category ? $product->category->name : 'Chưa phân loại',
                         'price' => $product->selling_price ?? 0,
                         'stock' => $product->stock_quantity ?? 0,
-                        'image' => $product->image_url ?? '/storage/default-product.png',
+                        'image' => $product->image_url ?? '/storage/piclumen-1747750187180.png',
                         'sku' => $product->sku,
                         'barcode' => $product->barcode,
                     ];
@@ -1094,7 +1094,7 @@ class POSController
                         'category' => $product->category ? $product->category->name : 'Chưa phân loại',
                         'price' => $product->selling_price ?? 0,
                         'stock' => $product->stock_quantity ?? 0,
-                        'image' => $product->image_url ?? '/storage/default-product.png',
+                        'image' => $product->image_url ?? '/storage/piclumen-1747750187180.png',
                         'sku' => $product->sku,
                         'barcode' => $product->barcode,
                     ];
@@ -1298,7 +1298,7 @@ class POSController
             'barcode' => $product->barcode,
             'price' => $product->selling_price ?? 0, 
             'stock_quantity' => $product->stock_quantity,
-            'image' => $product->image_url ?? '/storage/default-product.png',
+            'image' => $product->image_url ?? '/storage/piclumen-1747750187180.png',
             'sku' => $product->sku,
         ]
     ]);
@@ -1319,7 +1319,7 @@ class POSController
                     'category' => $product->category ? $product->category->name : 'Chưa phân loại',
                     'price' => $product->selling_price ?? 0,
                     'stock' => $availableStock,
-                    'image' => $product->image_url ?? '/storage/default-product.png',
+                    'image' => $product->image_url ?? '/storage/piclumen-1747750187180.png',
                     'sku' => $product->sku,
                     'barcode' => $product->barcode,
                 ];
