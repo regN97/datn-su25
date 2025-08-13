@@ -12,8 +12,12 @@ use Illuminate\Support\Facades\Hash;
 class UserController extends Controller {
     public function index()
 {
-    $users = User::with('role')->whereNull('deleted_at')->get();
-    $userRoles = UserRole::select('id', 'name')->get(); // lấy tất cả vai trò
+    $currentUserId = auth()->id();
+    $users = User::with('role')
+        ->whereNull('deleted_at')
+      
+        ->get();
+    $userRoles = UserRole::select('id', 'name')->get();
 
     return inertia('admin/users/Index', [
         'users' => $users,
@@ -24,17 +28,17 @@ class UserController extends Controller {
      * Hiển thị chi tiết người dùng và danh sách ca làm việc của họ.
      */
     public function show(User $user)
-    {
-        // Chỉ lấy các UserShift liên quan đến người dùng này, sắp xếp theo ngày
-        $userShifts = $user->userShifts()
-            ->orderBy('date', 'desc')
-            ->get();
+{
+    $userShifts = $user->userShifts()
+        ->orderBy('date', 'desc')
+        ->get();
 
-        return Inertia::render('admin/users/Show', [
-            'user' => $user->load('role'), // Tải vai trò của người dùng
-            'userShifts' => $userShifts,
-        ]);
-    }
+    // Trả về đầy đủ thông tin user
+    return Inertia::render('admin/users/Show', [
+        'user' => $user->load('role'),
+        'userShifts' => $userShifts,
+    ]);
+}
 public function create()
     {   
         return Inertia::render('admin/users/Create', [
@@ -44,28 +48,43 @@ public function create()
 
     // Xử lý thêm mới
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-        'name' => 'required|string|max:255',
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:150',
         'email' => 'required|email|unique:users,email',
-        'phone_number' => 'required|string|unique:users,phone_number',
-        'password' => 'required|string|min:6',
-        'role_id' => 'required|exists:roles,id',
+        'phone_number' => 'required|string|max:20|unique:users,phone_number',
+        'role_id' => 'required|exists:user_roles,id',
+        'address' => 'nullable|string|max:255',
+        'is_active' => 'required|boolean',
     ], [
+        'name.required' => 'Vui lòng nhập tên nhân viên.',
+        'email.required' => 'Vui lòng nhập email.',
+        'email.email' => 'Email không đúng định dạng.',
         'email.unique' => 'Email đã tồn tại.',
+        'phone_number.required' => 'Vui lòng nhập số điện thoại.',
         'phone_number.unique' => 'Số điện thoại đã tồn tại.',
+        'phone_number.max' => 'Số điện thoại không được vượt quá 20 ký tự.',
+        'role_id.required' => 'Vui lòng chọn chức vụ.',
+        'role_id.exists' => 'Chức vụ không hợp lệ.',
+        'address.max' => 'Địa chỉ không được vượt quá 255 ký tự.',
+        'is_active.required' => 'Vui lòng chọn trạng thái.',
+        'is_active.boolean' => 'Trạng thái không hợp lệ.',
     ]);
-        
-        User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'] ?? null,
-            'password' => Hash::make($validated['password']),
-            'phone_number' => $validated['phone_number'] ?? null,
-            'role_id' => $validated['role_id'],
-        ]);
 
-        return redirect()->route('admin.users.index')->with('success', 'Thêm người dùng thành công');
-    }
+    $validated['is_active'] = filter_var($validated['is_active'], FILTER_VALIDATE_BOOLEAN);
+
+    User::create([
+        'name' => $validated['name'],
+        'email' => $validated['email'],
+        'phone_number' => $validated['phone_number'],
+        'role_id' => $validated['role_id'],
+        'address' => $validated['address'] ?? null,
+        'is_active' => $validated['is_active'],
+        'password' => \Hash::make('12345678'),
+    ]);
+
+    return redirect()->route('admin.users.index')->with('success', 'Thêm người dùng thành công');
+}
 // UserController.php
 
 public function edit($id)
@@ -85,24 +104,52 @@ public function update(Request $request, $id)
 
     $validated = $request->validate([
         'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email,' . $user->id,
-        'phone_number' => 'required|string|unique:users,phone_number,' . $user->id,
-        'role_id' => 'required|exists:roles,id',
+        'email' => [
+            'required',
+            'email',
+            Rule::unique('users', 'email')->ignore($user->id),
+        ],
+        'phone_number' => [
+            'required',
+            'string',
+            'max:10',
+            Rule::unique('users', 'phone_number')->ignore($user->id),
+        ],
+        'address' => 'nullable|string|max:255',
+        'is_active' => 'required|boolean',
+        'role_id' => 'required|exists:user_roles,id',
     ], [
+        'name.required' => 'Vui lòng nhập tên nhân viên.',
+        'email.required' => 'Vui lòng nhập email.',
+        'email.email' => 'Email không đúng định dạng.',
         'email.unique' => 'Email đã tồn tại.',
+        'phone_number.required' => 'Vui lòng nhập số điện thoại.',
         'phone_number.unique' => 'Số điện thoại đã tồn tại.',
+        'phone_number.max' => 'Số điện thoại không được vượt quá 10 ký tự.',
+        'role_id.required' => 'Vui lòng chọn chức vụ.',
+        'role_id.exists' => 'Chức vụ không hợp lệ.',
+        'address.max' => 'Địa chỉ không được vượt quá 255 ký tự.',
+        'is_active.required' => 'Vui lòng chọn trạng thái.',
+        'is_active.boolean' => 'Trạng thái không hợp lệ.',
     ]);
 
-    $user->update([
-        ...$validated,
-        'password' => $validated['password'] ? Hash::make($validated['password']) : $user->password,
-    ]);
+    $validated['is_active'] = filter_var($validated['is_active'], FILTER_VALIDATE_BOOLEAN);
+
+    $user->update($validated);
 
     return redirect()->route('admin.users.index')->with('success', 'Cập nhật người dùng thành công');
 }
 public function destroy(User $user)
 {
-    $user->delete(); // Laravel sẽ cập nhật cột deleted_at thay vì xoá thật
+    // Không cho xóa nếu là quản trị viên
+    if ($user->role && $user->role->name !== 'Nhân viên bán hàng') {
+        return redirect()->back()->with('error', 'Bạn chỉ có thể xóa nhân viên bán hàng!');
+    }
+    // Không cho xóa tài khoản đang đăng nhập
+    if ($user->id === auth()->id()) {
+        return redirect()->back()->with('error', 'Bạn không thể xóa tài khoản đang đăng nhập!');
+    }
+    $user->delete();
     return redirect()->back()->with('success', 'Xoá người dùng thành công');
 }
 

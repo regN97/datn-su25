@@ -19,6 +19,7 @@ type User = {
     email: string;
     phone_number: string | null;
     role?: { name: string };
+    is_active: boolean;
 };
 
 const page = usePage<SharedData>();
@@ -74,10 +75,20 @@ function confirmDelete(id: number) {
     showDeleteModal.value = true;
 }
 
+// ...existing code...
 function handleDeleteUser() {
     if (!userToDelete.value) return;
     router.delete(`/admin/users/${userToDelete.value}`, {
-        onSuccess: () => {
+        onSuccess: (page) => {
+            // Lấy thông báo lỗi từ backend nếu có
+            const errorMsg = page.props.flash && typeof page.props.flash === 'object' ? (page.props.flash as any).error : undefined;
+            if (errorMsg) {
+                // Nếu có lỗi thì không xóa khỏi danh sách
+                showDeleteModal.value = false;
+                userToDelete.value = null;
+                return;
+            }
+            // Nếu không có lỗi thì xóa khỏi danh sách
             const idx = users.value.findIndex((u) => u.id === userToDelete.value);
             if (idx !== -1) users.value.splice(idx, 1);
             showDeleteModal.value = false;
@@ -86,6 +97,7 @@ function handleDeleteUser() {
         preserveState: true,
     });
 }
+// ...existing code...
 
 function cancelDelete() {
     showDeleteModal.value = false;
@@ -118,6 +130,7 @@ function cancelDelete() {
                                     <th class="w-[25%] p-3 text-left text-sm font-semibold">Email</th>
                                     <th class="w-[15%] p-3 text-center text-sm font-semibold">Số điện thoại</th>
                                     <th class="w-[15%] p-3 text-center text-sm font-semibold">Chức vụ</th>
+                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Trạng thái</th>
                                     <th class="w-[20%] p-3 text-center text-sm font-semibold">Thao tác</th>
                                 </tr>
                             </thead>
@@ -130,6 +143,13 @@ function cancelDelete() {
                                     </td>
                                     <td class="p-3 text-center text-sm">{{ user.phone_number || 'N/A' }}</td>
                                     <td class="p-3 text-center text-sm">{{ user.role?.name || 'N/A' }}</td>
+                                  <td class="px-3 py-2 border-b border-gray-200 text-center">
+    <span
+        :class="user.is_active ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'"
+    >
+        {{ user.is_active ? 'Hoạt động' : 'Ngừng hoạt động' }}
+    </span>
+</td>
                                     <td class="p-3 text-center text-sm">
                                         <button class="me-1 rounded-md bg-blue-600 px-3 py-1 text-white hover:bg-blue-700" @click="goToShowPage(user.id)">
                                             <Eye class="h-4 w-4" />
