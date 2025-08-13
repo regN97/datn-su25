@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Admin\BillController;
+// use App\Http\Controllers\Admin\BillController;
 use Inertia\Inertia;
 
 use Illuminate\Support\Facades\Route;
@@ -50,6 +50,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Purchase
     Route::patch('/purchaseReturn/{purchaseReturn}/complete', [PurchaseReturnController::class, 'complete'])->name('purchaseReturn.complete');
+Route::patch('/admin/purchaseReturn/{purchaseReturn}/confirm-payment',
+    [PurchaseReturnController::class, 'confirmPayment']
+)->name('admin.purchaseReturn.confirmPayment');
 
     Route::resource('purchaseReturn', PurchaseReturnController::class);
 
