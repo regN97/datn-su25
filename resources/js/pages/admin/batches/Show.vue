@@ -35,9 +35,15 @@ interface Batch {
     received_date: string;
     invoice_number: string | null;
     total_amount: number;
+<<<<<<< HEAD
     payment_status: 'unpaid' | 'partially_paid' | 'paid';
     paid_amount: number;
     receipt_status: 'partially_received' | 'completed' | 'cancelled';
+=======
+    payment_status: "unpaid" | "partially_paid" | "paid";
+    paid_amount: number;
+    receipt_status: "partially_received" | "completed" | "cancelled";
+>>>>>>> bb610a19f668aaba329e0d13818e20ef9917f0af
     notes: string | null;
     created_by: number;
     creator?: User;
