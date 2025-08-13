@@ -35,9 +35,7 @@ onMounted(() => {
                 plugins: { legend: { display: false } },
                 scales: {
                     x: {
-                        grid: {
-                            display: false,
-                        },
+                        grid: { display: false },
                         ticks: {
                             maxRotation: 0,
                             minRotation: 0,
@@ -50,9 +48,12 @@ onMounted(() => {
                                 return label
                             }
                         }
-
+                    },
+                    y: {
+                        min: 0
                     }
                 }
+
             }
         })
     }, { immediate: true })

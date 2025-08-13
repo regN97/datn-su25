@@ -63,6 +63,7 @@ onMounted(() => {
 
             },
             y: {
+              min: 0,
               ticks: {
                 callback: (value) =>
                   new Intl.NumberFormat('vi-VN').format(value as number) + ' đ',
