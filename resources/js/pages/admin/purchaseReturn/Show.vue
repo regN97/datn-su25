@@ -115,21 +115,20 @@ function completePurchaseReturn() {
     }
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Quản lý phiếu trả hàng',
-        href: '/admin/purchaseReturn',
-    },
-    {
-        title: `Phiếu ${currentPurchaseReturn.value.return_number}`,
-        href: '#',
-    },
-]
+// const breadcrumbs: BreadcrumbItem[] = [
+//     {
+//         title: 'Quản lý phiếu trả hàng',
+//         href: '/admin/purchaseReturn',
+//     },
+
+// ]
 </script>
 
 <template>
+
     <Head title="Chi tiết phiếu trả hàng" />
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <!-- <AppLayout :breadcrumbs="breadcrumbs" class="no-print"> -->
+    <AppLayout>
         <div class="flex flex-1 flex-col gap-6 rounded-2xl p-8 bg-gray-50 min-h-screen no-print">
             <div class="flex items-center justify-between mb-6">
                 <h1 class="text-2xl font-bold text-gray-900">
@@ -211,7 +210,8 @@ const breadcrumbs: BreadcrumbItem[] = [
                                         <td class="px-4 py-3">{{ item.product_sku }}</td>
                                         <td class="px-4 py-3">{{ item.manufacturing_date ?
                                             formatDate(item.manufacturing_date) : '—' }}</td>
-                                        <td class="px-4 py-3">{{ item.expiry_date ? formatDate(item.expiry_date) : '—' }}
+                                        <td class="px-4 py-3">{{ item.expiry_date ? formatDate(item.expiry_date) : '—'
+                                        }}
                                         </td>
                                         <td class="px-4 py-3 text-center">{{ item.quantity_returned }}</td>
                                         <td class="px-4 py-3 text-right">{{ formatCurrency(item.unit_cost) }}</td>
@@ -233,7 +233,8 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <span class="font-medium text-gray-800">{{ currentPurchaseReturn.total_items_returned
                                     }}</span>
                             </p>
-                            <p class="flex justify-between items-center font-bold text-lg text-blue-600 border-t pt-4 mt-4">
+                            <p
+                                class="flex justify-between items-center font-bold text-lg text-blue-600 border-t pt-4 mt-4">
                                 <span>Tổng giá trị trả lại:</span>
                                 <span>{{ formatCurrency(currentPurchaseReturn.total_value_returned) }}</span>
                             </p>
@@ -259,23 +260,46 @@ const breadcrumbs: BreadcrumbItem[] = [
                     <h1 class="receipt-title">PHIẾU TRẢ HÀNG</h1>
                 </div>
                 <div class="receipt-details">
-                    <p><strong>Mã phiếu trả:</strong> {{ currentPurchaseReturn.return_number }}</p>
-                    <p><strong>Mã đơn ĐH:</strong> {{ currentPurchaseReturn.purchase_order_code }}</p>
-                    <p><strong>Ngày giờ trả:</strong> {{ formatDateTimeForPrint(currentPurchaseReturn.return_date) }}</p>
-                    <p><strong>Nhà cung cấp:</strong> {{ currentPurchaseReturn.supplier_name }}</p>
-                    <p><strong>Người tạo phiếu:</strong> {{ currentPurchaseReturn.created_by }}</p>
-                    <p><strong>Trạng thái:</strong> {{ translateStatus(currentPurchaseReturn.status) }}</p>
-                    <p><strong>Lý do trả:</strong> {{ currentPurchaseReturn.reason || 'Không có' }}</p>
+                    <div class="flex-container">
+                        <p class="col-6">
+                            <span class="label">Nhà cung cấp:</span>
+                            <span class="value">{{ currentPurchaseReturn.supplier_name }}</span>
+                        </p>
+                        <p class="col-6">
+                            <span class="label">Mã phiếu trả:</span>
+                            <span class="value">{{ currentPurchaseReturn.return_number }}</span>
+                        </p>
+                    </div>
+                    <div class="flex-container">
+                        <p class="col-6">
+                            <span class="label">Ngày trả:</span>
+                            <span class="value">{{ formatDate(currentPurchaseReturn.return_date) }}</span>
+                        </p>
+                        <p class="col-6">
+                            <span class="label">Ngày tạo:</span>
+                            <span class="value">{{ new
+                                Date(currentPurchaseReturn.return_date).toLocaleDateString('vi-VN') }}</span>
+                        </p>
+                    </div>
+                    <div>
+                        <div class="flex-container">
+
+                            <p class="col-6">
+                                <span class="label">Lý do trả hàng: </span>
+                                <span class="value">{{ currentPurchaseReturn.reason || 'Không có' }}</span>
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <table class="receipt-table">
                     <thead>
                         <tr>
                             <th style="width: 5%;">STT</th>
-                            <th style="width: 40%; text-align: left;">Tên SP</th>
+                            <th style="width: 45%; text-align: left;">Tên sản phẩm</th>
                             <th style="width: 15%;">SL</th>
                             <th style="width: 20%;">Đơn giá</th>
-                            <th style="width: 20%; text-align: right;">Thành tiền</th>
+                            <th style="width: 15%; text-align: right;">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -288,14 +312,32 @@ const breadcrumbs: BreadcrumbItem[] = [
                         </tr>
                     </tbody>
                 </table>
-
                 <div class="receipt-summary">
-                    <p><strong>Tổng SL trả:</strong> <span>{{ currentPurchaseReturn.total_items_returned }}</span></p>
-                    <p class="total-line"><strong>Tổng giá trị trả:</strong> <span>{{
-                        formatCurrency(currentPurchaseReturn.total_value_returned) }}</span></p>
+                    <p>
+                        <span class="label">Số lượng:</span>
+                        <span class="value">{{ currentPurchaseReturn.total_items_returned }}</span>
+                    </p>
+                    <p class="total-line">
+                        <span class="label">Tổng giá trị:</span>
+                        <span class="value">{{ formatCurrency(currentPurchaseReturn.total_value_returned) }}</span>
+                    </p>
                 </div>
 
                 <div class="receipt-footer">
+                    <div class="signature-section">
+                        <div class="signature">
+                            <p><strong>Người tạo phiếu</strong></p>
+                            <p>(Ký, họ tên)</p>
+                            <br /><br /><br />
+                            <p>{{ currentPurchaseReturn.created_by || 'N/A' }}</p>
+                        </div>
+                        <div class="signature">
+                            <p><strong>Thủ kho</strong></p>
+                            <p>(Ký, họ tên)</p>
+                            <br /><br /><br />
+                            <p>.............................</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -340,66 +382,80 @@ const breadcrumbs: BreadcrumbItem[] = [
     }
 
     .receipt-container {
-        width: 78mm;
-        max-width: 78mm;
+        width: 100%;
+        max-width: 800px;
         margin: 0 auto;
-        padding: 8mm 5mm;
+        padding: 20px;
         background: white;
         color: #000;
-        font-size: 10pt;
-        line-height: 1.4;
+        font-size: 11pt;
+        line-height: 1.6;
     }
 
     .receipt-header {
         text-align: center;
-        margin-bottom: 18px;
+        margin-bottom: 30px;
     }
 
     .receipt-title {
-        font-size: 18pt;
+        font-size: 24pt;
         font-weight: bold;
         margin: 0;
         text-transform: uppercase;
+        border-bottom: 2px solid #000;
+        padding-bottom: 10px;
     }
 
     .receipt-details {
-        margin-bottom: 18px;
-        border-bottom: 1px dashed #aaa;
-        padding-bottom: 12px;
+        margin-bottom: 25px;
+        font-size: 11pt;
     }
 
-    .receipt-details p {
-        margin-bottom: 5px;
+    .flex-container {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
     }
 
-    .receipt-details strong {
-        display: inline-block;
-        width: 120px;
+    .flex-container .col-6 {
+        width: 48%;
+        /* Adjust for spacing */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .receipt-details .label {
+        font-weight: bold;
+        min-width: 120px;
+        text-align: left;
+    }
+
+    .receipt-details .value {
+        text-align: right;
+        flex-grow: 1;
     }
 
     .receipt-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 15px;
-        margin-bottom: 15px;
-        font-size: 9pt;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        font-size: 10pt;
     }
 
-    .receipt-table th,
-    .receipt-table td {
-        border-bottom: 1px dashed #ddd;
-        padding: 6px 0;
-        vertical-align: top;
-    }
-
-    .receipt-table th {
+    .receipt-table thead th {
+        border-bottom: 1px solid #000;
+        padding: 8px 5px;
         font-weight: bold;
         text-align: center;
     }
 
-    .receipt-table th:nth-child(1),
-    .receipt-table td:nth-child(1) {
-        text-align: center;
+    .receipt-table tbody td {
+        padding: 8px 5px;
+        border-bottom: 1px dashed #ddd;
+        vertical-align: top;
     }
 
     .receipt-table th:nth-child(2),
@@ -421,43 +477,82 @@ const breadcrumbs: BreadcrumbItem[] = [
     .receipt-table th:nth-child(5),
     .receipt-table td:nth-child(5) {
         text-align: right;
-        padding-right: 2px;
     }
 
     .receipt-summary {
-        text-align: right;
         margin-top: 20px;
-        font-size: 10pt;
-        border-top: 1px dashed #aaa;
-        padding-top: 12px;
+        text-align: right;
+        font-size: 11pt;
     }
 
     .receipt-summary p {
+        margin: 0;
         display: flex;
-        justify-content: space-between;
-        margin-bottom: 5px;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 20px;
     }
 
-    .receipt-summary strong {
-        flex-shrink: 0;
-        padding-right: 20px;
+    .receipt-summary .label,
+    .receipt-summary .value {
+        width: 150px;
+        display: inline-block;
+        text-align: left;
+    }
+
+    .receipt-summary .value {
+        text-align: right;
+    }
+
+    .receipt-summary p {
+        padding-bottom: 5px;
+    }
+
+    .divider {
+        border-top: 1px dashed #000;
+        margin: 10px 0;
     }
 
     .receipt-summary .total-line {
+        font-size: 12pt;
         font-weight: bold;
-        font-size: 11pt;
-        border-top: 1px dashed #aaa;
-        padding-top: 8px;
+        padding-top: 10px;
         margin-top: 10px;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .receipt-summary .total-line .label,
+    .receipt-summary .total-line .value {
+        width: 150px;
+        display: inline-block;
+        text-align: left;
+    }
+
+    .receipt-summary .total-line .value {
+        text-align: right;
     }
 
     .receipt-footer {
+        margin-top: 50px;
         text-align: center;
-        margin-top: 25px;
-        border-top: 1px dashed #aaa;
-        padding-top: 12px;
-        font-size: 9pt;
-        line-height: 1.3;
+        font-size: 10pt;
+    }
+
+    .signature-section {
+        display: flex;
+        justify-content: space-around;
+        text-align: center;
+    }
+
+    .signature {
+        width: 40%;
+    }
+
+    .signature p {
+        margin: 0;
     }
 }
 </style>
