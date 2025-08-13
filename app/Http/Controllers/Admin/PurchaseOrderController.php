@@ -96,8 +96,10 @@ class PurchaseOrderController extends Controller
             $prefix = "PO-{$today}-";
 
             // Lấy po_number cuối cùng trong ngày hiện tại
-            $lastPo = PurchaseOrder::where('po_number', 'like', "{$prefix}%")
-                ->orderByDesc('po_number')
+            $lastPo = PurchaseOrder::withTrashed()
+                ->where('po_number', 'like', $prefix . '%')
+                ->lockForUpdate()
+                ->orderByRaw('CAST(SUBSTRING_INDEX(po_number, "-", -1) AS UNSIGNED) DESC')
                 ->first();
 
             if ($lastPo) {

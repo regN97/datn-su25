@@ -528,15 +528,15 @@ async function importBatchesFromExcel(event: Event) {
                                 <span class="ml-2 hidden md:inline">{{ isLoading ? "Đang xuất..." : "Xuất Excel"
                                     }}</span>
                             </button>
-                            <label
+                            <!-- <label
                                 class="inline-flex items-center rounded-3xl bg-emerald-500 px-4 py-2 text-white hover:bg-emerald-600 cursor-pointer"
-                                :class="{ 'opacity-50 cursor-not-allowed': isLoading }">
+                                :class="{ 'opacity-50 cursor-not-allowed': isLoading }"> -->
                                 <!-- Input file đã được liên kết với hàm importBatchesFromExcel -->
-                                <input type="file" accept=".xlsx,.xls,.csv" @change="importBatchesFromExcel"
+                                <!-- <input type="file" accept=".xlsx,.xls,.csv" @change="importBatchesFromExcel"
                                     class="hidden" :disabled="isLoading" />
                                 <span class="ml-2 hidden md:inline">{{ isLoading ? "Đang xử lý..." : "Import Excel"
                                     }}</span>
-                            </label>
+                            </label> -->
 
                             <button
                                 class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
