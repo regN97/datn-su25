@@ -8,19 +8,23 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class PurchaseReturn extends Model
 {
     use SoftDeletes;
+
     protected $fillable = [
         'return_number',
         'purchase_order_id',
         'supplier_id',
         'status', // Enum: 'pending', 'approved', 'completed', 'rejected'
+        'payment_status', // ✅ Thêm dòng này - Enum: 'paid', 'unpaid'
         'return_date',
         'reason',
         'total_items_returned',
         'total_value_returned',
         'created_by',
     ];
+
     protected $casts = [
         'return_date' => 'date',
+        'total_value_returned' => 'decimal:2', // ✅ Thêm cast cho decimal
     ];
 
     protected $dates = ['return_date'];
@@ -40,10 +44,9 @@ class PurchaseReturn extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
     public function purchaseOrder()
     {
         return $this->belongsTo(PurchaseOrder::class);
     }
-
 }
-

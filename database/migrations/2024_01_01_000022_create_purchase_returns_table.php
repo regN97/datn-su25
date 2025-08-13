@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up()
     {
         Schema::create('purchase_returns', function (Blueprint $table) {
@@ -18,6 +17,8 @@ return new class extends Migration
             $table->text('reason')->nullable();
             $table->unsignedInteger('total_items_returned')->default(0);
             $table->unsignedInteger('total_value_returned')->default(0);
+            $table->enum('payment_status', ['unpaid', 'paid'])->default('unpaid');
+
             $table->foreignId('created_by')->constrained('users')->onDelete('restrict');
             $table->timestamps();
             $table->softDeletes();

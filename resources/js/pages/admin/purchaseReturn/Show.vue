@@ -5,7 +5,6 @@ import { type BreadcrumbItem } from '@/types'
 import { PencilLine, Printer } from 'lucide-vue-next';
 import { ref } from 'vue';
 
-// Define the PurchaseReturn type, now with ref
 interface PurchaseReturn {
     return_number: string
     id: number
@@ -17,6 +16,7 @@ interface PurchaseReturn {
     created_by: string
     total_items_returned: number
     total_value_returned: number
+    payment_status: 'unpaid' | 'paid'
     items: {
         product_name: string
         batch_number: string
@@ -34,7 +34,6 @@ const props = defineProps<{
     purchaseReturn: PurchaseReturn
 }>()
 
-// Use ref to make the purchaseReturn object reactive
 const currentPurchaseReturn = ref<PurchaseReturn>(props.purchaseReturn);
 
 const formatDate = (dateString: string) => {
@@ -85,6 +84,36 @@ const translateStatus = (status: string) => {
     }
 }
 
+// FIX: Handle potential undefined status
+const paymentStatusTextClass = (status: string) => {
+    if (!status) {
+        return 'text-gray-500 bg-gray-100';
+    }
+    switch (status.toLowerCase()) {
+        case 'unpaid':
+            return 'text-red-500 bg-red-100'
+        case 'paid':
+            return 'text-green-500 bg-green-100'
+        default:
+            return 'text-gray-500 bg-gray-100'
+    }
+}
+
+// FIX: Handle potential undefined status
+const translatePaymentStatus = (status: string) => {
+    if (!status) {
+        return 'Không rõ';
+    }
+    switch (status.toLowerCase()) {
+        case 'unpaid':
+            return 'Chưa nhận hoàn tiền'
+        case 'paid':
+            return 'Đã nhận hoàn tiền'
+        default:
+            return status
+    }
+}
+
 function goToIndex() {
     router.visit('/admin/purchaseReturn')
 }
@@ -97,37 +126,47 @@ function printReturn() {
     window.print();
 }
 
-// New function to handle the status change
 function completePurchaseReturn() {
     if (confirm('Bạn có chắc chắn muốn gửi yêu cầu và hoàn thành phiếu trả hàng này không?')) {
-        // Now we make the actual API call
-        router.patch(route('admin.purchaseReturn.complete', currentPurchaseReturn.value.id), {}, {
-            onSuccess: () => {
-                // Update the status on the frontend after successful API call
-                currentPurchaseReturn.value.status = 'completed';
-                alert('Phiếu trả hàng đã được câp nhật thành công.');
-            },
-            onError: (errors) => {
-                console.error('Lỗi khi cập nhật trạng thái:', errors);
-                alert('Có lỗi xảy ra khi cập nhật trạng thái phiếu trả hàng.');
+        router.patch(
+            route('admin.admin.purchaseReturn.confirmPayment', currentPurchaseReturn.value.id),
+            {},
+            {
+                onSuccess: () => {
+                    currentPurchaseReturn.value.status = 'completed';
+                    currentPurchaseReturn.value.payment_status = 'paid';
+                    alert('Phiếu trả hàng đã được cập nhật thành công.');
+                },
+                onError: (errors) => {
+                    console.error('Lỗi khi cập nhật trạng thái:', errors);
+                    alert('Có lỗi xảy ra khi cập nhật trạng thái phiếu trả hàng.');
+                }
             }
-        });
+        );
     }
 }
 
-// const breadcrumbs: BreadcrumbItem[] = [
-//     {
-//         title: 'Quản lý phiếu trả hàng',
-//         href: '/admin/purchaseReturn',
-//     },
 
-// ]
+function confirmPayment() {
+    if (confirm('Bạn có chắc chắn muốn xác nhận đã nhận hoàn tiền phiếu trả hàng này không?')) {
+        router.patch(route('admin.admin.purchaseReturn.confirmPayment', currentPurchaseReturn.value.id), {}, {
+            onSuccess: () => {
+                currentPurchaseReturn.value.payment_status = 'paid';
+                alert('Trạng thái thanh toán đã được cập nhật thành công.');
+            },
+            onError: (errors) => {
+                console.error('Lỗi khi cập nhật trạng thái thanh toán:', errors);
+                alert('Có lỗi xảy ra khi cập nhật trạng thái thanh toán.');
+            }
+        });
+
+    }
+}
 </script>
 
 <template>
 
     <Head title="Chi tiết phiếu trả hàng" />
-    <!-- <AppLayout :breadcrumbs="breadcrumbs" class="no-print"> -->
     <AppLayout>
         <div class="flex flex-1 flex-col gap-6 rounded-2xl p-8 bg-gray-50 min-h-screen no-print">
             <div class="flex items-center justify-between mb-6">
@@ -142,8 +181,7 @@ function completePurchaseReturn() {
                         <Printer class="w-4 h-4" />
                         <span>In phiếu</span>
                     </button>
-                    <button v-if="currentPurchaseReturn.status === 'pending'"
-                        @click="goToEdit(currentPurchaseReturn.id)"
+                    <button @click="goToEdit(currentPurchaseReturn.id)"
                         class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100 transition">
                         <PencilLine class="h-4 w-4" />
                         <span>Sửa đơn</span>
@@ -163,8 +201,13 @@ function completePurchaseReturn() {
                             <div>
                                 <p class="mb-1"><strong>Mã phiếu trả hàng:</strong> <span class="font-medium">{{
                                     currentPurchaseReturn.return_number }}</span></p>
-                                <p class="mb-1"><strong>Mã đơn đặt hàng:</strong> <span class="font-medium">{{
-                                    currentPurchaseReturn.purchase_order_code }}</span></p>
+                                <!-- <p class="mb-1">
+                                    <strong>Mã đơn đặt hàng:</strong>
+                                    <span class="font-medium">
+                                        {{ currentPurchaseReturn.purchase_order_code || 'Không có' }}
+                                    </span>
+                                </p> -->
+
                                 <p class="mb-1"><strong>Nhà cung cấp:</strong> <span class="font-medium">{{
                                     currentPurchaseReturn.supplier_name }}</span></p>
                                 <p class="mb-1"><strong>Lý do trả hàng:</strong> <span class="font-medium">{{
@@ -179,8 +222,38 @@ function completePurchaseReturn() {
                                         {{ translateStatus(currentPurchaseReturn.status) }}
                                     </span>
                                 </p>
+
                                 <p class="mb-1"><strong>Người tạo phiếu:</strong> <span class="font-medium">{{
                                     currentPurchaseReturn.created_by }}</span></p>
+                            </div>
+
+                            <div
+                                class="flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+                                <!-- Icon -->
+                                <div class="flex items-center justify-center w-6 h-6 rounded-full" :class="{
+                                    'bg-green-600': currentPurchaseReturn.payment_status === 'paid',
+                                    'bg-amber-600': currentPurchaseReturn.payment_status !== 'paid'
+                                }">
+                                    <svg v-if="currentPurchaseReturn.payment_status === 'paid'"
+                                        class="w-4 h-4 text-white" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <svg v-else class="w-4 h-4 text-white" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+
+                                <!-- Text -->
+                                <span class="text-sm font-medium" :class="{
+                                    'text-green-700': currentPurchaseReturn.payment_status === 'paid',
+                                    'text-amber-700': currentPurchaseReturn.payment_status !== 'paid'
+                                }">
+                                    {{ translatePaymentStatus(currentPurchaseReturn.payment_status) }}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -211,7 +284,7 @@ function completePurchaseReturn() {
                                         <td class="px-4 py-3">{{ item.manufacturing_date ?
                                             formatDate(item.manufacturing_date) : '—' }}</td>
                                         <td class="px-4 py-3">{{ item.expiry_date ? formatDate(item.expiry_date) : '—'
-                                        }}
+                                            }}
                                         </td>
                                         <td class="px-4 py-3 text-center">{{ item.quantity_returned }}</td>
                                         <td class="px-4 py-3 text-right">{{ formatCurrency(item.unit_cost) }}</td>
@@ -247,7 +320,16 @@ function completePurchaseReturn() {
                                 class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition">
                                 Gửi yêu cầu và hoàn thành
                             </button>
-
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6"
+                        v-if="currentPurchaseReturn.payment_status === 'unpaid'">
+                        <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Thanh toán</h2>
+                        <div class="flex flex-col gap-3">
+                            <button @click="confirmPayment"
+                                class="w-full bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition">
+                                Xác nhận đã nhận hoàn tiền
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -283,7 +365,6 @@ function completePurchaseReturn() {
                     </div>
                     <div>
                         <div class="flex-container">
-
                             <p class="col-6">
                                 <span class="label">Lý do trả hàng: </span>
                                 <span class="value">{{ currentPurchaseReturn.reason || 'Không có' }}</span>

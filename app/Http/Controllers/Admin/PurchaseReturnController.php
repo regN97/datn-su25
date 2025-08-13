@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\BatchItem;
+use App\Models\InventoryTransaction;
+use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
-use App\Models\purchaseReturn;
+use App\Models\PurchaseReturn;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,12 +34,70 @@ class PurchaseReturnController extends Controller
                     'supplier_name' => $return->supplier->name ?? 'Không xác định',
                     'return_date' => Carbon::parse($return->return_date)->format('d/m/Y'),
                     'status' => $return->status,
+                    'payment_status' => $return->payment_status, // Đã thêm trường này
                     'total_value_returned' => number_format($return->total_value_returned),
                     'created_by' => $return->createdBy->name ?? 'Không xác định',
                 ];
             }),
         ]);
     }
+
+    // 🆕 Thêm phương thức history để tạo báo cáo
+    public function history()
+    {
+        $purchaseReturnsQuery = PurchaseReturn::with([
+            'supplier:id,name',
+            'createdBy:id,name',
+        ])->orderBy('return_date', 'desc');
+
+        // Lấy các tham số lọc từ request
+        $searchTerm = request()->input('search');
+        $filterStatus = request()->input('status');
+        $filterPaymentStatus = request()->input('payment_status');
+        $filterStartDate = request()->input('start_date');
+        $filterEndDate = request()->input('end_date');
+
+        if ($searchTerm) {
+            $purchaseReturnsQuery->where(function ($query) use ($searchTerm) {
+                $query->where('return_number', 'like', "%{$searchTerm}%")
+                    ->orWhereHas('supplier', function ($q) use ($searchTerm) {
+                        $q->where('name', 'like', "%{$searchTerm}%");
+                    })
+                    ->orWhere('reason', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        if ($filterStatus) {
+            $purchaseReturnsQuery->where('status', $filterStatus);
+        }
+
+        if ($filterPaymentStatus) {
+            $purchaseReturnsQuery->where('payment_status', $filterPaymentStatus);
+        }
+
+        if ($filterStartDate) {
+            $purchaseReturnsQuery->where('return_date', '>=', $filterStartDate);
+        }
+
+        if ($filterEndDate) {
+            $purchaseReturnsQuery->where('return_date', '<=', $filterEndDate . ' 23:59:59');
+        }
+
+        $purchaseReturns = $purchaseReturnsQuery->paginate(10); // Phân trang
+
+        return Inertia::render('admin/purchaseReturn/History', [
+            'purchaseReturns' => $purchaseReturns,
+            'suppliers' => Supplier::select('id', 'name')->get(),
+            'filters' => [
+                'search' => $searchTerm,
+                'status' => $filterStatus,
+                'payment_status' => $filterPaymentStatus,
+                'start_date' => $filterStartDate,
+                'end_date' => $filterEndDate,
+            ],
+        ]);
+    }
+    // End new history method
 
     public function show($id)
     {
@@ -55,6 +115,7 @@ class PurchaseReturnController extends Controller
                 'return_number' => $purchaseReturn->return_number,
                 'return_date' => $purchaseReturn->return_date,
                 'status' => $purchaseReturn->status,
+                'payment_status' => $purchaseReturn->payment_status, // Thêm dòng này
                 'reason' => $purchaseReturn->reason,
                 'total_items_returned' => $purchaseReturn->total_items_returned,
                 'total_value_returned' => $purchaseReturn->total_value_returned,
@@ -75,6 +136,7 @@ class PurchaseReturnController extends Controller
                 }),
             ]
         ]);
+
     }
     public function edit($id)
     {
@@ -128,7 +190,6 @@ class PurchaseReturnController extends Controller
 
     public function update(Request $request, $id)
     {
-
         $purchaseReturn = PurchaseReturn::findOrFail($id);
 
         $purchaseReturn->update([
@@ -215,7 +276,7 @@ class PurchaseReturnController extends Controller
             'error' => $error,
         ]);
     }
- public function store(Request $request)
+    public function store(Request $request)
     {
         DB::beginTransaction();
 
@@ -225,6 +286,7 @@ class PurchaseReturnController extends Controller
                 'purchase_order_id' => 'required|exists:purchase_orders,id',
                 'return_date' => 'required|date',
                 'reason' => 'nullable|string|max:255',
+                'payment_status' => ['required', Rule::in(['paid', 'unpaid'])], // Thêm validation cho payment_status
                 'items' => 'required|array|min:1',
                 'items.*.product_id' => 'required|exists:products,id',
                 'items.*.batch_id' => 'nullable|exists:batches,id',
@@ -249,7 +311,8 @@ class PurchaseReturnController extends Controller
                 'return_number' => 'TRA-' . now()->format('Ymd-His') . '-' . rand(100, 999),
                 'supplier_id' => $validatedData['supplier_id'],
                 'purchase_order_id' => $validatedData['purchase_order_id'],
-                'status' => 'pending',
+                'status' => 'completed',
+                'payment_status' => $validatedData['payment_status'], // Lưu trạng thái thanh toán từ form
                 'return_date' => Carbon::parse($validatedData['return_date']),
                 'reason' => $validatedData['reason'],
                 'total_items_returned' => count($validatedData['items']),
@@ -257,7 +320,7 @@ class PurchaseReturnController extends Controller
                 'created_by' => auth()->id(),
             ]);
 
-            // Tạo PurchaseReturnItems và cập nhật số lượng BatchItem
+            // Tạo PurchaseReturnItems và cập nhật số lượng tồn kho
             foreach ($validatedData['items'] as $item) {
                 $batch = null;
                 $batchItem = null;
@@ -291,12 +354,37 @@ class PurchaseReturnController extends Controller
                     'reason' => $itemReasonToSave,
                 ]);
 
-                // Trừ số lượng trong batch_items
+                // Trừ số lượng trong batch_items (nếu có)
                 if ($batchItem) {
                     $batchItem->current_quantity -= $item['quantity_returned'];
-                    $batchItem->received_quantity -= $item['quantity_returned'];
                     $batchItem->save();
                 }
+
+                // --- Bổ sung: Trừ số lượng trong stock_quantity của bảng products ---
+                $product = Product::find($item['product_id']);
+                if ($product) {
+                    $previousStock = $product->stock_quantity;
+                    $changeQty = $item['quantity_returned'];
+                    $newStock = $previousStock - $changeQty;
+                    $product->stock_quantity = $newStock;
+                    $product->save();
+
+                    // Ghi lại lịch sử biến động kho cho giao dịch trả hàng
+
+                    InventoryTransaction::create([
+                        'transaction_type_id' => 4,
+                        'product_id' => $product->id,
+                        'quantity_change' => -$changeQty, // Số lượng bị giảm
+                        'unit_price' => $item['unit_cost'],
+                        'total_value' => $item['quantity_returned'] * $item['unit_cost'],
+                        'transaction_date' => now(),
+                        'related_purchase_return_id' => $purchaseReturn->id,
+                        'user_id' => auth()->id(),
+                        'stock_after' => $newStock,
+                        'note' => 'Trả hàng từ phiếu ' . $purchaseReturn->return_number
+                    ]);
+                }
+                // ------------------------------------------------------------------
             }
 
             DB::commit();
@@ -312,6 +400,7 @@ class PurchaseReturnController extends Controller
         }
     }
 
+
     public function complete(PurchaseReturn $purchaseReturn)
     {
         // Ensure the purchase return can be completed
@@ -325,4 +414,13 @@ class PurchaseReturnController extends Controller
 
         return back()->with('success', 'Đã hoàn thành phiếu trả hàng thành công!');
     }
+    public function confirmPayment(PurchaseReturn $purchaseReturn)
+    {
+        $purchaseReturn->payment_status = 'paid';
+        // Lưu thời gian hiện tại
+        $purchaseReturn->save();
+
+        return redirect()->back()->with('success', 'Trạng thái thanh toán đã được cập nhật thành công.');
+    }
+
 }
