@@ -52,7 +52,12 @@ Route::prefix('admin')
         Route::resource('suppliers', SupplierController::class);
 
         // Purchase Return
-        Route::patch('purchaseReturn/{purchaseReturn}/complete', [PurchaseReturnController::class, 'complete'])->name('purchaseReturn.complete');
+        Route::patch('/purchaseReturn/{purchaseReturn}/complete', [PurchaseReturnController::class, 'complete'])->name('purchaseReturn.complete');
+        Route::patch(
+            '/admin/purchaseReturn/{purchaseReturn}/confirm-payment',
+            [PurchaseReturnController::class, 'confirmPayment']
+        )->name('admin.purchaseReturn.confirmPayment');
+
         Route::resource('purchaseReturn', PurchaseReturnController::class);
 
         // Purchase Orders
