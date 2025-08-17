@@ -132,7 +132,7 @@ const translatePaymentMethod = (method) => {
                     <tbody>
                         <tr v-for="bill in bills.data" :key="bill.id" class="border-t hover:bg-gray-50">
                             <td class="p-4">{{ bill.bill_number }}</td>
-                            <td class="p-4">{{ bill.customer_name || '-' }}</td>
+                            <td class="p-4">{{ bill.customer_name || 'Khách lẻ' }}</td>
                             <td class="p-4">{{ formatCurrency(bill.total_amount) }}</td>
 <td class="p-4">{{ translatePaymentMethod(bill.payment_method) }}</td>
                             <td class="p-4">{{ bill.created_at }}</td>

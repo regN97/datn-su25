@@ -15,7 +15,8 @@ use App\Http\Controllers\Admin\{
     PurchaseOrderController,
     InventoryController,
     UserController,
-    BillController
+    BillController,
+    StockRequestController
 };
 use App\Http\Controllers\TestController;
 
@@ -84,6 +85,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Bills
     Route::resource('bills', BillController::class);
+
+    Route::get('/stock-requests', [StockRequestController::class, 'index'])->name('stock.requests.index');
+    Route::post('/stock-requests/{notificationId}/read', [StockRequestController::class, 'markAsRead'])->name('stock.requests.read');
+    Route::delete('/stock-requests/{notificationId}/delete', [StockRequestController::class, 'delete'])->name('stock.requests.delete');
+    Route::get('/stock/requests/unread-count', [StockRequestController::class, 'getUnreadNotificationsCount'])
+    ->name('stock.requests.unread-count');
 });
 Route::get('/test', [TestController::class, 'index']);
 require __DIR__ . '/settings.php';

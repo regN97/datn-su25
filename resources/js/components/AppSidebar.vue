@@ -3,7 +3,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { FilePlus2, KeyRound, Layers3, LayoutGrid, PackageSearch, RotateCw, Truck, User, UserCog, Users, Warehouse, PencilRuler, TrendingUp } from 'lucide-vue-next';
+import { FilePlus2, KeyRound, Layers3, LayoutGrid, PackageSearch, RotateCw, Truck, User, UserCog, Users, Warehouse, PencilRuler, TrendingUp, Bell } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import SidebarDropdown from './SideBarDropdown.vue';
 import { Boxes } from 'lucide-vue-next';
@@ -18,7 +18,7 @@ import { Boxes } from 'lucide-vue-next';
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" as-child>
                             <Link :href="route('dashboard')">
-                                <AppLogo />
+                            <AppLogo />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -35,16 +35,16 @@ import { Boxes } from 'lucide-vue-next';
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link href="/dashboard" class="flex items-center gap-2">
-                                <LayoutGrid class="w-4 h-4" />
-                                Tổng quan nhập hàng
+                            <LayoutGrid class="w-4 h-4" />
+                            Tổng quan nhập hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link href="/test" class="flex items-center gap-2">
-                                <TrendingUp class="w-4 h-4" />
-                                Thống kê thử nghiệm
+                            <TrendingUp class="w-4 h-4" />
+                            Thống kê thử nghiệm
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -59,40 +59,40 @@ import { Boxes } from 'lucide-vue-next';
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.products.index')" class="flex items-center gap-2">
-                                <LayoutGrid class="w-4 h-4" />
-                                Quản lý sản phẩm
+                            <LayoutGrid class="w-4 h-4" />
+                            Quản lý sản phẩm
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.categories.index')" class="flex items-center gap-2">
-                                <PackageSearch class="w-4 h-4" />
-                                Quản lý danh mục
+                            <PackageSearch class="w-4 h-4" />
+                            Quản lý danh mục
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.suppliers.index')" class="flex items-center gap-2">
-                                <Warehouse class="w-4 h-4" />
-                                Quản lý nhà cung cấp
+                            <Warehouse class="w-4 h-4" />
+                            Quản lý nhà cung cấp
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.units.index')" class="flex items-center gap-2">
-                                <PencilRuler class="w-4 h-4" />
-                                Quản lý đơn vị tính
+                            <PencilRuler class="w-4 h-4" />
+                            Quản lý đơn vị tính
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.bills.index')" class="flex items-center gap-2">
-                                <Boxes class="w-4 h-4" />
-                                Quản lý hóa đơn
+                            <Boxes class="w-4 h-4" />
+                            Quản lý hóa đơn
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -107,32 +107,48 @@ import { Boxes } from 'lucide-vue-next';
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.purchase-orders.index')" class="flex items-center gap-2">
-                                <Truck class="w-4 h-4" />
-                                Quản lý đơn đặt hàng
+                            <Truck class="w-4 h-4" />
+                            Quản lý đơn đặt hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.batches.index')" class="flex items-center gap-2">
-                                <FilePlus2 class="w-4 h-4" />
-                                Quản lý phiếu nhập hàng
+                            <FilePlus2 class="w-4 h-4" />
+                            Quản lý phiếu nhập hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.purchaseReturn.index')" class="flex items-center gap-2">
-                                <RotateCw class="w-4 h-4" />
-                                Quản lý phiếu trả hàng
+                            <RotateCw class="w-4 h-4" />
+                            Quản lý phiếu trả hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.inventory.index')" class="flex items-center gap-2">
-                                <Layers3 class="w-4 h-4" />
-                                Quản lý tồn kho
+                            <Layers3 class="w-4 h-4" />
+                            Quản lý tồn kho
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                </SidebarMenu>
+                <div
+                    class="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase sidebar-section-label">
+                    <Bell class="w-4 h-4" />
+                    <span class="sidebar-section-text">Thông báo</span>
+                </div>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child>
+                            <Link :href="route('admin.stock.requests.index')" class="flex items-center gap-2">
+                                <Bell class="w-4 h-4" />
+                                Thông báo nhập hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -147,16 +163,16 @@ import { Boxes } from 'lucide-vue-next';
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.customers.index')" class="flex items-center gap-2">
-                                <User class="w-4 h-4" />
-                                Quản lý khách hàng
+                            <User class="w-4 h-4" />
+                            Quản lý khách hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.users.index')" class="flex items-center gap-2">
-                                <UserCog class="w-4 h-4" />
-                                Quản lý nhân viên
+                            <UserCog class="w-4 h-4" />
+                            Quản lý nhân viên
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

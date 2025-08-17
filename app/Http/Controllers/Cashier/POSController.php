@@ -12,17 +12,13 @@ use App\Models\Promotion;
 use App\Models\UserShift;
 use App\Mail\ReceiptEmail;
 use App\Models\BillDetail;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use App\Models\PaymentTransaction;
-use Illuminate\Support\Facades\DB;
 use App\Models\CashRegisterSession;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\InventoryTransaction;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class POSController
 {
@@ -37,7 +33,7 @@ class POSController
     public function index()
     {
         $user = Auth::user();
-        if ($user->role_id !== 3) { // CASHIER role
+        if ($user->role_id !== 3) {
             return redirect()->route('login')->withErrors(['server' => 'Không có quyền truy cập.']);
         }
 
@@ -166,11 +162,6 @@ class POSController
         foreach ($products as $product) {
             $batchQuantity = $stocks[$product->id] ?? 0;
             if ($product->stock_quantity != $batchQuantity) {
-                Log::warning('Đồng bộ stock_quantity cho sản phẩm.', [
-                    'product_id' => $product->id,
-                    'current_stock' => $product->stock_quantity,
-                    'batch_quantity' => $batchQuantity,
-                ]);
                 $product->stock_quantity = $batchQuantity;
                 $product->save();
             }
@@ -199,13 +190,6 @@ class POSController
         $isExpired = $userShift->status === 'CHECKED_OUT' || ($userShift->check_out && $currentTime->greaterThan(Carbon::parse($userShift->check_out, 'Asia/Ho_Chi_Minh')));
 
         if ($isExpired) {
-            Log::warning('Ca làm việc đã hết hạn.', [
-                'user_shift_id' => $userShift->id,
-                'status' => $userShift->status,
-                'current_time' => $currentTime->toISOString(),
-                'check_out' => $userShift->check_out ? Carbon::parse($userShift->check_out, 'Asia/Ho_Chi_Minh')->toISOString() : null,
-                'user_id' => Auth::id(),
-            ]);
             return ['isExpired' => true, 'message' => 'Ca làm việc đã hết hạn. Vui lòng đóng ca và mở ca mới.'];
         }
 
@@ -236,17 +220,11 @@ class POSController
                 })->toArray();
 
             if (empty($userShifts)) {
-                Log::warning('Không có ca làm việc nào trong cơ sở dữ liệu.', ['user_id' => Auth::id()]);
                 return response()->json(['shifts' => [], 'message' => 'Không có ca làm việc được cấu hình.']);
             }
 
             return response()->json(['shifts' => $userShifts]);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi lấy danh sách ca làm việc.', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => ['server' => 'Không thể tải danh sách ca làm việc.']], 500);
         }
     }
@@ -271,10 +249,6 @@ class POSController
                 ->first();
 
             if ($existingShift) {
-                Log::warning('Nhân viên đã có ca làm việc đang mở.', [
-                    'user_id' => $user->id,
-                    'user_shift_id' => $existingShift->id,
-                ]);
                 return response()->json(['errors' => ['server' => 'Bạn đã có một ca làm việc đang mở trong ngày hôm nay.']], 422);
             }
 
@@ -314,29 +288,14 @@ class POSController
                 'opened_at' => $session->opened_at ? $session->opened_at->setTimezone('Asia/Ho_Chi_Minh')->toISOString() : null,
             ];
 
-            Log::info('Mở phiên làm việc mới thành công.', [
-                'session_id' => $session->id,
-                'user_id' => $user->id,
-                'user_shift_id' => $userShift->id,
-            ]);
-
             return response()->json([
                 'success' => 'Ca làm việc đã được mở thành công!',
                 'activeShift' => $activeShift,
                 'hasActiveSession' => true,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Lỗi xác thực khi mở phiên làm việc.', [
-                'errors' => $e->errors(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi mở phiên làm việc.', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => ['server' => 'Có lỗi khi mở ca làm việc.']], 500);
         }
     }
@@ -364,27 +323,17 @@ class POSController
             }
 
             $pendingBills = Bill::where('session_id', $session->id)
-                ->where('payment_status_id', 1) // UNPAID
+                ->where('payment_status_id', 1)
                 ->whereNull('deleted_at')
                 ->count();
 
             if ($pendingBills > 0) {
-                Log::warning('Có hóa đơn chưa thanh toán trong ca.', [
-                    'session_id' => $session->id,
-                    'pending_bills' => $pendingBills,
-                    'user_id' => $user->id,
-                ]);
                 return response()->json(['errors' => ['server' => 'Vui lòng xử lý tất cả hóa đơn chưa thanh toán trước khi đóng ca.']], 422);
             }
 
             $userShift = UserShift::find($session->user_shift_id);
             $shiftCheck = $this->checkShiftExpiration($userShift);
             if ($shiftCheck['isExpired']) {
-                Log::info('Đóng ca làm việc đã hết hạn.', [
-                    'session_id' => $session->id,
-                    'user_shift_id' => $session->user_shift_id,
-                    'user_id' => $user->id,
-                ]);
             }
 
             $bills = Bill::where('session_id', $session->id)
@@ -412,12 +361,6 @@ class POSController
                 ]);
             }
 
-            Log::info('Đóng phiên làm việc thành công.', [
-                'session_id' => $session->id,
-                'user_id' => $user->id,
-                'difference' => $difference,
-            ]);
-
             return response()->json([
                 'success' => 'Ca làm việc đã được đóng thành công!',
                 'hasActiveSession' => false,
@@ -425,17 +368,8 @@ class POSController
                 'actual_amount' => $actual_amount,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Lỗi xác thực khi đóng phiên làm việc.', [
-                'errors' => $e->errors(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi đóng phiên làm việc.', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => ['server' => 'Có lỗi khi đóng ca làm việc.']], 500);
         }
     }
@@ -464,21 +398,11 @@ class POSController
 
             $userShift = UserShift::find($session->user_shift_id);
             if (!$userShift) {
-                Log::warning('Không tìm thấy thông tin ca làm việc cho báo cáo.', [
-                    'session_id' => $session->id,
-                    'user_shift_id' => $session->user_shift_id,
-                    'user_id' => $user->id,
-                ]);
                 return response()->json(['errors' => ['server' => 'Không tìm thấy thông tin ca làm việc.']], 422);
             }
 
             $shiftCheck = $this->checkShiftExpiration($userShift);
             if ($shiftCheck['isExpired']) {
-                Log::warning('Yêu cầu báo cáo ca khi ca đã hết hạn.', [
-                    'user_shift_id' => $userShift->id,
-                    'status' => $userShift->status,
-                    'user_id' => $user->id,
-                ]);
                 return response()->json(['errors' => ['server' => $shiftCheck['message']]], 422);
             }
 
@@ -550,11 +474,6 @@ class POSController
                 'report' => $report,
             ]);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi tạo báo cáo ca làm việc.', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => ['server' => 'Có lỗi khi tạo báo cáo ca.']], 500);
         }
     }
@@ -583,11 +502,6 @@ class POSController
 
             $userShift = UserShift::find($session->user_shift_id);
             if (!$userShift) {
-                Log::warning('Không tìm thấy thông tin ca làm việc khi tạo báo cáo.', [
-                    'session_id' => $session->id,
-                    'user_shift_id' => $session->user_shift_id,
-                    'user_id' => $user->id,
-                ]);
                 return response()->json(['errors' => ['server' => 'Không tìm thấy thông tin ca làm việc.']], 422);
             }
 
@@ -611,14 +525,6 @@ class POSController
                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
             ]);
 
-            Log::info('Báo cáo ca làm việc đã được tạo.', [
-                'session_id' => $session->id,
-                'user_id' => $user->id,
-                'actual_amount' => $actual_amount,
-                'difference' => $difference,
-                'notes' => $data['notes'] ?? 'Không có',
-            ]);
-
             return response()->json([
                 'message' => 'Báo cáo ca đã được tạo thành công!',
                 'session' => [
@@ -628,17 +534,8 @@ class POSController
                 ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Lỗi xác thực khi tạo báo cáo ca.', [
-                'errors' => $e->errors(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi tạo báo cáo ca.', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => ['server' => 'Có lỗi khi tạo báo cáo ca.']], 500);
         }
     }
@@ -650,7 +547,6 @@ class POSController
             $product = Product::find($productId);
 
             if (!$product || $product->is_active == false || $product->deleted_at) {
-                Log::warning('Sản phẩm không tồn tại hoặc không hoạt động.', ['product_id' => $productId]);
                 return response()->json([
                     'hasValidBatch' => false,
                     'availableStock' => 0,
@@ -693,26 +589,12 @@ class POSController
                 return $batchItem->batch->receipt_status === 'partially_received';
             });
 
-            if ($hasPartiallyReceived) {
-                Log::info('Sản phẩm có lô partially_received khả dụng.', [
-                    'product_id' => $productId,
-                    'available_stock' => $availableStock,
-                    'user_id' => Auth::id(),
-                ]);
-            }
-
             return response()->json([
                 'hasValidBatch' => true,
                 'availableStock' => $availableStock,
                 'message' => 'Sản phẩm có lô hàng hợp lệ.',
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi kiểm tra lô hàng.', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'product_id' => $productId,
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => ['server' => 'Có lỗi khi kiểm tra lô hàng.']], 500);
         }
     }
@@ -722,30 +604,21 @@ class POSController
         try {
             $user = Auth::user();
             if ($user->role_id !== 3) {
-                Log::warning('Không có quyền truy cập.', ['user_id' => $user->id]);
                 return response()->json(['errors' => ['server' => 'Không có quyền truy cập.']], 403);
             }
-
-            Log::info('Dữ liệu giao dịch bán hàng.', ['data' => $request->all(), 'user_id' => $user->id]);
 
             $data = $request->validate([
                 'cart' => 'required|array|min:1',
                 'cart.*.id' => 'required|integer|exists:products,id,deleted_at,NULL,is_active,1',
                 'cart.*.quantity' => 'required|integer|min:1',
                 'customer_id' => 'nullable|integer|exists:customers,id,deleted_at,NULL',
-                'paymentMethod' => 'required|in:cash,card,wallet,bank_transfer',
+                'paymentMethod' => 'required|in:cash,card,wallet,bank_transfer,combined',
                 'amountReceived' => 'required_if:paymentMethod,cash|numeric|min:0',
+                'walletAmount' => 'required_if:paymentMethod,combined|numeric|min:0',
+                'cashAmount' => 'required_if:paymentMethod,combined|numeric|min:0',
                 'orderNotes' => 'nullable|string|max:255',
                 'couponCode' => 'nullable|string|exists:promotions,coupon_code',
                 'orderId' => 'required_if:paymentMethod,bank_transfer|string',
-            ], [
-                'cart.required' => 'Giỏ hàng không được để trống.',
-                'cart.min' => 'Giỏ hàng phải chứa ít nhất một sản phẩm.',
-                'cart.*.id.exists' => 'Sản phẩm ID :input không tồn tại hoặc không hoạt động.',
-                'cart.*.quantity.min' => 'Số lượng sản phẩm phải lớn hơn 0.',
-                'paymentMethod.in' => 'Phương thức thanh toán không hợp lệ.',
-                'amountReceived.required_if' => 'Vui lòng nhập số tiền nhận khi thanh toán bằng tiền mặt.',
-                'orderId.required_if' => 'Mã đơn hàng (orderId) là bắt buộc khi thanh toán bằng chuyển khoản.',
             ]);
 
             $session = CashRegisterSession::where('user_id', $user->id)
@@ -754,26 +627,16 @@ class POSController
                 ->first();
 
             if (!$session) {
-                Log::warning('Không có ca làm việc đang mở.', ['user_id' => $user->id]);
                 return response()->json(['errors' => ['server' => 'Không có ca làm việc đang mở.']], 422);
             }
 
             $userShift = UserShift::find($session->user_shift_id);
             if (!$userShift) {
-                Log::warning('Không tìm thấy thông tin ca làm việc.', [
-                    'session_id' => $session->id,
-                    'user_shift_id' => $session->user_shift_id,
-                    'user_id' => $user->id,
-                ]);
                 return response()->json(['errors' => ['server' => 'Không tìm thấy thông tin ca làm việc.']], 422);
             }
 
             $shiftCheck = $this->checkShiftExpiration($userShift);
             if ($shiftCheck['isExpired']) {
-                Log::warning('Ca làm việc đã hết hạn.', [
-                    'user_shift_id' => $userShift->id,
-                    'user_id' => $user->id,
-                ]);
                 return response()->json(['errors' => ['server' => $shiftCheck['message']]], 422);
             }
 
@@ -796,7 +659,6 @@ class POSController
                         ->first();
 
                     if (!$promotion) {
-                        Log::warning('Mã khuyến mãi không hợp lệ hoặc đã hết hạn.', ['coupon_code' => $data['couponCode']]);
                         return response()->json(['errors' => ['couponCode' => 'Mã khuyến mãi không hợp lệ hoặc đã hết hạn.']], 422);
                     }
                 }
@@ -807,17 +669,11 @@ class POSController
                 foreach ($data['cart'] as $item) {
                     $product = Product::find($item['id']);
                     if (!$product) {
-                        Log::warning('Sản phẩm không tồn tại.', ['product_id' => $item['id']]);
                         return response()->json(['errors' => ['cart' => "Sản phẩm ID {$item['id']} không tồn tại."]], 422);
                     }
 
                     $availableStock = $stocks[$item['id']] ?? 0;
                     if ($availableStock < $item['quantity']) {
-                        Log::warning('Sản phẩm không đủ tồn kho.', [
-                            'product_id' => $item['id'],
-                            'requested_quantity' => $item['quantity'],
-                            'available_quantity' => $availableStock,
-                        ]);
                         return response()->json(['errors' => ['cart' => "Sản phẩm {$product->name} không đủ tồn kho. Chỉ còn {$availableStock}."]], 422);
                     }
 
@@ -825,13 +681,13 @@ class POSController
                 }
 
                 if ($promotion) {
-                    if ($promotion->type_id == 1) { // FIXED_AMOUNT
+                    if ($promotion->type_id == 1) {
                         $discountAmount = $promotion->discount_value;
-                    } elseif ($promotion->type_id == 2) { // PERCENTAGE
+                    } elseif ($promotion->type_id == 2) {
                         $discountAmount = ($promotion->discount_value / 100) * $subTotal;
-                    } elseif ($promotion->type_id == 4 && $subTotal >= $promotion->min_order_value) { // ORDER_DISCOUNT
+                    } elseif ($promotion->type_id == 4 && $subTotal >= $promotion->min_order_value) {
                         $discountAmount = $promotion->discount_value;
-                    } elseif ($promotion->type_id == 3) { // BUY_X_GET_Y
+                    } elseif ($promotion->type_id == 3) {
                         $buyQuantity = $promotion->buy_quantity;
                         $getQuantity = $promotion->get_quantity;
                         $promotionProducts = $promotion->products()->pluck('product_id')->toArray();
@@ -856,26 +712,55 @@ class POSController
 
                 $totalAmount = $subTotal - $discountAmount;
 
-                if ($data['paymentMethod'] === 'wallet') {
+                if ($data['paymentMethod'] === 'wallet' || $data['paymentMethod'] === 'combined') {
                     if (!$data['customer_id']) {
-                        Log::warning('Không có customer_id khi thanh toán bằng ví.', ['user_id' => $user->id]);
-                        return response()->json(['errors' => ['customer_id' => 'Vui lòng chọn khách hàng khi thanh toán bằng ví.']], 422);
+                        return response()->json(['errors' => ['customer_id' => 'Vui lòng chọn khách hàng khi thanh toán bằng ví hoặc kết hợp.']], 422);
                     }
                     $customer = Customer::lockForUpdate()->find($data['customer_id']);
-                    if (!$customer || $customer->wallet < $totalAmount) {
-                        Log::warning('Số dư ví không đủ.', [
-                            'customer_id' => $data['customer_id'],
-                            'wallet' => $customer->wallet ?? 0,
-                            'total_amount' => $totalAmount,
-                        ]);
+                    if (!$customer) {
+                        return response()->json(['errors' => ['customer_id' => 'Khách hàng không tồn tại.']], 422);
+                    }
+                    $walletToUse = $data['paymentMethod'] === 'wallet' ? $totalAmount : ($data['walletAmount'] ?? 0);
+                    if ($customer->wallet < $walletToUse) {
                         return response()->json(['errors' => ['payment' => 'Số dư ví không đủ để thanh toán.']], 422);
                     }
-                } elseif ($data['paymentMethod'] === 'cash' && $data['amountReceived'] < $totalAmount) {
-                    Log::warning('Số tiền nhận không đủ.', [
-                        'amount_received' => $data['amountReceived'],
-                        'total_amount' => $totalAmount,
-                    ]);
+                }
+
+                if ($data['paymentMethod'] === 'cash' && ($data['amountReceived'] ?? 0) < $totalAmount) {
                     return response()->json(['errors' => ['payment' => 'Số tiền nhận không đủ để thanh toán.']], 422);
+                }
+
+                if ($data['paymentMethod'] === 'combined') {
+                    $cashNeeded = $totalAmount - $data['walletAmount'];
+                    if ($cashNeeded < 0) {
+                        return response()->json(['errors' => ['payment' => 'Số tiền ví vượt quá tổng đơn hàng.']], 422);
+                    }
+                    if ($data['cashAmount'] < $cashNeeded) {
+                        return response()->json(['errors' => ['payment' => 'Số tiền mặt không đủ để thanh toán.']], 422);
+                    }
+                }
+
+                $receivedMoney = 0;
+                $changeMoney = 0;
+                $paymentStatusId = 2; // Assuming 2 is paid
+
+                if ($data['paymentMethod'] === 'cash') {
+                    $receivedMoney = $data['amountReceived'];
+                    $changeMoney = $receivedMoney - $totalAmount;
+                } elseif ($data['paymentMethod'] === 'combined') {
+                    $receivedMoney = $data['walletAmount'] + $data['cashAmount'];
+                    $changeMoney = $data['cashAmount'] - ($totalAmount - $data['walletAmount']);
+                    $customer->wallet -= $data['walletAmount'];
+                    $customer->save();
+                } elseif ($data['paymentMethod'] === 'wallet') {
+                    $receivedMoney = $totalAmount;
+                    $changeMoney = 0;
+                    $paymentStatusId = 1; // Keep as is
+                    $customer->wallet -= $totalAmount;
+                    $customer->save();
+                } else {
+                    $receivedMoney = $totalAmount;
+                    $changeMoney = 0;
                 }
 
                 $bill = Bill::create([
@@ -884,10 +769,10 @@ class POSController
                     'sub_total' => $subTotal,
                     'discount_amount' => $discountAmount,
                     'total_amount' => $totalAmount,
-                    'received_money' => $data['paymentMethod'] === 'cash' ? $data['amountReceived'] : $totalAmount,
-                    'change_money' => $data['paymentMethod'] === 'cash' ? ($data['amountReceived'] - $totalAmount) : 0,
+                    'received_money' => $receivedMoney,
+                    'change_money' => $changeMoney,
                     'payment_method' => $data['paymentMethod'],
-                    'payment_status_id' => $data['paymentMethod'] === 'wallet' ? 1 : 2, // 1: UNPAID, 2: PAID
+                    'payment_status_id' => $paymentStatusId,
                     'notes' => $data['orderNotes'],
                     'cashier_id' => $user->id,
                     'session_id' => $session->id,
@@ -915,10 +800,6 @@ class POSController
                         ->get();
 
                     if ($batchItems->isEmpty()) {
-                        Log::error('Không tìm thấy lô hàng hợp lệ cho sản phẩm.', [
-                            'product_id' => $item['id'],
-                            'requested_quantity' => $item['quantity'],
-                        ]);
                         throw new \Exception("Không tìm thấy lô hàng hợp lệ cho sản phẩm {$product->name}.");
                     }
 
@@ -938,17 +819,8 @@ class POSController
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
 
-                            if ($batchItem->batch->receipt_status === 'partially_received') {
-                                Log::info('Sử dụng lô partially_received cho giao dịch bán hàng.', [
-                                    'batch_id' => $batchItem->batch_id,
-                                    'product_id' => $item['id'],
-                                    'quantity_deducted' => $quantityToDeduct,
-                                    'user_id' => $user->id,
-                                ]);
-                            }
-
                             InventoryTransaction::create([
-                                'transaction_type_id' => 2, // Xuất kho
+                                'transaction_type_id' => 2,
                                 'product_id' => $product->id,
                                 'quantity_change' => -$quantityToDeduct,
                                 'stock_after' => $product->stock_quantity - $quantityToDeduct,
@@ -983,10 +855,6 @@ class POSController
                     }
 
                     if ($remainingQuantity > 0) {
-                        Log::error('Không đủ hàng trong kho để phân bổ.', [
-                            'product_id' => $item['id'],
-                            'remaining_quantity' => $remainingQuantity,
-                        ]);
                         throw new \Exception("Không đủ hàng trong kho cho sản phẩm {$product->name}.");
                     }
 
@@ -1026,10 +894,6 @@ class POSController
                         ->get();
 
                     if ($batchItems->isEmpty()) {
-                        Log::error('Không tìm thấy lô hàng hợp lệ cho sản phẩm miễn phí.', [
-                            'product_id' => $freeItem['product_id'],
-                            'requested_quantity' => $freeItem['quantity'],
-                        ]);
                         throw new \Exception("Không tìm thấy lô hàng hợp lệ cho sản phẩm miễn phí {$product->name}.");
                     }
 
@@ -1050,7 +914,7 @@ class POSController
                             ]);
 
                             InventoryTransaction::create([
-                                'transaction_type_id' => 2, // Xuất kho
+                                'transaction_type_id' => 2,
                                 'product_id' => $product->id,
                                 'quantity_change' => -$quantityToDeduct,
                                 'stock_after' => $product->stock_quantity - $quantityToDeduct,
@@ -1104,26 +968,12 @@ class POSController
                     $customer = Customer::lockForUpdate()->find($data['customer_id']);
                     $walletBonus = $totalAmount * 0.001;
                     $customer->wallet += $walletBonus;
-                    if ($data['paymentMethod'] === 'wallet') {
-                        $customer->wallet -= $totalAmount;
-                    }
+                    
                     $customer->save();
-
-                    Log::info('Cập nhật ví khách hàng.', [
-                        'customer_id' => $customer->id,
-                        'wallet_bonus' => $walletBonus,
-                        'new_wallet_balance' => $customer->wallet,
-                        'payment_method' => $data['paymentMethod'],
-                    ]);
                 }
 
                 if ($promotion) {
                     $promotion->increment('usage_count');
-                    Log::info('Cập nhật số lần sử dụng khuyến mãi.', [
-                        'promotion_id' => $promotion->id,
-                        'coupon_code' => $promotion->coupon_code,
-                        'usage_count' => $promotion->usage_count,
-                    ]);
                 }
 
                 $session->actual_amount = ($session->actual_amount ?? 0) + $totalAmount;
@@ -1134,27 +984,10 @@ class POSController
                     if ($customer->email) {
                         try {
                             Mail::to($customer->email)->queue(new ReceiptEmail($bill));
-                            Log::info('Đã gửi email hóa đơn.', [
-                                'bill_id' => $bill->id,
-                                'customer_id' => $customer->id,
-                                'email' => $customer->email,
-                            ]);
                         } catch (\Exception $e) {
-                            Log::error('Lỗi khi gửi email hóa đơn.', [
-                                'bill_id' => $bill->id,
-                                'customer_id' => $customer->id,
-                                'error' => $e->getMessage(),
-                            ]);
                         }
                     }
                 }
-
-                Log::info('Giao dịch bán hàng thành công.', [
-                    'bill_id' => $bill->id,
-                    'total_amount' => $totalAmount,
-                    'user_id' => $user->id,
-                    'promotion_id' => $promotion ? $promotion->id : null,
-                ]);
 
                 return response()->json([
                     'success' => 'Thanh toán thành công!',
@@ -1169,18 +1002,8 @@ class POSController
                 ], 200);
             });
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Lỗi xác thực khi xử lý giao dịch bán hàng.', [
-                'errors' => $e->errors(),
-                'request_data' => $request->all(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi xử lý giao dịch bán hàng.', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => ['server' => 'Có lỗi xảy ra khi xử lý giao dịch: ' . $e->getMessage()]], 500);
         }
     }
@@ -1207,11 +1030,6 @@ class POSController
                     ->sum('current_quantity');
 
                 if ($product->stock_quantity != $batchQuantity) {
-                    Log::info('Đồng bộ tồn kho cho sản phẩm.', [
-                        'product_id' => $product->id,
-                        'old_stock_quantity' => $product->stock_quantity,
-                        'new_stock_quantity' => $batchQuantity,
-                    ]);
                     $product->stock_quantity = $batchQuantity;
                     $product->save();
                 }
@@ -1219,11 +1037,6 @@ class POSController
 
             return response()->json(['message' => 'Đồng bộ tồn kho hoàn tất!'], 200);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi đồng bộ tồn kho.', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => ['server' => 'Có lỗi khi đồng bộ tồn kho.']], 500);
         }
     }
@@ -1258,51 +1071,50 @@ class POSController
                 'wallet' => $customer->wallet ?? 0,
             ];
 
-            Log::info('Tạo khách hàng mới thành công.', [
-                'customer_id' => $customer->id,
-                'customer_name' => $customer->customer_name,
-                'user_id' => Auth::id(),
-            ]);
-
             return response()->json([
                 'success' => 'Khách hàng đã được thêm thành công!',
                 'newCustomer' => $newCustomer,
                 'customers' => $this->getCustomers(),
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Lỗi xác thực khi tạo khách hàng.', [
-                'errors' => $e->errors(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi tạo khách hàng.', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => ['server' => 'Có lỗi khi thêm khách hàng.']], 500);
         }
     }
 
-    public function getProductByBarcode($barcode)
-{
-    $product = Product::where('barcode', $barcode)->first();
-    if (!$product) {
-        return response()->json(['errors' => ['server' => 'Không tìm thấy sản phẩm với mã vạch này.']], 404);
+    public function getCustomersPublic(Request $request)
+    {
+        try {
+            $customers = $this->getCustomers();
+
+            return response()->json([
+                'customers' => $customers,
+                'success' => 'Danh sách khách hàng đã được tải thành công.',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['errors' => ['server' => 'Lỗi tải danh sách khách hàng: ' . $e->getMessage()]], 500);
+        }
     }
-    return response()->json([
-        'product' => [
-            'id' => $product->id,
-            'name' => $product->name,
-            'barcode' => $product->barcode,
-            'price' => $product->selling_price ?? 0, 
-            'stock_quantity' => $product->stock_quantity,
-            'image' => $product->image_url ?? '/storage/default-product.png',
-            'sku' => $product->sku,
-        ]
-    ]);
-}
+
+    public function getProductByBarcode($barcode)
+    {
+        $product = Product::where('barcode', $barcode)->first();
+        if (!$product) {
+            return response()->json(['errors' => ['server' => 'Không tìm thấy sản phẩm với mã vạch này.']], 404);
+        }
+        return response()->json([
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'barcode' => $product->barcode,
+                'price' => $product->selling_price ?? 0,
+                'stock_quantity' => $product->stock_quantity,
+                'image' => $product->image_url ?? '/storage/default-product.png',
+                'sku' => $product->sku,
+            ]
+        ]);
+    }
 
     private function getProducts()
     {
@@ -1329,7 +1141,6 @@ class POSController
     public function getProductsPublic(Request $request)
     {
         try {
-            // Gọi phương thức getProducts hiện có để lấy danh sách sản phẩm
             $products = $this->getProducts();
 
             return response()->json([
@@ -1337,13 +1148,14 @@ class POSController
                 'success' => 'Danh sách sản phẩm đã được tải thành công.',
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi lấy danh sách sản phẩm.', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-            ]);
             return response()->json(['errors' => ['server' => 'Lỗi tải danh sách sản phẩm: ' . $e->getMessage()]], 500);
         }
+    }
+    public function listCustomers()
+    {
+        return response()->json([
+            'customers' => $this->getCustomers()
+        ]);
     }
 
     private function getCustomers()
@@ -1380,7 +1192,6 @@ class POSController
             ->first();
 
         if (!$session) {
-            Log::info('Không tìm thấy phiên làm việc đang mở.', ['user_id' => $user->id]);
             return null;
         }
 
@@ -1389,11 +1200,6 @@ class POSController
             ->first();
 
         if (!$userShift) {
-            Log::warning('Không tìm thấy thông tin ca làm việc.', [
-                'session_id' => $session->id,
-                'user_shift_id' => $session->user_shift_id,
-                'user_id' => $user->id,
-            ]);
             return null;
         }
 
@@ -1415,6 +1221,5 @@ class POSController
         }
         return null;
     }
-
-
+    
 }
