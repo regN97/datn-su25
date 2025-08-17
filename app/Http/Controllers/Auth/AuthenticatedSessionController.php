@@ -49,7 +49,7 @@ class AuthenticatedSessionController extends Controller
             // Tạo lại phiên làm việc (session)
             $request->session()->regenerate();
 
-            return to_route('dashboard')->with('reload', true);
+            return to_route('admin.dashboard')->with('reload', true);
         }
 
         // Nếu thông tin không đúng, trả lỗi về lại form

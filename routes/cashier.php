@@ -29,7 +29,7 @@ Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::post('/pos/sale', [POSController::class, 'submitSale'])->name('pos.sale');
         Route::post('/pos/session/start', [POSController::class, 'startSession'])->name('session.start');
         Route::post('/pos/session/close', [POSController::class, 'closeSession'])->name('session.close');
-        Route::get('/pos/shift-report', [POSController::class, 'shiftReport'])->name('shift.report');
+        Route::get('/pos/shift-report', [POSController::class, 'shiftReport'])->name('pos.shift.report');
         Route::post('/pos/shift-report/generate', [POSController::class, 'generateShiftReport'])->name('shift.report.generate');
         Route::get('/pos/check-batch/{productId}', [POSController::class, 'checkBatch'])->name('batch.check');
         Route::get('/pos/work-shifts', [POSController::class, 'getWorkShifts'])->name('work_shifts.get');

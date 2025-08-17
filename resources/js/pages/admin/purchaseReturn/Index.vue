@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { Eye, Search, Plus, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { Eye, Search, Plus, TrendingUp, ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface PurchaseReturn {
@@ -11,6 +11,7 @@ interface PurchaseReturn {
     supplier_name: string;
     return_date: string;
     status: 'pending' | 'approved' | 'completed' | 'rejected';
+    payment_status: 'unpaid' | 'paid';
     total_value_returned: string;
     created_by: string;
 }
@@ -27,12 +28,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const searchQuery = ref('');
-const statusFilter = ref('all');
+const paymentStatusFilter = ref('all');
 
-// --- THÊM PHÂN TRANG ---
 const currentPage = ref(1);
-const itemsPerPage = ref(10); // Đặt số mục trên mỗi trang
-// ------------------------
+const itemsPerPage = ref(10);
 
 function showPurchaseReturn(id: number) {
     router.visit(`/admin/purchaseReturn/${id}`);
@@ -61,6 +60,17 @@ const getStatusDisplayName = computed(() => (status: string) => {
     }
 });
 
+const getPaymentStatusDisplayName = computed(() => (paymentStatus: 'unpaid' | 'paid') => {
+    switch (paymentStatus) {
+        case 'unpaid':
+            return 'Chưa nhận hoàn tiền';
+        case 'paid':
+            return 'Đã nhận hoàn tiền';
+        default:
+            return 'Không rõ';
+    }
+});
+
 const filteredReturns = computed(() => {
     return props.purchaseReturns.filter(item => {
         const matchesSearch = searchQuery.value === '' ||
@@ -68,13 +78,12 @@ const filteredReturns = computed(() => {
             item.supplier_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             item.created_by.toLowerCase().includes(searchQuery.value.toLowerCase());
 
-        const matchesStatus = statusFilter.value === 'all' || item.status === statusFilter.value;
+        const matchesPaymentStatus = paymentStatusFilter.value === 'all' || item.payment_status === paymentStatusFilter.value;
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesPaymentStatus;
     });
 });
 
-// --- PHÂN TRANG: LOGIC MỚI ---
 const totalPages = computed(() => Math.ceil(filteredReturns.value.length / itemsPerPage.value));
 
 const paginatedReturns = computed(() => {
@@ -102,9 +111,7 @@ const paginationRange = computed(() => {
     }
     return range;
 });
-// -----------------------------
 
-// Statistics calculations
 const stats = computed(() => {
     const total = props.purchaseReturns.length;
     const pending = props.purchaseReturns.filter(r => r.status === 'pending').length;
@@ -112,15 +119,17 @@ const stats = computed(() => {
     const completed = props.purchaseReturns.filter(r => r.status === 'completed').length;
     const rejected = props.purchaseReturns.filter(r => r.status === 'rejected').length;
 
+    const paid = props.purchaseReturns.filter(r => r.payment_status === 'paid').length;
+    const unpaid = props.purchaseReturns.filter(r => r.payment_status === 'unpaid').length;
+
     const totalValue = props.purchaseReturns.reduce((sum, item) => {
         const value = parseFloat(item.total_value_returned.replace(/[^0-9.-]+/g, '')) || 0;
         return sum + value;
     }, 0);
 
-    return { total, pending, approved, completed, rejected, totalValue };
+    return { total, pending, approved, completed, rejected, paid, unpaid, totalValue };
 });
 </script>
-
 <template>
     <Head title="Quản lý phiếu trả hàng" />
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -141,21 +150,23 @@ const stats = computed(() => {
                             </div>
                         </div>
                     </div>
+
                     <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
                         <div class="flex items-center gap-3">
-                            <TrendingUp class="text-yellow-500 w-6 h-6" />
+                            <CheckCircle2 class="text-green-500 w-6 h-6" />
                             <div>
-                                <p class="text-sm text-gray-500">Chờ duyệt</p>
-                                <p class="text-xl font-bold text-yellow-600">{{ stats.pending }}</p>
+                                <p class="text-sm text-gray-500">Đã nhận hoàn tiền</p>
+                                <p class="text-xl font-bold text-gray-800">{{ stats.paid }}</p>
                             </div>
                         </div>
                     </div>
+
                     <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
                         <div class="flex items-center gap-3">
-                            <TrendingUp class="text-green-500 w-6 h-6" />
+                            <XCircle class="text-red-500 w-6 h-6" />
                             <div>
-                                <p class="text-sm text-gray-500">Hoàn tất</p>
-                                <p class="text-xl font-bold text-green-600">{{ stats.completed }}</p>
+                                <p class="text-sm text-gray-500">Chưa nhận hoàn tiền</p>
+                                <p class="text-xl font-bold text-gray-800">{{ stats.unpaid }}</p>
                             </div>
                         </div>
                     </div>
@@ -183,12 +194,12 @@ const stats = computed(() => {
                     </div>
                     <div>
                         <select
-                            v-model="statusFilter"
+                            v-model="paymentStatusFilter"
                             class="px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring focus:ring-blue-200"
                         >
-                            <option value="all">Tất cả trạng thái</option>
-                            <option value="pending">Chờ duyệt</option>
-                            <option value="completed">Hoàn tất</option>
+                            <option value="all">Tất cả trạng thái thanh toán</option>
+                            <option value="paid">Đã nhận hoàn tiền</option>
+                            <option value="unpaid">Chưa nhận hoàn tiền</option>
                         </select>
                     </div>
                 </div>
@@ -202,6 +213,7 @@ const stats = computed(() => {
                                     <th class="text-left px-6 py-3">Nhà cung cấp</th>
                                     <th class="text-left px-6 py-3">Ngày trả</th>
                                     <th class="text-left px-6 py-3">Trạng thái</th>
+                                    <th class="text-left px-6 py-3">Thanh toán</th>
                                     <th class="text-right px-6 py-3">Tổng tiền</th>
                                     <th class="text-left px-6 py-3">Người tạo</th>
                                     <th class="text-center px-6 py-3">Hành động</th>
@@ -209,7 +221,7 @@ const stats = computed(() => {
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 <tr v-if="paginatedReturns.length === 0">
-                                    <td colspan="7" class="text-center py-10 text-gray-500">Không có dữ liệu phù hợp</td>
+                                    <td colspan="8" class="text-center py-10 text-gray-500">Không có dữ liệu phù hợp</td>
                                 </tr>
                                 <tr
                                     v-for="item in paginatedReturns"
@@ -230,6 +242,17 @@ const stats = computed(() => {
                                             }"
                                         >
                                             ● {{ getStatusDisplayName(item.status) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                                            :class="{
+                                                'bg-red-50 text-red-700': item.payment_status === 'unpaid',
+                                                'bg-green-50 text-green-700': item.payment_status === 'paid',
+                                            }"
+                                        >
+                                            ● {{ getPaymentStatusDisplayName(item.payment_status) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right text-gray-800 font-semibold">

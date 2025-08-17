@@ -12,12 +12,13 @@ import { Boxes } from 'lucide-vue-next';
 
 <template>
     <div class="flex h-screen">
-        <Sidebar id="app-sidebar" class="no-print" collapsible="icon" variant="inset">
+        <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" as-child>
-                            <Link :href="route('dashboard')">
+
+                            <Link :href="route('admin.dashboard')">
                             <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -26,6 +27,7 @@ import { Boxes } from 'lucide-vue-next';
             </SidebarHeader>
 
             <SidebarContent class="flex-1 px-4">
+                <!-- Tổng quan -->
                 <div
                     class="mt-2 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase sidebar-section-label">
                     <LayoutGrid class="w-4 h-4" />
@@ -34,17 +36,19 @@ import { Boxes } from 'lucide-vue-next';
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
-                            <Link href="/dashboard" class="flex items-center gap-2">
+
+                            <Link :href="route('admin.dashboard')" class="flex items-center gap-2">
                             <LayoutGrid class="w-4 h-4" />
-                            Tổng quan nhập hàng
+                            Tổng quan bán hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
-                            <Link href="/test" class="flex items-center gap-2">
+
+                            <Link :href="route('admin.dashboard.inventory')" class="flex items-center gap-2">
                             <TrendingUp class="w-4 h-4" />
-                            Thống kê thử nghiệm
+                            Thống kê
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -133,6 +137,7 @@ import { Boxes } from 'lucide-vue-next';
                             <Link :href="route('admin.inventory.index')" class="flex items-center gap-2">
                             <Layers3 class="w-4 h-4" />
                             Quản lý tồn kho
+
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -149,6 +154,7 @@ import { Boxes } from 'lucide-vue-next';
                             <Link :href="route('admin.stock.requests.index')" class="flex items-center gap-2">
                                 <Bell class="w-4 h-4" />
                                 Thông báo nhập hàng
+
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
