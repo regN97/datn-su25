@@ -34,13 +34,13 @@ function submit() {
 </script>
 
 <template>
-    <Head title="Cập nhật thông tin nhân viên" />
+    <Head title="Cập nhật thông tin tài khoản" />
     <AppLayout>
-        <h1 class="mb-4 text-2xl font-bold">Cập nhật thông tin nhân viên</h1>
+        <h1 class="mb-4 text-2xl font-bold">Cập nhật thông tin tài khoản</h1>
 
         <form @submit.prevent="submit" class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-                <label class="block font-medium">Tên nhân viên</label>
+                <label class="block font-medium">Tên</label>
                 <input v-model="form.name" class="w-full rounded border p-2" />
             </div>
             <div>
