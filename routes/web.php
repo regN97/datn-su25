@@ -14,7 +14,8 @@ use App\Http\Controllers\Admin\{
     PurchaseOrderController,
     InventoryController,
     UserController,
-    BillController
+    BillController,
+    InventoryTransactionController
 };
 use App\Http\Controllers\TestController;
 
@@ -36,7 +37,8 @@ Route::prefix('admin')
         Route::resource('categories', CategoryController::class);
 
         // Products
-        Route::get('products/{id}/inventory-history', [InventoryController::class, 'index'])->name('products.inventory_history');
+        Route::get('products/{id}/inventory-history', [InventoryTransactionController::class, 'index'])
+            ->name('products.inventory_history');
         Route::get('products/trashed', [ProductController::class, 'trashed'])->name('products.trashed');
         Route::post('products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore');
         Route::delete('products/{id}/force', [ProductController::class, 'forceDelete'])->name('products.forceDelete');
@@ -66,6 +68,7 @@ Route::prefix('admin')
         Route::resource('purchase-orders', PurchaseOrderController::class);
 
         // Batches
+        Route::post('/batches/{id}/approve', [BatchController::class, 'approve'])->name('batches.approve');
         Route::post('batches/{id}/pay', [BatchController::class, 'pay'])->name('batches.pay');
         Route::get('batches/add/{po_id}', [BatchController::class, 'add'])->name('batches.add');
         Route::post('batches/save', [BatchController::class, 'save'])->name('batches.save');

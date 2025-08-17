@@ -16,11 +16,11 @@ return new class extends Migration {
                 ->constrained('purchase_order_items')
                 ->onDelete('restrict');
             // Thông tin số lượng
-            $table->unsignedInteger('ordered_quantity');   // Số lượng đặt trong PO
+            $table->unsignedInteger('ordered_quantity')->nullable();   // Số lượng đặt trong PO
             $table->unsignedInteger('received_quantity');  // Số lượng đã nhận trong đợt này
             $table->unsignedInteger('rejected_quantity')->default(0); // Số lượng từ chối nhận
             $table->unsignedInteger('remaining_quantity'); // Số lượng còn lại cần nhận
-            $table->unsignedInteger('current_quantity');   // Số lượng hiện tại còn trong kho
+            $table->unsignedInteger('current_quantity')->nullable();   // Số lượng hiện tại còn trong kho
 
             // Thông tin giá
             $table->unsignedInteger('purchase_price');
