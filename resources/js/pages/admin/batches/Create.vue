@@ -158,7 +158,7 @@ const editingRejectedQuantity = ref(0);
 const editingRejectedReason = ref<string>('');
 const rejectedValue = ref(0);
 
-const expectedImportDate = ref('');
+const importDate = ref('');
 
 // Computed properties
 const subtotal = computed(() => {
@@ -463,7 +463,7 @@ function submitBatch() {
         return;
     }
 
-    if (!expectedImportDate.value) {
+    if (!importDate.value) {
         Swal.fire({
             icon: 'error',
             title: 'Lỗi',
@@ -502,7 +502,7 @@ function submitBatch() {
         supplier_id: selectedSupplier.value?.id || null,
         user_id: selectedUserId.value || null,
         purchase_order_id: props.purchaseOrder?.id || null,
-        expected_import_date: expectedImportDate.value,
+        import_date: importDate.value,
         batch_code: batchCode.value,
         invoice_code: invoiceCode.value,
         notes: notes.value,
@@ -885,11 +885,8 @@ onUnmounted(() => {
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập hàng</label>
-                                    <input
-                                        type="datetime-local"
-                                        v-model="expectedImportDate"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                    />
+                                    <input type="datetime-local" v-model="importDate"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng nhập</label>
