@@ -38,10 +38,10 @@ class SupplierController extends Controller
     {
         // Define validation rules
         $rules = [
-            'name' => ['required', 'string', 'max:255', Rule::unique('suppliers', 'name')],
-            'contact_person' => ['required', 'string', 'max:255', Rule::unique('suppliers', 'contact_person')],
+            'name' => ['required', 'string', 'min:3', 'max:255', Rule::unique('suppliers', 'name')],
+            'contact_person' => ['required', 'string', 'min:3', 'max:255', Rule::unique('suppliers', 'contact_person')],
             'email' => ['required', 'email', 'max:255', Rule::unique('suppliers', 'email')],
-            'phone' => ['required', 'string', 'max:20', Rule::unique('suppliers', 'phone')],
+            'phone' => ['required', 'digits_between:10,12', Rule::unique('suppliers', 'phone')],
             'address' => ['required', 'string'],
         ];
 
@@ -49,11 +49,13 @@ class SupplierController extends Controller
         $messages = [
             'name.required' => 'Tên nhà cung cấp là bắt buộc.',
             'name.string' => 'Tên nhà cung cấp phải là chuỗi ký tự.',
+            'name.min' => 'Tên nhà cung cấp phải lớn hơn 2 ký tự.',
             'name.max' => 'Tên nhà cung cấp không được vượt quá :max ký tự.',
             'name.unique' => 'Tên nhà cung cấp này đã tồn tại.',
 
             'contact_person.required' => 'Người liên hệ là bắt buộc.',
             'contact_person.string' => 'Người liên hệ phải là chuỗi ký tự.',
+            'contact_person.min' => 'Người liên hệ phải lớn hơn 2 ký tự.',
             'contact_person.max' => 'Người liên hệ không được vượt quá :max ký tự.',
             'contact_person.unique' => 'Người liên hệ này đã tồn tại.',
 
@@ -63,10 +65,9 @@ class SupplierController extends Controller
             'email.unique' => 'Email này đã tồn tại.',
 
             'phone.required' => 'Số điện thoại là bắt buộc.',
-            'phone.string' => 'Số điện thoại phải là chuỗi ký tự.',
-            'phone.max' => 'Số điện thoại không được vượt quá :max ký tự.',
+            'phone.digits_between' => 'Số điện thoại phải là số và có độ dài từ 10 đến 12 ký tự.',
             'phone.unique' => 'Số điện thoại này đã tồn tại.',
-            
+
             'address.required' => 'Địa chỉ là bắt buộc.',
             'address.string' => 'Địa chỉ phải là chuỗi ký tự.',
         ];
@@ -103,20 +104,44 @@ public function update(Request $request, string $id)
     $supplier = Supplier::findOrFail($id);
 
     $data = $request->validate([
-        'name' => 'required|string|max:255',
-        'contact_person' => 'required|string|max:255',
-        'email' => ' required|email|max:255',
-        'phone' => ' required|string|max:20',
-        'address' => 'nullable|string|max:255',
+        'name' => ['required', 'string', 'min:3', 'max:255', Rule::unique('suppliers', 'name')->ignore($id)],
+        'contact_person' => ['required', 'string', 'min:3', 'max:255', Rule::unique('suppliers', 'contact_person')->ignore($id)],
+        'email' => ['required', 'email', 'max:255'],
+        'phone' => ['required', 'digits_between:10,12'],
+        'address' => ['required', 'string'],
     ], [
         'name.required' => 'Tên nhà cung cấp là bắt buộc.',
+        'name.string' => 'Tên nhà cung cấp phải là chuỗi ký tự.',
+        'name.min' => 'Tên nhà cung cấp phải lớn hơn 2 ký tự.',
+        'name.max' => 'Tên nhà cung cấp không được vượt quá :max ký tự.',
+        'name.unique' => 'Tên nhà cung cấp này đã tồn tại.',
+
         'contact_person.required' => 'Người liên hệ là bắt buộc.',
+        'contact_person.string' => 'Người liên hệ phải là chuỗi ký tự.',
+        'contact_person.min' => 'Người liên hệ phải lớn hơn 2 ký tự.',
+        'contact_person.max' => 'Người liên hệ không được vượt quá :max ký tự.',
+        'contact_person.unique' => 'Người liên hệ này đã tồn tại.',
+
         'email.required' => 'Email là bắt buộc.',
+        'email.email' => 'Email phải là định dạng email hợp lệ.',
+        'email.max' => 'Email không được vượt quá :max ký tự.',
+
         'phone.required' => 'Số điện thoại là bắt buộc.',
-        'email.email' => 'Email không đúng định dạng.',
-        'phone.string' => 'Số điện thoại không hợp lệ.',
-        'address.string' => 'Địa chỉ không hợp lệ.',
+        'phone.digits_between' => 'Số điện thoại phải là số và có độ dài từ 10 đến 12 ký tự.',
+
+        'address.required' => 'Địa chỉ là bắt buộc.',
+        'address.string' => 'Địa chỉ phải là chuỗi ký tự.',
     ]);
+
+    // Kiểm tra email/sđt trùng với nhà cung cấp khác
+    $otherSupplierWithEmail = Supplier::where('email', $data['email'])->where('id', '!=', $id)->whereNull('deleted_at')->first();
+    if ($otherSupplierWithEmail) {
+        return back()->withErrors(['email' => 'Email này đã tồn tại ở nhà cung cấp khác.'])->withInput();
+    }
+    $otherSupplierWithPhone = Supplier::where('phone', $data['phone'])->where('id', '!=', $id)->whereNull('deleted_at')->first();
+    if ($otherSupplierWithPhone) {
+        return back()->withErrors(['phone' => 'Số điện thoại này đã tồn tại ở nhà cung cấp khác.'])->withInput();
+    }
 
     $supplier->update($data);
 
@@ -159,6 +184,16 @@ public function update(Request $request, string $id)
     public function restore(string $id)
     {
         $supplier = Supplier::onlyTrashed()->findOrFail($id);
+        $exists = Supplier::where(function($q) use ($supplier) {
+            $q->where('name', $supplier->name)
+              ->orWhere('email', $supplier->email)
+              ->orWhere('phone', $supplier->phone);
+        })
+        ->whereNull('deleted_at')
+        ->first();
+        if ($exists) {
+            return back()->withErrors(['restore' => 'Không thể khôi phục vì thông tin bị trùng với nhà cung cấp hiện tại.']);
+        }
         $supplier->restore();
 
         return redirect()->back()->with('success', 'Nhà cung cấp đã được khôi phục!');
