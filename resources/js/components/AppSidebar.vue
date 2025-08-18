@@ -139,12 +139,17 @@ import AppLogo from './AppLogo.vue';
                 <!-- <div
                     class="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase sidebar-section-label">
                     <Bell class="w-4 h-4" />
-                    <span class="sidebar-section-text">Thông báo</span> -->
-                            <!-- <Link :href="route('admin.stock.requests.index')" class="flex items-center gap-2">
+                    <span class="sidebar-section-text">Thông báo</span>
+                </div>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child>
+                            <Link :href="route('admin.stock.requests.index')" class="flex items-center gap-2">
                                 <Bell class="w-4 h-4" />
                                 Thông báo nhập hàng
-                            </Link> -->
-                        <!-- </SidebarMenuButton>
+
+                            </Link>
+                        </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu> -->
 

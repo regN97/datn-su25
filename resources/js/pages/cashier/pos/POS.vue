@@ -521,6 +521,22 @@ const setExactAmount = () => {
 };
 
 const showPayment = () => {
+
+    for (const item of cart.value) {
+        const product = products.value.find(p => p.id === item.id);
+        
+        // Chuyển đổi sang số và đảm bảo là số hợp lệ
+        const stockQty = parseFloat(String(product.stock).replace(',', '.'));
+        const itemQty = parseFloat(String(item.quantity).replace(',', '.'));
+        
+        // Kiểm tra nếu cả hai đều là số hợp lệ và stockQty nhỏ hơn itemQty
+        if (!isNaN(stockQty) && !isNaN(itemQty) && itemQty > stockQty) {
+            errorMessage.value = `Số lượng ${item.name} trong giỏ hàng vượt quá số lượng trong kho.`;
+            autoHideMessage();
+            return;
+        }
+    }
+
     if (!hasActiveSession.value) {
         errorMessage.value = 'Vui lòng mở ca trước khi thanh toán.';
         autoHideMessage();

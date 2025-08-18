@@ -303,6 +303,17 @@ function getPaymentMethodName(method: string) {
             </div>
         </div>
 
+    <div v-if="showProofModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-70" @click.self="closeProofModal()">
+        <div class="relative max-w-4xl p-4 bg-white rounded-lg shadow-lg">
+            <button @click="closeProofModal()" class="absolute top-2 right-2 text-gray-800 hover:text-gray-600 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <img :src="proofImageUrl" alt="Ảnh minh chứng thanh toán" class="max-h-[80vh] w-full object-contain">
+        </div>
+    </div>
+
   </AppLayout></template>
 
 <style lang="css" scoped>
