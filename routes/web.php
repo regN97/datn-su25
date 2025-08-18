@@ -1,4 +1,5 @@
 <?php
+
 use Inertia\Inertia;
 
 use Illuminate\Support\Facades\Route;
@@ -97,6 +98,15 @@ Route::prefix('admin')
 
         // Bills
         Route::resource('bills', BillController::class);
+
+        Route::get('/stock-requests', [StockRequestController::class, 'index'])->name('stock.requests.index');
+
+        Route::post('/stock-requests/{notificationId}/read', [StockRequestController::class, 'markAsRead'])->name('stock.requests.read');
+
+        Route::delete('/stock-requests/{notificationId}/delete', [StockRequestController::class, 'delete'])->name('stock.requests.delete');
+
+        Route::get('/stock/requests/unread-count', [StockRequestController::class, 'getUnreadNotificationsCount'])
+            ->name('stock.requests.unread-count');
     });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
