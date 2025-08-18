@@ -178,7 +178,7 @@ import { Boxes } from 'lucide-vue-next';
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.users.index')" class="flex items-center gap-2">
                             <UserCog class="w-4 h-4" />
-                            Quản lý nhân viên
+                            Quản lý tài khoản
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
