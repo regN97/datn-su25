@@ -335,40 +335,42 @@ function toggleSidebar() {
                         <table class="w-full">
                             <thead>
                                 <tr class="bg-gray-200">
-                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Hình ảnh</th>
-                                    <th class="w-[15%] p-3 text-left text-sm font-semibold">Tên sản phẩm</th>
-                                    <th class="w-[15%] p-3 text-left text-sm font-semibold">Danh mục sản phẩm</th>
-                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Barcode</th>
-                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Số lượng tồn kho</th>
-                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Trạng thái</th>
-                                    <th class="w-[15%] p-3 text-center text-sm font-semibold">Thao tác</th>
+                                    <th class=" p-3 text-center text-sm font-semibold">Hình ảnh</th>
+                                    <th class=" p-3 text-left text-sm font-semibold">Tên sản phẩm</th>
+                                    <th class=" p-3 text-left text-sm font-semibold">Danh mục sản phẩm</th>
+                                    <th class=" p-3 text-center text-sm font-semibold">Barcode</th>
+                                    <th class=" p-3 text-center text-sm font-semibold">Số lượng tồn kho</th>
+                                    <th class=" p-3 text-center text-sm font-semibold">Trạng thái</th>
+                                    <th class=" p-3 text-center text-sm font-semibold">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <template v-for="product in paginatedProducts" :key="product.id">
                                     <tr class="border-t">
-                                        <td class="w-[15%] p-3 text-center text-sm">
-                                            <img v-if="product.image_url" :src="imageSrc(product.image_url)"
-                                                class="w-20 h-20 object-cover rounded-md" />
+                                        <td class=" p-3 text-center text-sm">
+                                            <div class="flex items-center justify-center">
+                                                <img v-if="product.image_url" :src="imageSrc(product.image_url)"
+                                                    class="w-15 h-15 object-cover rounded-md" />
+                                            </div>
                                         </td>
-                                        <td class="w-[15%] p-3 text-left text-sm">
+                                        <td class=" p-3 text-left text-sm">
                                             <button @click="goToShowPage(product.id)"
                                                 class="cursor-pointer hover:text-blue-500">
                                                 {{ product.name }}
                                             </button>
                                         </td>
-                                        <td class="w-[15%] p-3 text-left text-sm">
+                                        <td class=" p-3 text-left text-sm">
                                             {{ getCategoryName(product.category_id)}}
                                         </td>
-                                        <td class="w-[15%] p-3 text-center text-sm">{{ product.barcode || 'Không có' }}</td>
-                                        <td class="w-[15%] p-3 text-center text-sm">{{ product.stock_quantity }}</td>
-                                        <td class="w-[15%] p-3 text-center text-sm">
+                                        <td class=" p-3 text-center text-sm">{{ product.barcode || 'Không có' }}</td>
+                                        <td class=" p-3 text-center text-sm">{{ product.stock_quantity }}</td>
+                                        <td class=" p-3 text-center text-sm">
                                             <span
                                                 :class="product.is_active ? 'font-medium text-green-600' : 'font-medium text-red-500'">
                                                 {{ product.is_active ? 'Hiện' : 'Ẩn' }}
                                             </span>
                                         </td>
-                                        <td class="w-[15%] p-3 text-left text-sm whitespace-nowrap">
+                                        <td class=" p-3 text-left text-sm whitespace-nowrap">
                                             <div class="flex items-center justify-center space-x-2 text-center">
                                                 <button @click="toggleDetails(product.id)"
                                                     class="flex items-center gap-1 rounded-md bg-gray-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none">
