@@ -97,9 +97,7 @@ const submitForm = () => {
                             </div>
 
                             <div>
-                                <label for="email" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                                    Email
-                                </label>
+                                <label for="email" class="mb-2 block font-medium text-gray-700 dark:text-gray-300"> Email </label>
                                 <input
                                     type="email"
                                     id="email"
@@ -127,9 +125,7 @@ const submitForm = () => {
                             </div>
 
                             <div>
-                                <label for="wallet" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                                    Ví tiền
-                                </label>
+                                <label for="wallet" class="mb-2 block font-medium text-gray-700 dark:text-gray-300"> Ví tiền </label>
                                 <input
                                     type="number"
                                     id="wallet"
@@ -141,10 +137,8 @@ const submitForm = () => {
                                 <InputError :message="page.props.errors.wallet" class="mt-1" />
                             </div>
 
-                            <div class="md:col-span-2">
-                                <label for="address" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                                    Địa chỉ
-                                </label>
+                            <!-- <div class="md:col-span-2">
+                                <label for="address" class="mb-2 block font-medium text-gray-700 dark:text-gray-300"> Địa chỉ </label>
                                 <textarea
                                     id="address"
                                     v-model="form.address"
@@ -154,7 +148,7 @@ const submitForm = () => {
                                     placeholder="Nhập địa chỉ khách hàng"
                                 ></textarea>
                                 <InputError :message="page.props.errors.address" class="mt-1" />
-                            </div>
+                            </div> -->
                         </div>
 
                         <div class="mt-8 flex justify-end space-x-4">

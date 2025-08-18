@@ -2,8 +2,8 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { Trash2, Undo2 } from 'lucide-vue-next';
 import { ref } from 'vue';
-import { Undo2, Trash2 } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quản lý khách hàng', href: '/admin/customers' },
@@ -57,7 +57,6 @@ function forceDeleteCustomer(id: number) {
 </script>
 
 <template>
-
     <Head title="Thùng rác khách hàng" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -71,7 +70,7 @@ function forceDeleteCustomer(id: number) {
                             <th class="p-3 text-sm font-semibold">Tên khách hàng</th>
                             <th class="p-3 text-sm font-semibold">Email</th>
                             <th class="p-3 text-sm font-semibold">SĐT</th>
-                            <th class="p-3 text-sm font-semibold">Địa chỉ</th>
+                            <!-- <th class="p-3 text-sm font-semibold">Địa chỉ</th> -->
                             <th class="p-3 text-sm font-semibold">Ví tiền</th>
                             <th class="p-3 text-sm font-semibold">Thời gian xóa</th>
                             <th class="p-3 text-sm font-semibold">Thao tác</th>
@@ -82,17 +81,21 @@ function forceDeleteCustomer(id: number) {
                             <td class="p-3 text-sm">{{ customer.customer_name }}</td>
                             <td class="p-3 text-sm">{{ customer.email || 'N/A' }}</td>
                             <td class="p-3 text-sm">{{ customer.phone || 'N/A' }}</td>
-                            <td class="p-3 text-sm">{{ customer.address || 'N/A' }}</td>
+                            <!-- <td class="p-3 text-sm">{{ customer.address || 'N/A' }}</td> -->
                             <td class="p-3 text-sm">{{ customer.wallet.toLocaleString('vi-VN') }} VND</td>
                             <td class="p-3 text-sm text-gray-500">{{ customer.deleted_at }}</td>
-                            <td class="p-3 text-sm text-center">
+                            <td class="p-3 text-center text-sm">
                                 <div class="flex items-center justify-center space-x-2">
-                                    <button @click="restoreCustomer(customer.id)"
-                                        class="rounded-md bg-green-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none">
+                                    <button
+                                        @click="restoreCustomer(customer.id)"
+                                        class="rounded-md bg-green-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none"
+                                    >
                                         <Undo2 class="h-4 w-4" />
                                     </button>
-                                    <button @click="forceDeleteCustomer(customer.id)"
-                                        class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none">
+                                    <button
+                                        @click="forceDeleteCustomer(customer.id)"
+                                        class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+                                    >
                                         <Trash2 class="h-4 w-4" />
                                     </button>
                                 </div>

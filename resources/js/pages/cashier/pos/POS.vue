@@ -1,24 +1,18 @@
 <script setup>
-import CashierLayout from '@/layouts/CashierLayout.vue';
 import POSKeyboardHandler from '@/components/cashier/POSKeyboardHandler.vue';
-import { Head, usePage, useForm } from '@inertiajs/vue3';
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-import { MenuIcon, BadgeInfo, X, FileText, LogOutIcon, Loader2 } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
+import CashierLayout from '@/layouts/CashierLayout.vue';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
+import { BadgeInfo, FileText, Loader2, MenuIcon, X } from 'lucide-vue-next';
 import { DateTime } from 'luxon';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 
 // Lấy props từ Inertia
 const { props } = usePage();
 
 // Danh sách ghi chú mặc định cho ca làm việc
-const defaultNotes = [
-    'Hoàn thành ca không có sự cố',
-    'Thiếu tiền mặt',
-    'Thừa tiền mặt',
-    'Khách hàng trả lại hàng',
-    'Khác (vui lòng ghi rõ)',
-];
+const defaultNotes = ['Hoàn thành ca không có sự cố', 'Thiếu tiền mặt', 'Thừa tiền mặt', 'Khách hàng trả lại hàng', 'Khác (vui lòng ghi rõ)'];
 
 // Khởi tạo state
 const products = ref(props.products || []);
@@ -84,9 +78,7 @@ const cleanBarcode = (input) => {
 };
 // Computed properties
 const categories = computed(() => {
-    const productCategories = products.value
-        .map(p => p.category?.name || 'Không xác định')
-        .filter(category => category !== 'Không xác định');
+    const productCategories = products.value.map((p) => p.category?.name || 'Không xác định').filter((category) => category !== 'Không xác định');
     return ['Tất cả', ...new Set(productCategories)];
 });
 
@@ -100,7 +92,7 @@ const cartSubtotal = computed(() => {
     return cart.value.reduce((total, item) => {
         const price = Number(item.price) || 0;
         const quantity = Number(item.quantity) || 0;
-        return total + (price * quantity);
+        return total + price * quantity;
     }, 0);
 });
 
@@ -120,25 +112,23 @@ const filteredProducts = computed(() => {
 
     if (searchTerm.value.trim()) {
         const regex = new RegExp(searchTerm.value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        filtered = filtered.filter(p =>
-            regex.test(p.name) || regex.test(p.category?.name || '') || regex.test(p.sku)
-        );
+        filtered = filtered.filter((p) => regex.test(p.name) || regex.test(p.category?.name || '') || regex.test(p.sku));
     }
 
     if (selectedCategory.value !== 'Tất cả') {
-        filtered = filtered.filter(p => p.category?.name === selectedCategory.value);
+        filtered = filtered.filter((p) => p.category?.name === selectedCategory.value);
     }
 
     if (priceRange.value.min || priceRange.value.max) {
         const min = parseFloat(priceRange.value.min) || -Infinity;
         const max = parseFloat(priceRange.value.max) || Infinity;
-        filtered = filtered.filter(p => p.selling_price >= min && p.selling_price <= max);
+        filtered = filtered.filter((p) => p.selling_price >= min && p.selling_price <= max);
     }
 
     if (stockRange.value.min || stockRange.value.max) {
         const min = parseInt(stockRange.value.min) || -Infinity;
         const max = parseInt(stockRange.value.max) || Infinity;
-        filtered = filtered.filter(p => p.stock_quantity >= min && p.stock_quantity <= max);
+        filtered = filtered.filter((p) => p.stock_quantity >= min && p.stock_quantity <= max);
     }
 
     if (sortBy.value !== 'none') {
@@ -160,9 +150,7 @@ const filteredProducts = computed(() => {
 const filteredCustomers = computed(() => {
     if (!customerSearch.value.trim()) return customers.value;
     const regex = new RegExp(customerSearch.value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    return customers.value.filter(c =>
-        regex.test(c.customer_name) || (c.email && regex.test(c.email)) || (c.phone && regex.test(c.phone))
-    );
+    return customers.value.filter((c) => regex.test(c.customer_name) || (c.email && regex.test(c.email)) || (c.phone && regex.test(c.phone)));
 });
 
 // Utility functions
@@ -196,7 +184,7 @@ const sanitizeHTML = (str) => {
 const getSuitableShift = () => {
     const now = DateTime.now().setZone('Asia/Ho_Chi_Minh');
     const currentTime = now.toFormat('HH:mm:ss');
-    return workShifts.value.find(shift => {
+    return workShifts.value.find((shift) => {
         const { start_time, end_time } = shift;
         if (start_time > end_time) {
             return currentTime >= start_time || currentTime <= end_time;
@@ -228,13 +216,13 @@ const fetchShiftReport = async () => {
         shiftReport.value = {
             ...response.data,
             report: {
-                customers: (response.data.report?.customers || []).map(c => ({
+                customers: (response.data.report?.customers || []).map((c) => ({
                     ...c,
                     customer_name: c.customer_name || 'Khách lẻ',
                     last_purchase: c.last_purchase ? formatDateTime(c.last_purchase) : 'N/A',
                     average_purchase: c.average_purchase || 0,
                 })),
-                top_products: (response.data.report?.top_products || []).map(p => ({
+                top_products: (response.data.report?.top_products || []).map((p) => ({
                     ...p,
                     average_price: p.total_revenue / p.quantity_sold || 0,
                 })),
@@ -260,8 +248,7 @@ const fetchShiftReport = async () => {
 const openShift = async () => {
     if (!confirm('Xác nhận mở ca làm việc?')) return;
     isLoadingSessionAction.value = true;
-    sessionForm.notes = sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)' ?
-        sessionForm.custom_note : sessionForm.selected_default_note;
+    sessionForm.notes = sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)' ? sessionForm.custom_note : sessionForm.selected_default_note;
     sessionForm.clearErrors();
     try {
         const response = await axios.post('/cashier/pos/session/start', {
@@ -282,7 +269,7 @@ const openShift = async () => {
     } catch (error) {
         errorMessage.value = error.response?.data?.errors?.server || 'Lỗi mở ca.';
         if (error.response?.data?.errors) {
-            Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
+            Object.values(error.response.data.errors).forEach((err) => (errorMessage.value += ` ${err}`));
         }
         autoHideMessage();
     } finally {
@@ -293,8 +280,7 @@ const openShift = async () => {
 const closeShift = async () => {
     if (!confirm('Xác nhận đóng ca làm việc?')) return;
     isLoadingSessionAction.value = true;
-    sessionForm.notes = sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)' ?
-        sessionForm.custom_note : sessionForm.selected_default_note;
+    sessionForm.notes = sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)' ? sessionForm.custom_note : sessionForm.selected_default_note;
     sessionForm.clearErrors();
     try {
         const response = await axios.post('/cashier/pos/session/close', {
@@ -312,7 +298,7 @@ const closeShift = async () => {
     } catch (error) {
         errorMessage.value = error.response?.data?.errors?.server || 'Lỗi đóng ca.';
         if (error.response?.data?.errors) {
-            Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
+            Object.values(error.response.data.errors).forEach((err) => (errorMessage.value += ` ${err}`));
         }
         autoHideMessage();
     } finally {
@@ -334,8 +320,10 @@ const generateShiftReport = async () => {
     if (!confirm('Xác nhận tạo báo cáo ca?')) return;
     isLoadingSessionAction.value = true;
     try {
-        const notes = sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)'
-            ? sessionForm.custom_note : sessionForm.selected_default_note || 'Không có';
+        const notes =
+            sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)'
+                ? sessionForm.custom_note
+                : sessionForm.selected_default_note || 'Không có';
         const response = await axios.post('/cashier/pos/shift-report/generate', {
             closing_amount: Number(sessionForm.closing_amount) || 0,
             notes,
@@ -345,8 +333,8 @@ const generateShiftReport = async () => {
         autoHideMessage();
         await fetchShiftReport();
     } catch (error) {
-        errorMessage.value = error.response?.data?.errors?.server ||
-            Object.values(error.response?.data?.errors || {}).join(' ') || 'Lỗi tạo báo cáo ca.';
+        errorMessage.value =
+            error.response?.data?.errors?.server || Object.values(error.response?.data?.errors || {}).join(' ') || 'Lỗi tạo báo cáo ca.';
         autoHideMessage();
     } finally {
         isLoadingSessionAction.value = false;
@@ -394,7 +382,7 @@ const holdOrder = () => {
     autoHideMessage();
 };
 const removeOrder = (orderId) => {
-    pendingOrders.value = pendingOrders.value.filter(o => o.id !== orderId);
+    pendingOrders.value = pendingOrders.value.filter((o) => o.id !== orderId);
     pendingOrders.value = pendingOrders.value.map((order, index) => ({
         ...order,
         id: index + 1,
@@ -407,14 +395,14 @@ const removeOrder = (orderId) => {
 };
 
 const restoreOrder = (orderId) => {
-    const order = pendingOrders.value.find(o => o.id === orderId);
+    const order = pendingOrders.value.find((o) => o.id === orderId);
     if (!order) return;
     cart.value = [...order.cart];
     selectedCustomer.value = order.customer ? { ...order.customer } : null;
     form.customer_id = order.customer ? order.customer.id : null;
     form.orderNotes = order.orderNotes;
     // Xóa đơn hàng đã khôi phục khỏi pendingOrders
-    pendingOrders.value = pendingOrders.value.filter(o => o.id !== orderId);
+    pendingOrders.value = pendingOrders.value.filter((o) => o.id !== orderId);
     pendingOrders.value = pendingOrders.value.map((order, index) => ({
         ...order,
         id: index + 1,
@@ -446,11 +434,11 @@ const addToCart = async (product) => {
         const response = await axios.get(`/cashier/pos/check-batch/${product.id}`, { params: { quantity: 1 } });
         if (!response.data.hasValidBatch) {
             errorMessage.value = response.data.message || `Sản phẩm ${product.name} không có lô hợp lệ.`;
-            products.value = products.value.map(p => p.id === product.id ? { ...p, stock_quantity: response.data.availableStock || 0 } : p);
+            products.value = products.value.map((p) => (p.id === product.id ? { ...p, stock_quantity: response.data.availableStock || 0 } : p));
             autoHideMessage();
             return;
         }
-        const existingItem = cart.value.find(item => item.id === product.id);
+        const existingItem = cart.value.find((item) => item.id === product.id);
         if (existingItem) {
             const newQuantity = existingItem.quantity + 1;
             const stockResponse = await axios.get(`/cashier/pos/check-batch/${product.id}`, { params: { quantity: newQuantity } });
@@ -470,7 +458,7 @@ const addToCart = async (product) => {
                 quantity: 1,
             });
         }
-        products.value = products.value.map(p => p.id === product.id ? { ...p, stock_quantity: response.data.availableStock || 0 } : p);
+        products.value = products.value.map((p) => (p.id === product.id ? { ...p, stock_quantity: response.data.availableStock || 0 } : p));
     } catch (error) {
         errorMessage.value = error.response?.data?.errors?.server || `Lỗi kiểm tra lô hàng ${product.name}.`;
         autoHideMessage();
@@ -478,16 +466,16 @@ const addToCart = async (product) => {
 };
 
 const updateQuantity = async (productId, quantity) => {
-    const item = cart.value.find(item => item.id === productId);
+    const item = cart.value.find((item) => item.id === productId);
     if (!item) return;
 
-    const product = products.value.find(p => p.id === productId);
+    const product = products.value.find((p) => p.id === productId);
     try {
         const response = await axios.get(`/cashier/pos/check-batch/${productId}`, { params: { quantity } });
         if (!response.data.hasValidBatch) {
             errorMessage.value = response.data.message || `Không đủ lô cho ${product.name} với số lượng ${quantity}.`;
             removeFromCart(productId);
-            products.value = products.value.map(p => p.id === productId ? { ...p, stock_quantity: response.data.availableStock || 0 } : p);
+            products.value = products.value.map((p) => (p.id === productId ? { ...p, stock_quantity: response.data.availableStock || 0 } : p));
             autoHideMessage();
             return;
         }
@@ -500,7 +488,7 @@ const updateQuantity = async (productId, quantity) => {
             item.quantity = response.data.availableStock;
             autoHideMessage();
         }
-        products.value = products.value.map(p => p.id === productId ? { ...p, stock_quantity: response.data.availableStock || 0 } : p);
+        products.value = products.value.map((p) => (p.id === productId ? { ...p, stock_quantity: response.data.availableStock || 0 } : p));
     } catch (error) {
         if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
             errorMessage.value = error.response.data.errors.server;
@@ -513,7 +501,7 @@ const updateQuantity = async (productId, quantity) => {
 };
 
 const removeFromCart = (productId) => {
-    cart.value = cart.value.filter(item => item.id !== productId);
+    cart.value = cart.value.filter((item) => item.id !== productId);
 };
 
 // Payment handling
@@ -537,7 +525,7 @@ const showPayment = () => {
         autoHideMessage();
         return;
     }
-    if (!cart.value.every(item => item.id && item.quantity >= 1)) {
+    if (!cart.value.every((item) => item.id && item.quantity >= 1)) {
         errorMessage.value = 'Giỏ hàng chứa sản phẩm không hợp lệ. Vui lòng kiểm tra lại.';
         autoHideMessage();
         return;
@@ -557,7 +545,7 @@ const submitSale = async () => {
         autoHideMessage();
         return;
     }
-    if (!cart.value.every(item => item.id && item.quantity >= 1)) {
+    if (!cart.value.every((item) => item.id && item.quantity >= 1)) {
         errorMessage.value = 'Giỏ hàng chứa sản phẩm không hợp lệ.';
         autoHideMessage();
         return;
@@ -583,7 +571,7 @@ const submitSale = async () => {
 
     try {
         const payload = {
-            cart: form.cart.map(item => ({ id: item.id, quantity: item.quantity })),
+            cart: form.cart.map((item) => ({ id: item.id, quantity: item.quantity })),
             customer_id: form.customer_id,
             paymentMethod: form.paymentMethod,
             amountReceived: form.paymentMethod === 'cash' ? Number(form.amountReceived) : cartTotal.value,
@@ -610,7 +598,7 @@ const submitSale = async () => {
         } else {
             errorMessage.value = error.response?.data?.errors?.server || 'Lỗi xử lý thanh toán.';
             if (error.response?.data?.errors) {
-                Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
+                Object.values(error.response.data.errors).forEach((err) => (errorMessage.value += ` ${err}`));
             }
         }
         autoHideMessage();
@@ -699,14 +687,19 @@ const confirmPayment = async () => {
         } else {
             errorMessage.value = error.response?.data?.message || error.response?.data?.errors?.server || 'Lỗi thanh toán.';
             if (error.response?.data?.errors) {
-                Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
+                Object.values(error.response.data.errors).forEach((err) => (errorMessage.value += ` ${err}`));
             }
         }
         autoHideMessage();
     }
 };
 
-const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod, amountReceived = form.amountReceived, customer = selectedCustomer.value) => {
+const printReceipt = (
+    cartData = cart.value,
+    paymentMethod = form.paymentMethod,
+    amountReceived = form.amountReceived,
+    customer = selectedCustomer.value,
+) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
         errorMessage.value = 'Không thể mở cửa sổ in. Vui lòng kiểm tra trình chặn popup.';
@@ -714,7 +707,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
         return;
     }
 
-    const subtotal = cartData.reduce((total, item) => total + (item.price * item.quantity), 0); 
+    const subtotal = cartData.reduce((total, item) => total + item.price * item.quantity, 0);
     const tax = 0;
     const total = subtotal + tax;
 
@@ -844,18 +837,26 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
               </tr>
             </thead>
             <tbody>
-              ${cartData.length > 0 ? cartData.map(item => `
+              ${
+                  cartData.length > 0
+                      ? cartData
+                            .map(
+                                (item) => `
                 <tr>
                   <td>${sanitizeHTML(item.name || 'Unknown')}</td>
                   <td class="text-center">${item.quantity || 0}</td>
                   <td class="text-right">${sanitizeHTML(formatCurrency(item.selling_price || 0))}</td>
                   <td class="text-right">${sanitizeHTML(formatCurrency((item.selling_price || 0) * (item.quantity || 0)))}</td>
                 </tr>
-              `).join('') : `
+              `,
+                            )
+                            .join('')
+                      : `
                 <tr>
                   <td colspan="4" class="text-center">Không có sản phẩm</td>
                 </tr>
-              `}
+              `
+              }
             </tbody>
           </table>
           <div class="total-section">
@@ -863,17 +864,26 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
             <p class="text-right"><strong>Giảm giá:</strong> ${sanitizeHTML(formatCurrency(0))}</p>
             <p class="text-right total"><strong>Tổng thanh toán:</strong> ${sanitizeHTML(formatCurrency(total))}</p>
             <p class="text-right"><strong>Phương thức:</strong> ${sanitizeHTML(
-            paymentMethod === 'cash' ? 'Tiền mặt' :
-                paymentMethod === 'credit_card' ? 'Thẻ ngân hàng' :
-                    paymentMethod === 'bank_transfer' ? 'Chuyển khoản ngân hàng' :
-                        'Ví khách hàng'
-        )}</p>
-            ${paymentMethod === 'cash' ? `
+                paymentMethod === 'cash'
+                    ? 'Tiền mặt'
+                    : paymentMethod === 'credit_card'
+                      ? 'Thẻ ngân hàng'
+                      : paymentMethod === 'bank_transfer'
+                        ? 'Chuyển khoản ngân hàng'
+                        : 'Ví khách hàng',
+            )}</p>
+            ${
+                paymentMethod === 'cash'
+                    ? `
               <p class="text-right"><strong>Khách đưa:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) || 0))}</p>
               <p class="text-right"><strong>Tiền thối:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) - total || 0))}</p>
-            ` : paymentMethod === 'bank_transfer' && bankTransactionInfo.value ? `
+            `
+                    : paymentMethod === 'bank_transfer' && bankTransactionInfo.value
+                      ? `
               <p class="text-right"><strong>Mô tả:</strong> ${sanitizeHTML(bankTransactionInfo.value.description)}</p>
-            ` : ''}
+            `
+                      : ''
+            }
             <p class="text-right"><strong>Ghi chú:</strong> ${sanitizeHTML(form.orderNotes || 'Không có')}</p>
           </div>
           <div class="footer">
@@ -985,7 +995,7 @@ const submitNewCustomer = async () => {
     } catch (error) {
         errorMessage.value = error.response?.data?.errors?.server || 'Lỗi thêm khách hàng.';
         if (error.response?.data?.errors) {
-            Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
+            Object.values(error.response.data.errors).forEach((err) => (errorMessage.value += ` ${err}`));
         }
         autoHideMessage();
     }
@@ -1007,8 +1017,8 @@ const performLogout = async (closeShiftFlag = false) => {
                 window.location.href = '/cashier/login';
                 return;
             }
-            sessionForm.notes = sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)' ?
-                sessionForm.custom_note : sessionForm.selected_default_note;
+            sessionForm.notes =
+                sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)' ? sessionForm.custom_note : sessionForm.selected_default_note;
             await axios.post('/cashier/pos/session/close', {
                 closing_amount: Number(sessionForm.closing_amount) || 0,
                 notes: sessionForm.notes || '',
@@ -1095,12 +1105,12 @@ const refreshProducts = async () => {
 let isProcessingBarcode = false;
 
 const searchByBarcode = async (barcode) => {
-    if (isProcessingBarcode) return; 
+    if (isProcessingBarcode) return;
     isProcessingBarcode = true;
 
     try {
         const response = await axios.get(`/cashier/pos/product/barcode/${encodeURIComponent(barcode)}`, {
-            params: { t: Date.now() }
+            params: { t: Date.now() },
         });
         const product = response.data.product;
         if (product && product.stock_quantity > 0) {
@@ -1110,7 +1120,7 @@ const searchByBarcode = async (barcode) => {
                 autoHideMessage();
                 return;
             }
-            await addToCart(product); 
+            await addToCart(product);
             searchTerm.value = '';
             successMessage.value = `Đã thêm ${product.name} vào giỏ hàng!`;
             showSuccessModal.value = true;
@@ -1135,79 +1145,113 @@ const searchByBarcode = async (barcode) => {
 </script>
 
 <template>
-
     <Head title="Cashier" />
     <CashierLayout>
-        <POSKeyboardHandler @show-help="showHelp" @add-item="addItem" @focus-search="focusSearch"
-            @select-customer="toggleCustomerSidebar" @hold-order="holdOrder" @reprint-receipt="reprintReceipt"
-            @remove-last-cart-item="removeLastCartItem" @checkout="showPaymentModal" @logout="initiateLogout"
-            :on-checkout="showPayment" />
-        <div class="flex text-xs relative h-[650px]">
+        <POSKeyboardHandler
+            @show-help="showHelp"
+            @add-item="addItem"
+            @focus-search="focusSearch"
+            @select-customer="toggleCustomerSidebar"
+            @hold-order="holdOrder"
+            @reprint-receipt="reprintReceipt"
+            @remove-last-cart-item="removeLastCartItem"
+            @checkout="showPaymentModal"
+            @logout="initiateLogout"
+            :on-checkout="showPayment"
+        />
+        <div class="relative flex h-[650px] text-xs">
             <!-- Error Message -->
-            <div v-if="errorMessage"
-                class="fixed top-4 left-1/2 -translate-x-1/2 bg-red-100 text-red-700 px-4 py-2 rounded-lg shadow-lg text-sm z-50 flex items-center">
+            <div
+                v-if="errorMessage"
+                class="fixed top-4 left-1/2 z-50 flex -translate-x-1/2 items-center rounded-lg bg-red-100 px-4 py-2 text-sm text-red-700 shadow-lg"
+            >
                 {{ errorMessage }}
                 <button @click="errorMessage = ''" class="ml-2 text-red-900 hover:text-red-700">✖</button>
             </div>
             <!-- Success Message -->
-            <div v-if="showSuccessModal"
-                class="fixed top-4 left-1/2 -translate-x-1/2 bg-green-100 text-green-700 px-4 py-2 rounded-lg shadow-lg text-sm z-50 flex items-center">
+            <div
+                v-if="showSuccessModal"
+                class="fixed top-4 left-1/2 z-50 flex -translate-x-1/2 items-center rounded-lg bg-green-100 px-4 py-2 text-sm text-green-700 shadow-lg"
+            >
                 {{ successMessage }}
                 <button @click="showSuccessModal = false" class="ml-2 text-green-900 hover:text-green-700">✖</button>
             </div>
 
             <!-- Filter Sidebar -->
-            <div :class="{ 'translate-x-full': !showFilterSidebar, 'translate-x-0': showFilterSidebar }"
-                class="fixed inset-y-0 right-0 w-80 bg-white shadow-xl z-50 transform transition-transform duration-300">
-                <div class="p-3 h-full flex flex-col">
-                    <div class="flex justify-between items-center mb-2">
+            <div
+                :class="{ 'translate-x-full': !showFilterSidebar, 'translate-x-0': showFilterSidebar }"
+                class="fixed inset-y-0 right-0 z-50 w-80 transform bg-white shadow-xl transition-transform duration-300"
+            >
+                <div class="flex h-full flex-col p-3">
+                    <div class="mb-2 flex items-center justify-between">
                         <h3 class="text-sm font-semibold">Bộ lọc</h3>
-                        <button @click="toggleFilterSidebar"
-                            class="bg-gray-300 text-gray-800 py-1 px-2 rounded text-xs hover:bg-gray-400">Đóng</button>
+                        <button @click="toggleFilterSidebar" class="rounded bg-gray-300 px-2 py-1 text-xs text-gray-800 hover:bg-gray-400">
+                            Đóng
+                        </button>
                     </div>
                     <div class="flex-1 overflow-y-auto">
                         <div>
-                            <p class="text-[11px] text-gray-600 mt-0.5">Sản phẩm phù hợp: {{ filteredProducts.length }}
-                            </p>
+                            <p class="mt-0.5 text-[11px] text-gray-600">Sản phẩm phù hợp: {{ filteredProducts.length }}</p>
                             <div class="mb-2">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Danh mục:</label>
-                                <select v-model="selectedCategory"
-                                    class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option v-for="category in categories" :key="category" :value="category">{{ category
-                                    }}</option>
+                                <label class="mb-1 block text-xs font-medium text-gray-700">Danh mục:</label>
+                                <select
+                                    v-model="selectedCategory"
+                                    class="w-full rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                >
+                                    <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
                                 </select>
                             </div>
                             <div class="mb-2">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Khoảng giá (VND):</label>
+                                <label class="mb-1 block text-xs font-medium text-gray-700">Khoảng giá (VND):</label>
                                 <div class="flex space-x-2">
-                                    <input type="number" v-model="priceRange.min" placeholder="Từ"
-                                        class="w-1/2 p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                    <input type="number" v-model="priceRange.max" placeholder="Đến"
-                                        class="w-1/2 p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <input
+                                        type="number"
+                                        v-model="priceRange.min"
+                                        placeholder="Từ"
+                                        class="w-1/2 rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    />
+                                    <input
+                                        type="number"
+                                        v-model="priceRange.max"
+                                        placeholder="Đến"
+                                        class="w-1/2 rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    />
                                 </div>
                             </div>
                             <div class="mb-2">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Số lượng tồn:</label>
+                                <label class="mb-1 block text-xs font-medium text-gray-700">Số lượng tồn:</label>
                                 <div class="flex space-x-2">
-                                    <input type="number" v-model="stockRange.min" placeholder="Từ"
-                                        class="w-1/2 p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                    <input type="number" v-model="stockRange.max" placeholder="Đến"
-                                        class="w-1/2 p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <input
+                                        type="number"
+                                        v-model="stockRange.min"
+                                        placeholder="Từ"
+                                        class="w-1/2 rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    />
+                                    <input
+                                        type="number"
+                                        v-model="stockRange.max"
+                                        placeholder="Đến"
+                                        class="w-1/2 rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    />
                                 </div>
                             </div>
                             <div class="mb-2">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Sắp xếp theo:</label>
-                                <select v-model="sortBy"
-                                    class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <label class="mb-1 block text-xs font-medium text-gray-700">Sắp xếp theo:</label>
+                                <select
+                                    v-model="sortBy"
+                                    class="w-full rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                >
                                     <option value="none">Không sắp xếp</option>
                                     <option value="price">Giá</option>
                                     <option value="stock">Số lượng tồn</option>
                                 </select>
                             </div>
                             <div class="mb-2">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Thứ tự:</label>
-                                <select v-model="sortOrder"
-                                    class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <label class="mb-1 block text-xs font-medium text-gray-700">Thứ tự:</label>
+                                <select
+                                    v-model="sortOrder"
+                                    class="w-full rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                >
                                     <option value="asc">Tăng dần</option>
                                     <option value="desc">Giảm dần</option>
                                 </select>
@@ -1217,248 +1261,314 @@ const searchByBarcode = async (barcode) => {
                 </div>
             </div>
             <!-- Customer Sidebar -->
-            <div :class="{ 'translate-x-full': !showCustomerSidebar, 'translate-x-0': showCustomerSidebar }"
-                class="fixed inset-y-0 right-0 w-80 bg-white shadow-xl z-50 transform transition-transform duration-300">
-                <div class="p-3 h-full flex flex-col">
-                    <div class="flex justify-between items-center mb-2">
+            <div
+                :class="{ 'translate-x-full': !showCustomerSidebar, 'translate-x-0': showCustomerSidebar }"
+                class="fixed inset-y-0 right-0 z-50 w-80 transform bg-white shadow-xl transition-transform duration-300"
+            >
+                <div class="flex h-full flex-col p-3">
+                    <div class="mb-2 flex items-center justify-between">
                         <h3 class="text-sm font-semibold">Chọn khách hàng</h3>
-                        <button @click="toggleCustomerSidebar"
-                            class="bg-gray-300 text-gray-800 py-1 px-2 rounded text-xs hover:bg-gray-400">Đóng</button>
+                        <button @click="toggleCustomerSidebar" class="rounded bg-gray-300 px-2 py-1 text-xs text-gray-800 hover:bg-gray-400">
+                            Đóng
+                        </button>
                     </div>
                     <div class="mb-2">
-                        <input type="text" v-model="customerSearch"
+                        <input
+                            type="text"
+                            v-model="customerSearch"
                             placeholder="Tìm kiếm khách hàng (tên, email, số điện thoại)"
-                            class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            class="w-full rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
                     </div>
                     <div class="mb-2">
-                        <button @click="toggleAddCustomerForm"
-                            class="w-full bg-blue-100 text-blue-700 py-1 rounded text-xs hover:bg-blue-200">{{
-                                showAddCustomerForm ? 'Hủy thêm khách hàng' : 'Thêm khách hàng mới' }}</button>
+                        <button @click="toggleAddCustomerForm" class="w-full rounded bg-blue-100 py-1 text-xs text-blue-700 hover:bg-blue-200">
+                            {{ showAddCustomerForm ? 'Hủy thêm khách hàng' : 'Thêm khách hàng mới' }}
+                        </button>
                     </div>
                     <div v-if="showAddCustomerForm" class="mb-2">
                         <form class="space-y-2" @submit.prevent="submitNewCustomer">
                             <div>
-                                <label for="customer_name" class="block text-xs font-medium text-gray-700 mb-1">Tên
-                                    khách hàng <span class="text-red-500">*</span></label>
-                                <input type="text" id="customer_name" v-model="form.customer_name"
+                                <label for="customer_name" class="mb-1 block text-xs font-medium text-gray-700"
+                                    >Tên khách hàng <span class="text-red-500">*</span></label
+                                >
+                                <input
+                                    type="text"
+                                    id="customer_name"
+                                    v-model="form.customer_name"
                                     placeholder="Nhập tên khách hàng"
-                                    class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    :class="{ 'border-red-500': form.errors.customer_name }" />
+                                    class="w-full rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    :class="{ 'border-red-500': form.errors.customer_name }"
+                                />
                                 <InputError class="mt-0.5 text-[10px]" :message="form.errors.customer_name" />
                             </div>
                             <div>
-                                <label for="email" class="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                                <input type="email" id="email" v-model="form.email" placeholder="Nhập email"
-                                    class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    :class="{ 'border-red-500': form.errors.email }" />
+                                <label for="email" class="mb-1 block text-xs font-medium text-gray-700">Email</label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    v-model="form.email"
+                                    placeholder="Nhập email"
+                                    class="w-full rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    :class="{ 'border-red-500': form.errors.email }"
+                                />
                                 <InputError class="mt-0.5 text-[10px]" :message="form.errors.email" />
                             </div>
                             <div>
-                                <label for="phone" class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại
-                                    <span class="text-red-500">*</span></label>
-                                <input type="tel" id="phone" v-model="form.phone" placeholder="Nhập số điện thoại"
-                                    class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    :class="{ 'border-red-500': form.errors.phone }" />
+                                <label for="phone" class="mb-1 block text-xs font-medium text-gray-700"
+                                    >Số điện thoại <span class="text-red-500">*</span></label
+                                >
+                                <input
+                                    type="tel"
+                                    id="phone"
+                                    v-model="form.phone"
+                                    placeholder="Nhập số điện thoại"
+                                    class="w-full rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    :class="{ 'border-red-500': form.errors.phone }"
+                                />
                                 <InputError class="mt-0.5 text-[10px]" :message="form.errors.phone" />
                             </div>
                             <div>
-                                <label for="address" class="block text-xs font-medium text-gray-700 mb-1">Địa
-                                    chỉ</label>
-                                <input type="text" id="address" v-model="form.address"
+                                <label for="address" class="mb-1 block text-xs font-medium text-gray-700">Địa chỉ</label>
+                                <input
+                                    type="text"
+                                    id="address"
+                                    v-model="form.address"
                                     placeholder="Nhập địa chỉ khách hàng"
-                                    class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    :class="{ 'border-red-500': form.errors.address }" />
+                                    class="w-full rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    :class="{ 'border-red-500': form.errors.address }"
+                                />
                                 <InputError class="mt-0.5 text-[10px]" :message="form.errors.address" />
                             </div>
                             <div class="flex space-x-2">
-                                <button type="button" @click="toggleAddCustomerForm"
-                                    class="w-1/2 bg-gray-300 text-gray-700 py-1.5 rounded text-xs hover:bg-gray-400">Hủy</button>
-                                <button type="submit"
-                                    class="w-1/2 bg-blue-600 text-white py-1.5 rounded text-xs font-semibold hover:bg-blue-700"
-                                    :disabled="form.processing">Lưu khách hàng</button>
+                                <button
+                                    type="button"
+                                    @click="toggleAddCustomerForm"
+                                    class="w-1/2 rounded bg-gray-300 py-1.5 text-xs text-gray-700 hover:bg-gray-400"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    class="w-1/2 rounded bg-blue-600 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                                    :disabled="form.processing"
+                                >
+                                    Lưu khách hàng
+                                </button>
                             </div>
                         </form>
                     </div>
                     <div v-else class="flex-1 overflow-y-auto">
-                        <div v-for="customer in filteredCustomers" :key="customer.id"
-                            class="p-2 border-b border-gray-200 hover:bg-gray-100 cursor-pointer"
-                            @click="selectCustomer(customer)">
+                        <div
+                            v-for="customer in filteredCustomers"
+                            :key="customer.id"
+                            class="cursor-pointer border-b border-gray-200 p-2 hover:bg-gray-100"
+                            @click="selectCustomer(customer)"
+                        >
                             <p class="font-semibold">{{ customer.customer_name }}</p>
                             <p v-if="customer.phone" class="text-[10px] text-gray-600">{{ customer.phone }}</p>
                             <p v-if="customer.address" class="text-[10px] text-gray-600">{{ customer.address }}</p>
                             <p class="text-[10px] text-gray-600">Ví: {{ formatCurrency(customer.wallet) }}</p>
                         </div>
-                        <div v-if="filteredCustomers.length === 0" class="text-center text-gray-500 py-2 text-[11px]">
-                            Không tìm thấy khách hàng</div>
+                        <div v-if="filteredCustomers.length === 0" class="py-2 text-center text-[11px] text-gray-500">Không tìm thấy khách hàng</div>
                     </div>
                 </div>
             </div>
             <!-- Report Sidebar -->
-            <div :class="{ 'translate-x-full': !showReportSidebar, 'translate-x-0': showReportSidebar }"
-                class="fixed inset-y-0 right-0 w-80 bg-gradient-to-b from-blue-50 to-white shadow-2xl z-50 transform transition-transform duration-300 rounded-l-lg">
-                <div class="p-4 h-full flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-base font-bold text-gray-800 flex items-center">
-                            <FileText class="w-5 h-5 mr-2 text-blue-600" />
+            <div
+                :class="{ 'translate-x-full': !showReportSidebar, 'translate-x-0': showReportSidebar }"
+                class="fixed inset-y-0 right-0 z-50 w-80 transform rounded-l-lg bg-gradient-to-b from-blue-50 to-white shadow-2xl transition-transform duration-300"
+            >
+                <div class="flex h-full flex-col p-4">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h3 class="flex items-center text-base font-bold text-gray-800">
+                            <FileText class="mr-2 h-5 w-5 text-blue-600" />
                             Báo cáo ca làm việc
                         </h3>
-                        <button @click="toggleReportSidebar"
-                            class="bg-gray-200 text-gray-800 py-1 px-2 rounded text-xs hover:bg-gray-300 transition">Đóng</button>
+                        <button @click="toggleReportSidebar" class="rounded bg-gray-200 px-2 py-1 text-xs text-gray-800 transition hover:bg-gray-300">
+                            Đóng
+                        </button>
                     </div>
-                    <div class="flex-1 overflow-y-auto space-y-4">
-                        <div v-if="!hasActiveSession"
-                            class="space-y-3 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                    <div class="flex-1 space-y-4 overflow-y-auto">
+                        <div v-if="!hasActiveSession" class="space-y-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                             <h4 class="text-xs font-semibold text-gray-800">Mở ca mới</h4>
                             <form @submit.prevent="openShift">
                                 <div class="mb-2">
-                                    <label for="opening_amount" class="block text-xs font-medium text-gray-700 mb-1">Số
-                                        tiền mở ca (VND)</label>
-                                    <input type="number" v-model.number="sessionForm.opening_amount"
-                                        class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                        id="opening_amount" min="0" required />
-                                    <InputError class="mt-0.5 text-[10px]"
-                                        :message="sessionForm.errors.opening_amount" />
+                                    <label for="opening_amount" class="mb-1 block text-xs font-medium text-gray-700">Số tiền mở ca (VND)</label>
+                                    <input
+                                        type="number"
+                                        v-model.number="sessionForm.opening_amount"
+                                        class="w-full rounded border border-gray-300 bg-white p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        id="opening_amount"
+                                        min="0"
+                                        required
+                                    />
+                                    <InputError class="mt-0.5 text-[10px]" :message="sessionForm.errors.opening_amount" />
                                 </div>
                                 <div class="mb-2">
-                                    <label for="notes" class="block text-xs font-medium text-gray-700 mb-1">Ghi
-                                        chú</label>
-                                    <select v-model="sessionForm.selected_default_note"
-                                        class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                        id="notes_select">
+                                    <label for="notes" class="mb-1 block text-xs font-medium text-gray-700">Ghi chú</label>
+                                    <select
+                                        v-model="sessionForm.selected_default_note"
+                                        class="w-full rounded border border-gray-300 bg-white p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        id="notes_select"
+                                    >
                                         <option value="" disabled>Chọn ghi chú</option>
-                                        <option v-for="note in defaultNotes" :key="note" :value="note">{{ note }}
-                                        </option>
+                                        <option v-for="note in defaultNotes" :key="note" :value="note">{{ note }}</option>
                                     </select>
-                                    <textarea v-if="sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)'"
+                                    <textarea
+                                        v-if="sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)'"
                                         v-model="sessionForm.custom_note"
-                                        class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white mt-1"
-                                        id="notes_custom" rows="3" placeholder="Nhập ghi chú tùy chỉnh"></textarea>
+                                        class="mt-1 w-full rounded border border-gray-300 bg-white p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        id="notes_custom"
+                                        rows="3"
+                                        placeholder="Nhập ghi chú tùy chỉnh"
+                                    ></textarea>
                                 </div>
-                                <button type="submit"
-                                    class="w-full bg-green-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition shadow-md"
-                                    :disabled="isLoadingSessionAction || sessionForm.processing">
-                                    <Loader2 v-if="isLoadingSessionAction || sessionForm.processing"
-                                        class="animate-spin h-4 w-4 inline-block mr-1" />
+                                <button
+                                    type="submit"
+                                    class="w-full rounded-lg bg-green-600 py-2 text-xs font-semibold text-white shadow-md transition hover:bg-green-700"
+                                    :disabled="isLoadingSessionAction || sessionForm.processing"
+                                >
+                                    <Loader2 v-if="isLoadingSessionAction || sessionForm.processing" class="mr-1 inline-block h-4 w-4 animate-spin" />
                                     Mở Ca
                                 </button>
                             </form>
                         </div>
-                        <div v-else class="space-y-3 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                        <div v-else class="space-y-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                             <h4 class="text-xs font-semibold text-gray-800">Thông tin ca hiện tại</h4>
-                            <div class="text-[11px] space-y-1">
+                            <div class="space-y-1 text-[11px]">
                                 <p><strong>Ca làm việc:</strong> {{ activeShift?.shift_name || 'Ca hiện tại' }}</p>
                                 <p><strong>Bắt đầu:</strong> {{ formattedOpenedAt }}</p>
                             </div>
-                            <h4 class="text-xs font-semibold text-gray-800 mt-3">Đóng ca</h4>
+                            <h4 class="mt-3 text-xs font-semibold text-gray-800">Đóng ca</h4>
                             <form @submit.prevent="closeShift">
                                 <div class="mb-2">
-                                    <label for="closing_amount" class="block text-xs font-medium text-gray-700 mb-1">Số
-                                        tiền đóng ca (VND)</label>
-                                    <input type="number" v-model.number="sessionForm.closing_amount"
-                                        class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                        id="closing_amount" min="0" required />
-                                    <InputError class="mt-0.5 text-[10px]"
-                                        :message="sessionForm.errors.closing_amount" />
+                                    <label for="closing_amount" class="mb-1 block text-xs font-medium text-gray-700">Số tiền đóng ca (VND)</label>
+                                    <input
+                                        type="number"
+                                        v-model.number="sessionForm.closing_amount"
+                                        class="w-full rounded border border-gray-300 bg-white p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        id="closing_amount"
+                                        min="0"
+                                        required
+                                    />
+                                    <InputError class="mt-0.5 text-[10px]" :message="sessionForm.errors.closing_amount" />
                                 </div>
                                 <div class="mb-2">
-                                    <label for="notes" class="block text-xs font-medium text-gray-700 mb-1">Ghi
-                                        chú</label>
-                                    <select v-model="sessionForm.selected_default_note"
-                                        class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                        id="notes_select">
+                                    <label for="notes" class="mb-1 block text-xs font-medium text-gray-700">Ghi chú</label>
+                                    <select
+                                        v-model="sessionForm.selected_default_note"
+                                        class="w-full rounded border border-gray-300 bg-white p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        id="notes_select"
+                                    >
                                         <option value="" disabled>Chọn ghi chú</option>
-                                        <option v-for="note in defaultNotes" :key="note" :value="note">{{ note }}
-                                        </option>
+                                        <option v-for="note in defaultNotes" :key="note" :value="note">{{ note }}</option>
                                     </select>
-                                    <textarea v-if="sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)'"
+                                    <textarea
+                                        v-if="sessionForm.selected_default_note === 'Khác (vui lòng ghi rõ)'"
                                         v-model="sessionForm.custom_note"
-                                        class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white mt-1"
-                                        id="notes_custom" rows="3" placeholder="Nhập ghi chú tùy chỉnh"></textarea>
+                                        class="mt-1 w-full rounded border border-gray-300 bg-white p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        id="notes_custom"
+                                        rows="3"
+                                        placeholder="Nhập ghi chú tùy chỉnh"
+                                    ></textarea>
                                 </div>
-                                <button type="submit"
-                                    class="w-full bg-red-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-red-700 transition shadow-md"
-                                    :disabled="isLoadingSessionAction || sessionForm.processing">
-                                    <Loader2 v-if="isLoadingSessionAction || sessionForm.processing"
-                                        class="animate-spin h-4 w-4 inline-block mr-1" />
+                                <button
+                                    type="submit"
+                                    class="w-full rounded-lg bg-red-600 py-2 text-xs font-semibold text-white shadow-md transition hover:bg-red-700"
+                                    :disabled="isLoadingSessionAction || sessionForm.processing"
+                                >
+                                    <Loader2 v-if="isLoadingSessionAction || sessionForm.processing" class="mr-1 inline-block h-4 w-4 animate-spin" />
                                     Đóng Ca
                                 </button>
                             </form>
                         </div>
-                        <div v-if="isLoadingReport" class="text-center text-gray-500 py-4">
-                            <Loader2 class="animate-spin h-5 w-5 mx-auto text-blue-500" />
+                        <div v-if="isLoadingReport" class="py-4 text-center text-gray-500">
+                            <Loader2 class="mx-auto h-5 w-5 animate-spin text-blue-500" />
                             Đang tải báo cáo...
                         </div>
                     </div>
                 </div>
             </div>
             <!-- Main Content -->
-            <div class="w-2/3 bg-white flex flex-col h-full">
-                <div class="p-1.5 border-b border-gray-200">
-                    <div class="flex justify-between items-center mb-1">
+            <div class="flex h-full w-2/3 flex-col bg-white">
+                <div class="border-b border-gray-200 p-1.5">
+                    <div class="mb-1 flex items-center justify-between">
                         <div class="flex items-center space-x-1">
                             <!-- Nút mở báo cáo -->
-                            <button @click="toggleReportSidebar"
-                                class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs hover:bg-gray-300"
-                                title="Xem báo cáo ca">
-                                <FileText class="w-4 h-4" />
+                            <button
+                                @click="toggleReportSidebar"
+                                class="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-300"
+                                title="Xem báo cáo ca"
+                            >
+                                <FileText class="h-4 w-4" />
                             </button>
                             <!-- Nút mở bộ lọc -->
-                            <button @click="toggleFilterSidebar"
-                                class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs hover:bg-gray-300"
-                                title="Bộ lọc báo cáo">
-                                <MenuIcon class="w-4 h-4" />
+                            <button
+                                @click="toggleFilterSidebar"
+                                class="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-300"
+                                title="Bộ lọc báo cáo"
+                            >
+                                <MenuIcon class="h-4 w-4" />
                             </button>
-                            <div class="flex justify-between items-center mt-1 text-[11px] text-gray-600">
-                                <button v-if="
-                                    searchTerm ||
-                                    selectedCategory !== 'Tất cả' ||
-                                    priceRange.min ||
-                                    priceRange.max ||
-                                    stockRange.min ||
-                                    stockRange.max ||
-                                    sortBy !== 'none'
-                                " @click="resetFilters" class="text-blue-500 hover:underline focus:outline-none">
-                                    <X class="w-4 h-4 inline-block mr-1" />
+                            <div class="mt-1 flex items-center justify-between text-[11px] text-gray-600">
+                                <button
+                                    v-if="
+                                        searchTerm ||
+                                        selectedCategory !== 'Tất cả' ||
+                                        priceRange.min ||
+                                        priceRange.max ||
+                                        stockRange.min ||
+                                        stockRange.max ||
+                                        sortBy !== 'none'
+                                    "
+                                    @click="resetFilters"
+                                    class="text-blue-500 hover:underline focus:outline-none"
+                                >
+                                    <X class="mr-1 inline-block h-4 w-4" />
                                 </button>
                             </div>
                             <h2 class="text-base font-semibold">Sản phẩm</h2>
                         </div>
                         <div v-if="activeShift" class="text-[11px] text-gray-600">
-                            <p><strong>Ca làm việc:</strong> {{ activeShift.shift_name }} (Bắt đầu: {{ formattedOpenedAt
-                            }})</p>
+                            <p><strong>Ca làm việc:</strong> {{ activeShift.shift_name }} (Bắt đầu: {{ formattedOpenedAt }})</p>
                         </div>
                     </div>
                     <div class="mb-1">
-                        <input type="text" v-model="searchTerm" placeholder="Tìm kiếm sản phẩm hoặc quét mã vạch (F3)"
-                            class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        <input
+                            type="text"
+                            v-model="searchTerm"
+                            placeholder="Tìm kiếm sản phẩm hoặc quét mã vạch (F3)"
+                            class="w-full rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             @keydown.enter.prevent="searchByBarcode(cleanBarcode(searchTerm))"
-                            @input="console.log('searchTerm:', searchTerm.value)" />
+                            @input="console.log('searchTerm:', searchTerm.value)"
+                        />
                     </div>
                 </div>
                 <div class="flex-1 overflow-y-auto p-2">
-                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-                        <div v-for="product in filteredProducts" :key="product.id"
-                            class="relative bg-gray-50 p-1.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex flex-col items-center text-center cursor-pointer hover:scale-105 active:scale-95"
-                            :class="{ 'opacity-60 cursor-not-allowed': product.stock === 0 }"
-                            @click="product.stock > 0 && addToCart(product)">
-                            <button @click.stop="openProductModal(product)"
-                                class="absolute top-1 right-1 hover:bg-gray-100 z-10 shadow">
-                                <BadgeInfo class="w-3 h-3" />
+                    <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+                        <div
+                            v-for="product in filteredProducts"
+                            :key="product.id"
+                            class="relative flex cursor-pointer flex-col items-center rounded-lg bg-gray-50 p-1.5 text-center shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95"
+                            :class="{ 'cursor-not-allowed opacity-60': product.stock === 0 }"
+                            @click="product.stock > 0 && addToCart(product)"
+                        >
+                            <button @click.stop="openProductModal(product)" class="absolute top-1 right-1 z-10 shadow hover:bg-gray-100">
+                                <BadgeInfo class="h-3 w-3" />
                             </button>
-                            <img :src="product.image" :alt="product.name" class="w-12 h-12 object-cover rounded mb-1"
-                                @error="handleImageError($event, product)" />
-                            <h3 class="text-[10px] font-medium truncate w-full">{{ product.name }}</h3>
-                            <p v-if="product.stock <= 10 && product.stock > 0"
-                                class="text-orange-500 text-[10px] font-semibold mt-0.5">
+                            <img
+                                :src="product.image"
+                                :alt="product.name"
+                                class="mb-1 h-12 w-12 rounded object-cover"
+                                @error="handleImageError($event, product)"
+                            />
+                            <h3 class="w-full truncate text-[10px] font-medium">{{ product.name }}</h3>
+                            <p v-if="product.stock <= 10 && product.stock > 0" class="mt-0.5 text-[10px] font-semibold text-orange-500">
                                 Tồn: {{ product.stock }}
                             </p>
-                            <p v-else-if="product.stock === 0" class="text-red-500 text-[10px] font-semibold mt-0.5">
-                                Hết hàng
-                            </p>
-                            <p v-else class="text-gray-500 text-[10px] mt-0.5">
-                                Tồn: {{ product.stock }}
-                            </p>
-                            <p class="text-[10px] mt-0.5">
+                            <p v-else-if="product.stock === 0" class="mt-0.5 text-[10px] font-semibold text-red-500">Hết hàng</p>
+                            <p v-else class="mt-0.5 text-[10px] text-gray-500">Tồn: {{ product.stock }}</p>
+                            <p class="mt-0.5 text-[10px]">
                                 {{ product.price != null ? formatCurrency(product.price) : 'Giá không xác định' }}
                             </p>
                         </div>
@@ -1466,119 +1576,131 @@ const searchByBarcode = async (barcode) => {
                 </div>
             </div>
             <!-- Cart Section -->
-            <div class="w-1/3 bg-white flex flex-col h-full">
-                <div class="p-2 border-b border-gray-200">
-                    <div class="flex justify-between items-center">
+            <div class="flex h-full w-1/3 flex-col bg-white">
+                <div class="border-b border-gray-200 p-2">
+                    <div class="flex items-center justify-between">
                         <h2 class="text-base font-semibold">Giỏ hàng</h2>
                         <div class="flex space-x-1">
-                            <button class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs hover:bg-gray-300"
-                                @click="newOrder">
+                            <button class="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-300" @click="newOrder">
                                 Đơn mới (F9)
                             </button>
-                            <button class="bg-yellow-500 text-white px-2 py-0.5 rounded text-xs hover:bg-yellow-600"
-                                @click="holdOrder">
+                            <button class="rounded bg-yellow-500 px-2 py-0.5 text-xs text-white hover:bg-yellow-600" @click="holdOrder">
                                 Lưu đơn (F6)
                             </button>
                         </div>
                     </div>
                 </div>
-                <div class="p-2 border-b border-gray-200">
-                    <h3 class="text-xs font-semibold mb-1">Đơn hàng chờ:</h3>
-                    <div class="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
-                        <div v-if="pendingOrders.length === 0"
-                            class="relative bg-gray-100 p-1.5 rounded text-[10px] border border-gray-200">
+                <div class="border-b border-gray-200 p-2">
+                    <h3 class="mb-1 text-xs font-semibold">Đơn hàng chờ:</h3>
+                    <div class="flex max-h-16 flex-wrap gap-1 overflow-y-auto">
+                        <div v-if="pendingOrders.length === 0" class="relative rounded border border-gray-200 bg-gray-100 p-1.5 text-[10px]">
                             Không có đơn hàng chờ
                         </div>
-                        <div v-for="order in pendingOrders" :key="order.id"
-                            class="relative bg-gray-100 p-2 rounded-lg text-[10px] border border-gray-200 hover:bg-gray-200 cursor-pointer shadow-sm transition-all"
-                            @click="restoreOrder(order.id)">
-                            <div class="flex justify-between items-center">
+                        <div
+                            v-for="order in pendingOrders"
+                            :key="order.id"
+                            class="relative cursor-pointer rounded-lg border border-gray-200 bg-gray-100 p-2 text-[10px] shadow-sm transition-all hover:bg-gray-200"
+                            @click="restoreOrder(order.id)"
+                        >
+                            <div class="flex items-center justify-between">
                                 <span class="font-semibold">Đơn {{ order.id }}</span>
-                                <button @click.stop="removeOrder(order.id)"
-                                    class="text-red-600 hover:text-red-800 text-xs">
-                                    <X class="w-3 h-3" />
+                                <button @click.stop="removeOrder(order.id)" class="text-xs text-red-600 hover:text-red-800">
+                                    <X class="h-3 w-3" />
                                 </button>
                             </div>
                             <p>{{ order.cart.length }} sản phẩm</p>
-                            <p>{{formatCurrency(order.cart.reduce((sum, item) => sum + (item.price * item.quantity),
-                                0))}}</p>
+                            <p>{{ formatCurrency(order.cart.reduce((sum, item) => sum + item.price * item.quantity, 0)) }}</p>
                             <p class="text-gray-500">{{ formatDateTime(order.timestamp) }}</p>
                         </div>
                     </div>
                 </div>
-                <div class="flex-1 p-2 overflow-y-auto">
-                    <div v-if="cart.length === 0" class="text-gray-500 text-center py-4 text-xs">
-                        Giỏ hàng trống. Vui lòng thêm sản phẩm (F2)!
-                    </div>
+                <div class="flex-1 overflow-y-auto p-2">
+                    <div v-if="cart.length === 0" class="py-4 text-center text-xs text-gray-500">Giỏ hàng trống. Vui lòng thêm sản phẩm (F2)!</div>
                     <div v-else>
-                        <div v-for="item in cart" :key="item.id"
-                            class="flex items-center justify-between p-2 border-b border-gray-200">
+                        <div v-for="item in cart" :key="item.id" class="flex items-center justify-between border-b border-gray-200 p-2">
                             <div class="flex-1">
                                 <p class="text-xs font-medium">{{ item.name }}</p>
                                 <p class="text-[10px] text-gray-600">
-                                    {{ item.price != null ? formatCurrency(item.price) : 'Giá không xác định' }} x {{
-                                        item.quantity }}
+                                    {{ item.price != null ? formatCurrency(item.price) : 'Giá không xác định' }} x {{ item.quantity }}
                                 </p>
                             </div>
                             <div class="flex items-center space-x-1">
-                                <input type="number" v-model.number="item.quantity" min="1"
-                                    :max="products.find(p => p.id === item.id)?.stock || 0"
-                                    class="w-12 p-1 border border-gray-300 rounded text-xs"
-                                    @input="updateQuantity(item.id, item.quantity)" />
-                                <button @click="removeFromCart(item.id)"
-                                    class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs hover:bg-red-200">
+                                <input
+                                    type="number"
+                                    v-model.number="item.quantity"
+                                    min="1"
+                                    :max="products.find((p) => p.id === item.id)?.stock || 0"
+                                    class="w-12 rounded border border-gray-300 p-1 text-xs"
+                                    @input="updateQuantity(item.id, item.quantity)"
+                                />
+                                <button @click="removeFromCart(item.id)" class="rounded bg-red-100 px-2 py-0.5 text-xs text-red-700 hover:bg-red-200">
                                     Xóa
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="p-2 border-t border-gray-200">
+                <div class="border-t border-gray-200 p-2">
                     <form @submit.prevent="showPayment">
                         <div class="mb-1">
-                            <label class="block text-[10px] font-medium text-gray-700 mb-0.5">
-                                Khách hàng (F4):
-                            </label>
+                            <label class="mb-0.5 block text-[10px] font-medium text-gray-700"> Khách hàng (F4): </label>
                             <div class="flex items-center space-x-1">
-                                <button type="button" @click="toggleCustomerSidebar"
-                                    class="w-full bg-gray-100 text-gray-700 py-1 rounded border border-gray-300 hover:bg-gray-200 text-xs text-left">
+                                <button
+                                    type="button"
+                                    @click="toggleCustomerSidebar"
+                                    class="w-full rounded border border-gray-300 bg-gray-100 py-1 text-left text-xs text-gray-700 hover:bg-gray-200"
+                                >
                                     {{ selectedCustomer ? selectedCustomer.customer_name : 'Chọn khách hàng' }}
                                 </button>
-                                <button type="button" v-if="selectedCustomer" @click="clearCustomer"
-                                    class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs hover:bg-red-200">
+                                <button
+                                    type="button"
+                                    v-if="selectedCustomer"
+                                    @click="clearCustomer"
+                                    class="rounded bg-red-100 px-2 py-0.5 text-xs text-red-700 hover:bg-red-200"
+                                >
                                     Xóa
                                 </button>
                             </div>
                         </div>
-                        <div class="flex justify-between items-center mb-1">
+                        <div class="mb-1 flex items-center justify-between">
                             <span class="text-xs font-semibold text-gray-700">Tổng cộng:</span>
                             <span class="text-base font-bold text-gray-800">
                                 {{ formatCurrency(cartTotal) }}
                             </span>
                         </div>
-                        <button type="submit"
-                            class="w-full bg-green-600 text-white py-1.5 rounded text-xs font-semibold hover:bg-green-700"
-                            :disabled="form.processing || cart.length === 0">
-                            <Loader2 v-if="form.processing" class="animate-spin h-4 w-4 inline-block mr-1" />
+                        <button
+                            type="submit"
+                            class="w-full rounded bg-green-600 py-1.5 text-xs font-semibold text-white hover:bg-green-700"
+                            :disabled="form.processing || cart.length === 0"
+                        >
+                            <Loader2 v-if="form.processing" class="mr-1 inline-block h-4 w-4 animate-spin" />
                             Thanh toán (F8)
                         </button>
                     </form>
                 </div>
             </div>
             <!-- Product Modal -->
-            <div v-if="selectedProduct"
-                class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/40 transition-opacity duration-300">
+            <div
+                v-if="selectedProduct"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md transition-opacity duration-300"
+            >
                 <div
-                    class="relative bg-white/80 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl p-6 max-w-md w-[90%] text-gray-800 transform transition-all duration-300 hover:scale-[1.02] modal-content">
-                    <button @click="selectedProduct = null"
-                        class="absolute top-4 right-4 text-gray-600 hover:text-gray-900 bg-white/50 rounded-full p-2 hover:bg-white/80 transition-all duration-200">
-                        <X class="w-5 h-5" />
+                    class="modal-content relative w-[90%] max-w-md transform rounded-2xl border border-white/20 bg-white/80 p-6 text-gray-800 shadow-2xl backdrop-blur-lg transition-all duration-300 hover:scale-[1.02]"
+                >
+                    <button
+                        @click="selectedProduct = null"
+                        class="absolute top-4 right-4 rounded-full bg-white/50 p-2 text-gray-600 transition-all duration-200 hover:bg-white/80 hover:text-gray-900"
+                    >
+                        <X class="h-5 w-5" />
                     </button>
                     <div class="flex flex-col items-center">
-                        <img :src="selectedProduct.image" :alt="selectedProduct.name"
-                            class="w-40 h-40 object-cover rounded-lg mb-4 shadow-md"
-                            @error="handleImageError($event, selectedProduct)" />
-                        <h3 class="text-xl font-bold text-gray-900 mb-3 text-center">{{ selectedProduct.name }}</h3>
+                        <img
+                            :src="selectedProduct.image"
+                            :alt="selectedProduct.name"
+                            class="mb-4 h-40 w-40 rounded-lg object-cover shadow-md"
+                            @error="handleImageError($event, selectedProduct)"
+                        />
+                        <h3 class="mb-3 text-center text-xl font-bold text-gray-900">{{ selectedProduct.name }}</h3>
                         <div class="w-full space-y-2 text-sm">
                             <div class="flex justify-between">
                                 <span class="font-semibold">Danh mục:</span>
@@ -1593,31 +1715,39 @@ const searchByBarcode = async (barcode) => {
                                 <span>{{ selectedProduct.stock }}</span>
                             </div>
                         </div>
-                        <button @click="selectedProduct = null"
-                            class="mt-6 w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all duration-200 shadow-md">
+                        <button
+                            @click="selectedProduct = null"
+                            class="mt-6 w-full rounded-lg bg-blue-600 py-2 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-700"
+                        >
                             Đóng
                         </button>
                     </div>
                 </div>
             </div>
-            <div v-if="showPaymentModal"
-                class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg bg-black/50 transition-opacity duration-300">
+            <div
+                v-if="showPaymentModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-lg transition-opacity duration-300"
+            >
                 <div
-                    class="relative bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl p-8 max-w-3xl w-[95%] text-gray-800 transform transition-all duration-300 modal-content">
-                    <button @click="showPaymentModal = false"
-                        class="absolute top-4 right-4 text-gray-600 hover:text-red-600 text-2xl font-bold transition-all duration-200">
+                    class="modal-content relative w-[95%] max-w-3xl transform rounded-2xl border border-gray-200 bg-white/90 p-8 text-gray-800 shadow-2xl backdrop-blur-xl transition-all duration-300"
+                >
+                    <button
+                        @click="showPaymentModal = false"
+                        class="absolute top-4 right-4 text-2xl font-bold text-gray-600 transition-all duration-200 hover:text-red-600"
+                    >
                         &times;
                     </button>
-                    <div class="space-y-6 max-h-[80vh] overflow-y-auto">
+                    <div class="max-h-[80vh] space-y-6 overflow-y-auto">
                         <!-- Header -->
-                        <div class="flex justify-between items-center mb-4">
+                        <div class="mb-4 flex items-center justify-between">
                             <h2 class="text-2xl font-bold text-gray-900">Xác nhận thanh toán</h2>
-                            <span class="text-sm text-gray-600">Nhân viên: <strong>{{ props.auth?.user?.name || 'N/A'
-                            }}</strong></span>
+                            <span class="text-sm text-gray-600"
+                                >Nhân viên: <strong>{{ props.auth?.user?.name || 'N/A' }}</strong></span
+                            >
                         </div>
                         <!-- Bill Information in Rectangular Frame -->
-                        <div class="bg-gray-50 border border-gray-300 rounded-lg p-6 shadow-sm">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">Hóa đơn bán hàng</h3>
+                        <div class="rounded-lg border border-gray-300 bg-gray-50 p-6 shadow-sm">
+                            <h3 class="mb-4 text-center text-lg font-semibold text-gray-800">Hóa đơn bán hàng</h3>
                             <div class="space-y-3 text-sm">
                                 <div class="flex justify-between">
                                     <span><strong>Mã hóa đơn:</strong></span>
@@ -1634,15 +1764,15 @@ const searchByBarcode = async (barcode) => {
                             </div>
                             <!-- Product List -->
                             <div class="mt-4">
-                                <h4 class="font-semibold text-sm mb-2">Danh sách sản phẩm:</h4>
+                                <h4 class="mb-2 text-sm font-semibold">Danh sách sản phẩm:</h4>
                                 <div class="border-t border-b border-gray-200 py-2">
                                     <table class="w-full text-sm">
                                         <thead>
                                             <tr class="bg-gray-100 text-left">
                                                 <th class="p-3 font-semibold">Tên hàng</th>
-                                                <th class="p-3 font-semibold text-center">Số lượng</th>
-                                                <th class="p-3 font-semibold text-right">Đơn giá</th>
-                                                <th class="p-3 font-semibold text-right">Thành tiền</th>
+                                                <th class="p-3 text-center font-semibold">Số lượng</th>
+                                                <th class="p-3 text-right font-semibold">Đơn giá</th>
+                                                <th class="p-3 text-right font-semibold">Thành tiền</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1653,15 +1783,14 @@ const searchByBarcode = async (barcode) => {
                                                 <td class="p-3">{{ item.name }}</td>
                                                 <td class="p-3 text-center">{{ item.quantity }}</td>
                                                 <td class="p-3 text-right">{{ formatCurrency(item.price) }}</td>
-                                                <td class="p-3 text-right">{{ formatCurrency(item.price * item.quantity)
-                                                }}</td>
+                                                <td class="p-3 text-right">{{ formatCurrency(item.price * item.quantity) }}</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                             <!-- Totals -->
-                            <div class="mt-4 text-right space-y-2 text-sm">
+                            <div class="mt-4 space-y-2 text-right text-sm">
                                 <div class="flex justify-between">
                                     <span class="font-semibold">Tổng tiền hàng:</span>
                                     <span>{{ formatCurrency(cartSubtotal) }}</span>
@@ -1679,36 +1808,45 @@ const searchByBarcode = async (barcode) => {
                         <!-- Payment Method -->
                         <div class="space-y-3 text-sm">
                             <label class="block font-semibold">Phương thức thanh toán:</label>
-                            <select v-model="form.paymentMethod"
-                                class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                                :class="{ 'border-red-500': form.errors.paymentMethod }">
+                            <select
+                                v-model="form.paymentMethod"
+                                class="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                :class="{ 'border-red-500': form.errors.paymentMethod }"
+                            >
                                 <option value="cash">Tiền mặt</option>
                                 <option value="credit_card">Thẻ ngân hàng</option>
                                 <option value="bank_transfer">Chuyển khoản ngân hàng</option>
-                                <option value="wallet"
-                                    :disabled="!selectedCustomer || selectedCustomer.wallet < cartTotal">
-                                    Ví khách hàng
-                                </option>
+                                <option value="wallet" :disabled="!selectedCustomer || selectedCustomer.wallet < cartTotal">Ví khách hàng</option>
                             </select>
                             <InputError class="mt-1 text-[10px]" :message="form.errors.paymentMethod" />
                         </div>
                         <!-- Cash Payment -->
                         <div v-if="form.paymentMethod === 'cash'" class="space-y-3 text-sm">
                             <label class="block font-semibold">Khách đưa:</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <button v-for="amount in quickAmounts" :key="amount" @click="setAmountReceived(amount)"
-                                    class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs hover:bg-blue-200 transition-all shadow-sm">
+                            <div class="mb-2 flex flex-wrap gap-2">
+                                <button
+                                    v-for="amount in quickAmounts"
+                                    :key="amount"
+                                    @click="setAmountReceived(amount)"
+                                    class="rounded-lg bg-blue-100 px-3 py-1.5 text-xs text-blue-700 shadow-sm transition-all hover:bg-blue-200"
+                                >
                                     {{ formatCurrency(amount) }}
                                 </button>
-                                <button @click="setExactAmount"
-                                    class="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs hover:bg-green-200 transition-all shadow-sm">
+                                <button
+                                    @click="setExactAmount"
+                                    class="rounded-lg bg-green-100 px-3 py-1.5 text-xs text-green-700 shadow-sm transition-all hover:bg-green-200"
+                                >
                                     Chính xác
                                 </button>
                             </div>
-                            <input type="number" v-model.number="form.amountReceived"
-                                class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                                min="0" placeholder="Nhập số tiền khách đưa"
-                                :class="{ 'border-red-500': form.errors.amountReceived }" />
+                            <input
+                                type="number"
+                                v-model.number="form.amountReceived"
+                                class="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                min="0"
+                                placeholder="Nhập số tiền khách đưa"
+                                :class="{ 'border-red-500': form.errors.amountReceived }"
+                            />
                             <InputError class="mt-1 text-[10px]" :message="form.errors.amountReceived" />
                             <div class="flex justify-between text-sm">
                                 <span class="font-semibold">Tiền thối lại:</span>
@@ -1717,23 +1855,24 @@ const searchByBarcode = async (barcode) => {
                         </div>
                         <!-- Bank QR Code -->
                         <div v-if="form.paymentMethod === 'bank_transfer'" class="space-y-3 text-sm">
-                            <div class="flex justify-between items-center">
+                            <div class="flex items-center justify-between">
                                 <label class="block font-semibold">Thanh toán ngân hàng:</label>
-                                <button @click="generateBankQR"
-                                    class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition-all shadow-sm"
-                                    :disabled="isLoadingBankQR">
-                                    <Loader2 v-if="isLoadingBankQR" class="animate-spin h-4 w-4 inline-block mr-1" />
+                                <button
+                                    @click="generateBankQR"
+                                    class="rounded-lg bg-blue-600 px-4 py-1.5 text-xs text-white shadow-sm transition-all hover:bg-blue-700"
+                                    :disabled="isLoadingBankQR"
+                                >
+                                    <Loader2 v-if="isLoadingBankQR" class="mr-1 inline-block h-4 w-4 animate-spin" />
                                     {{ bankQRCode ? 'Tạo lại mã QR' : 'Tạo mã QR ngân hàng' }}
                                 </button>
                             </div>
                             <div v-if="isLoadingBankQR" class="text-center">
-                                <Loader2 class="animate-spin h-6 w-6 mx-auto text-blue-500" />
+                                <Loader2 class="mx-auto h-6 w-6 animate-spin text-blue-500" />
                                 <p class="mt-2">Đang tạo mã QR...</p>
                             </div>
-                            <div v-else-if="bankQRCode" class="flex flex-col md:flex-row gap-4">
+                            <div v-else-if="bankQRCode" class="flex flex-col gap-4 md:flex-row">
                                 <div class="text-center">
-                                    <img :src="bankQRCode" alt="Mã QR ngân hàng"
-                                        class="mx-auto w-48 h-48 rounded-lg shadow-md" />
+                                    <img :src="bankQRCode" alt="Mã QR ngân hàng" class="mx-auto h-48 w-48 rounded-lg shadow-md" />
                                     <p class="mt-2">Quét mã QR để thanh toán {{ formatCurrency(cartTotal) }}</p>
                                 </div>
                                 <div v-if="bankTransactionInfo" class="space-y-2 text-sm">
@@ -1748,29 +1887,35 @@ const searchByBarcode = async (barcode) => {
                         <!-- Notes -->
                         <div class="space-y-3 text-sm">
                             <label class="block font-semibold">Ghi chú:</label>
-                            <textarea v-model="form.orderNotes"
-                                class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                                rows="3" placeholder="Ví dụ: Giao tận nơi..."></textarea>
+                            <textarea
+                                v-model="form.orderNotes"
+                                class="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                rows="3"
+                                placeholder="Ví dụ: Giao tận nơi..."
+                            ></textarea>
                             <InputError class="mt-1 text-[10px]" :message="form.errors.orderNotes" />
                         </div>
                         <!-- Print Receipt Option -->
                         <div class="space-y-3 text-sm">
                             <label class="inline-flex items-center space-x-2">
-                                <input type="checkbox" v-model="form.printReceipt"
-                                    class="form-checkbox h-5 w-5 text-blue-600 rounded" />
+                                <input type="checkbox" v-model="form.printReceipt" class="form-checkbox h-5 w-5 rounded text-blue-600" />
                                 <span>In hóa đơn ngay</span>
                             </label>
                         </div>
                         <!-- Footer -->
                         <div class="mt-6 flex justify-end space-x-4">
-                            <button @click="showPaymentModal = false"
-                                class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition-all shadow-sm">
+                            <button
+                                @click="showPaymentModal = false"
+                                class="rounded-lg bg-gray-200 px-6 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-300"
+                            >
                                 Hủy
                             </button>
-                            <button @click="confirmPayment"
-                                class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition-all shadow-sm"
-                                :disabled="form.processing || cart.length === 0">
-                                <Loader2 v-if="form.processing" class="animate-spin h-5 w-5 inline-block mr-2" />
+                            <button
+                                @click="confirmPayment"
+                                class="rounded-lg bg-green-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700"
+                                :disabled="form.processing || cart.length === 0"
+                            >
+                                <Loader2 v-if="form.processing" class="mr-2 inline-block h-5 w-5 animate-spin" />
                                 Xác nhận & In
                             </button>
                         </div>

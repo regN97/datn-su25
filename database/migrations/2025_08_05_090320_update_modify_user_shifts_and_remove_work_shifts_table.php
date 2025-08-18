@@ -12,9 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Step 1: Remove foreign key constraint from user_shifts
+        // Step 1: Remove foreign key constraint and index from user_shifts
         Schema::table('user_shifts', function (Blueprint $table) {
             $table->dropForeign(['shift_id']);
+            $table->dropIndex(['shift_id']); // Drop index before dropping column
             $table->dropColumn('shift_id');
         });
 
@@ -52,9 +53,10 @@ return new class extends Migration
             $table->timestamp('deleted_at')->nullable();
         });
 
-        // Step 4: Restore shift_id column and foreign key in user_shifts
+        // Step 4: Restore shift_id column, index and foreign key in user_shifts
         Schema::table('user_shifts', function (Blueprint $table) {
             $table->unsignedBigInteger('shift_id')->after('user_id');
+            $table->index('shift_id'); // Restore index
             $table->foreign('shift_id')->references('id')->on('work_shifts')->onDelete('cascade');
         });
 

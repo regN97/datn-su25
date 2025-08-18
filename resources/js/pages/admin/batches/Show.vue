@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { CheckCircle, ChevronLeft, CircleAlert } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
@@ -35,9 +34,9 @@ interface Batch {
     received_date: string;
     invoice_number: string | null;
     total_amount: number;
-    payment_status: "unpaid" | "partially_paid" | "paid";
+    payment_status: 'unpaid' | 'partially_paid' | 'paid';
     paid_amount: number;
-    receipt_status: "partially_received" | "completed" | "cancelled";
+    receipt_status: 'partially_received' | 'completed' | 'cancelled';
     notes: string | null;
     created_by: number;
     creator?: User;
@@ -150,7 +149,7 @@ interface PurchaseOrder {
     updated_at: string;
     deleted_at: string | null;
     items?: PurchaseOrderItem[];
-};
+}
 
 const props = withDefaults(defineProps<Props>(), {
     suppliers: () => [],
@@ -479,7 +478,7 @@ function goBack() {
     <Head title="Chi tiết lô hàng" />
     <!-- <AppLayout :breadcrumbs="breadcrumbs"> -->
     <AppLayout>
-        <div class="min-h-screen bg-gray-50 p-4 no-print">
+        <div class="no-print min-h-screen bg-gray-50 p-4">
             <div class="mx-auto max-w-7xl">
                 <div class="mb-4 flex items-center justify-between">
                     <div class="flex items-center">
@@ -696,10 +695,12 @@ function goBack() {
                                         </div>
 
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Ngày ghi
-                                                nhận</label>
-                                            <input type="date" v-model="paymentForm.paymentDate"
-                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                            <label class="mb-1 block text-sm font-medium text-gray-700">Ngày ghi nhận</label>
+                                            <input
+                                                type="date"
+                                                v-model="paymentForm.paymentDate"
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                            />
                                         </div>
 
                                         <div>
@@ -776,8 +777,12 @@ function goBack() {
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn nhập hàng</label>
-                                    <input type="text" disabled :value="batchNumber"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <input
+                                        type="text"
+                                        disabled
+                                        :value="batchNumber"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -809,8 +814,7 @@ function goBack() {
                         </p>
                         <p class="col-6">
                             <span class="label">Ngày tạo:</span>
-                            <span class="value">{{ new Date(currentBatch.created_at).toLocaleDateString('vi-VN')
-                                }}</span>
+                            <span class="value">{{ new Date(currentBatch.created_at).toLocaleDateString('vi-VN') }}</span>
                         </p>
                     </div>
                 </div>
@@ -818,22 +822,22 @@ function goBack() {
                 <table class="receipt-table">
                     <thead>
                         <tr>
-                            <th style="width: 5%;">STT</th>
-                            <th style="width: 45%; text-align: left;">Tên sản phẩm</th>
-                            <th style="width: 15%;">SL</th>
-                            <th style="width: 20%;">Đơn giá</th>
-                            <th style="width: 15%; text-align: right;">Thành tiền</th>
+                            <th style="width: 5%">STT</th>
+                            <th style="width: 45%; text-align: left">Tên sản phẩm</th>
+                            <th style="width: 15%">SL</th>
+                            <th style="width: 20%">Đơn giá</th>
+                            <th style="width: 15%; text-align: right">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(item, index) in aggregatedProducts" :key="item.product_id">
-                            <td style="text-align: center;">{{ index + 1 }}</td>
-                            <td style="text-align: left;">
+                            <td style="text-align: center">{{ index + 1 }}</td>
+                            <td style="text-align: left">
                                 {{ item.product_name }}
                             </td>
-                            <td style="text-align: center;">{{ item.received_quantity }}</td>
-                            <td style="text-align: right;">{{ formatPrice(item.purchase_price) }}</td>
-                            <td style="text-align: right;">{{ formatPrice(item.total_amount) }}</td>
+                            <td style="text-align: center">{{ item.received_quantity }}</td>
+                            <td style="text-align: right">{{ formatPrice(item.purchase_price) }}</td>
+                            <td style="text-align: right">{{ formatPrice(item.total_amount) }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -879,7 +883,8 @@ function goBack() {
                     </div>
                 </div>
             </div>
-        </div> -->
+        </div>
+        -->
     </AppLayout>
 </template>
 <style scoped>

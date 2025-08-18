@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
+import { CheckCircle2, ChevronLeft, ChevronRight, Search, XCircle } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import { CheckCircle2, Search, XCircle, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 
 // Định nghĩa giao diện cho dữ liệu người dùng
 interface User {
@@ -119,7 +119,7 @@ const filteredShifts = computed(() => {
     // Đặt lại trang về 1 khi bộ lọc thay đổi
     currentPage.value = 1;
 
-    return shiftsToFilter.filter(shift => {
+    return shiftsToFilter.filter((shift) => {
         if (!shift.date) return false;
         const shiftDate = new Date(shift.date);
         shiftDate.setHours(0, 0, 0, 0);
@@ -160,7 +160,7 @@ const goToPage = (page: number) => {
 // --- Tính toán tổng hợp dữ liệu sau khi lọc (không thay đổi) ---
 const totalWorkDuration = computed(() => {
     let totalDurationInMs = 0;
-    filteredShifts.value.forEach(shift => {
+    filteredShifts.value.forEach((shift) => {
         if (shift.check_in && shift.check_out) {
             const start = new Date(shift.check_in);
             const end = new Date(shift.check_out);
@@ -181,7 +181,7 @@ const totalWorkDuration = computed(() => {
 
 // Sử dụng computed để xử lý dữ liệu ca làm việc sau khi đã được phân trang
 const formattedUserShifts = computed(() => {
-    return paginatedShifts.value.map(shift => ({
+    return paginatedShifts.value.map((shift) => ({
         ...shift,
         check_in_formatted: formatTime(shift.check_in),
         check_out_formatted: formatTime(shift.check_out),
@@ -197,12 +197,12 @@ const formattedUserShifts = computed(() => {
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div class="border-sidebar-border/70 relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
-                    <h1 class="text-2xl font-bold text-gray-800 mb-6">Thông tin chi tiết người dùng</h1>
+                    <h1 class="mb-6 text-2xl font-bold text-gray-800">Thông tin chi tiết người dùng</h1>
 
                     <!-- Thông tin cá nhân -->
-                    <div class="rounded-xl bg-white p-6 shadow mb-6">
-                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Thông tin cá nhân</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="mb-6 rounded-xl bg-white p-6 shadow">
+                        <h2 class="mb-4 text-xl font-semibold text-gray-700">Thông tin cá nhân</h2>
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                             <div>
                                 <p class="text-sm font-medium text-gray-500">Tên người dùng</p>
                                 <p class="mt-1 text-lg font-medium text-gray-900">{{ user.name }}</p>
@@ -228,42 +228,44 @@ const formattedUserShifts = computed(() => {
 
                     <!-- Bảng ca làm việc -->
                     <div class="rounded-xl bg-white p-6 shadow">
-                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Danh sách ca đã làm</h2>
+                        <h2 class="mb-4 text-xl font-semibold text-gray-700">Danh sách ca đã làm</h2>
 
                         <!-- Bộ lọc thời gian -->
                         <div class="mb-4 flex flex-wrap items-center gap-4">
                             <label class="text-gray-700">Lọc theo:</label>
                             <button
                                 @click="selectedFilter = 'all'"
-                                :class="{'bg-blue-600 text-white': selectedFilter === 'all', 'bg-gray-200 text-gray-800': selectedFilter !== 'all'}"
+                                :class="{ 'bg-blue-600 text-white': selectedFilter === 'all', 'bg-gray-200 text-gray-800': selectedFilter !== 'all' }"
                                 class="rounded-lg px-4 py-2 text-sm transition-colors"
                             >
                                 Tất cả
                             </button>
                             <button
                                 @click="selectedFilter = 'week'"
-                                :class="{'bg-blue-600 text-white': selectedFilter === 'week', 'bg-gray-200 text-gray-800': selectedFilter !== 'week'}"
+                                :class="{
+                                    'bg-blue-600 text-white': selectedFilter === 'week',
+                                    'bg-gray-200 text-gray-800': selectedFilter !== 'week',
+                                }"
                                 class="rounded-lg px-4 py-2 text-sm transition-colors"
                             >
                                 Tuần này
                             </button>
                             <button
                                 @click="selectedFilter = 'month'"
-                                :class="{'bg-blue-600 text-white': selectedFilter === 'month', 'bg-gray-200 text-gray-800': selectedFilter !== 'month'}"
+                                :class="{
+                                    'bg-blue-600 text-white': selectedFilter === 'month',
+                                    'bg-gray-200 text-gray-800': selectedFilter !== 'month',
+                                }"
                                 class="rounded-lg px-4 py-2 text-sm transition-colors"
                             >
                                 Tháng này
                             </button>
                             <div class="relative flex items-center">
-                                <input
-                                    type="date"
-                                    v-model="filterDate"
-                                    class="rounded-lg border border-gray-300 p-2 text-sm pr-10"
-                                />
+                                <input type="date" v-model="filterDate" class="rounded-lg border border-gray-300 p-2 pr-10 text-sm" />
                                 <button
                                     @click="selectedFilter = 'day'"
-                                    :class="{'bg-blue-600 text-white': selectedFilter === 'day', 'text-gray-600': selectedFilter !== 'day'}"
-                                    class="absolute right-0 top-0 bottom-0 flex items-center justify-center p-2 rounded-r-lg transition-colors"
+                                    :class="{ 'bg-blue-600 text-white': selectedFilter === 'day', 'text-gray-600': selectedFilter !== 'day' }"
+                                    class="absolute top-0 right-0 bottom-0 flex items-center justify-center rounded-r-lg p-2 transition-colors"
                                 >
                                     <Search class="h-5 w-5" />
                                 </button>
@@ -272,13 +274,13 @@ const formattedUserShifts = computed(() => {
 
                         <!-- Tóm tắt dữ liệu đã lọc -->
                         <div v-if="filteredShifts.length > 0 && selectedFilter !== 'all'" class="mb-4 rounded-xl bg-gray-50 p-4 shadow-sm">
-                            <h3 class="text-lg font-semibold text-gray-700 mb-2">Tóm tắt</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="p-3 bg-white rounded-lg border border-gray-200">
+                            <h3 class="mb-2 text-lg font-semibold text-gray-700">Tóm tắt</h3>
+                            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div class="rounded-lg border border-gray-200 bg-white p-3">
                                     <p class="text-sm font-medium text-gray-500">Tổng số ca làm việc</p>
                                     <p class="mt-1 text-2xl font-bold text-gray-900">{{ totalShiftsCount }}</p>
                                 </div>
-                                <div class="p-3 bg-white rounded-lg border border-gray-200">
+                                <div class="rounded-lg border border-gray-200 bg-white p-3">
                                     <p class="text-sm font-medium text-gray-500">Tổng giờ làm việc</p>
                                     <p class="mt-1 text-2xl font-bold text-gray-900">{{ totalWorkDuration }}</p>
                                 </div>
@@ -307,13 +309,22 @@ const formattedUserShifts = computed(() => {
                                         <td class="px-6 py-4">{{ shift.shift_date_formatted }}</td>
                                         <td class="px-6 py-4">
                                             <!-- Hiển thị trạng thái dựa trên dữ liệu gốc -->
-                                            <span v-if="shift.status === 'COMPLETED'" class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
+                                            <span
+                                                v-if="shift.status === 'COMPLETED'"
+                                                class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700"
+                                            >
                                                 <CheckCircle2 class="h-3 w-3" /> Hoàn thành
                                             </span>
-                                            <span v-if="shift.status === 'CHECKED_OUT'" class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
+                                            <span
+                                                v-if="shift.status === 'CHECKED_OUT'"
+                                                class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700"
+                                            >
                                                 <CheckCircle2 class="h-3 w-3" /> Hoàn thành
                                             </span>
-                                            <span v-else class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">
+                                            <span
+                                                v-else
+                                                class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700"
+                                            >
                                                 <XCircle class="h-3 w-3" /> Đang trong ca làm việc
                                             </span>
                                         </td>
@@ -326,24 +337,29 @@ const formattedUserShifts = computed(() => {
                             <!-- Thanh phân trang -->
                             <div class="mt-4 flex items-center justify-between">
                                 <div class="text-sm text-gray-600">
-                                    Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} đến {{ Math.min(currentPage * itemsPerPage, totalShiftsCount) }} trong số {{ totalShiftsCount }} mục
+                                    Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} đến
+                                    {{ Math.min(currentPage * itemsPerPage, totalShiftsCount) }} trong số {{ totalShiftsCount }} mục
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <button
                                         @click="goToPage(currentPage - 1)"
                                         :disabled="currentPage <= 1"
-                                        :class="{'bg-gray-200': currentPage <= 1, 'hover:bg-blue-600 hover:text-white bg-blue-500 text-white': currentPage > 1}"
+                                        :class="{
+                                            'bg-gray-200': currentPage <= 1,
+                                            'bg-blue-500 text-white hover:bg-blue-600 hover:text-white': currentPage > 1,
+                                        }"
                                         class="rounded-lg p-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <ChevronLeft class="h-4 w-4" />
                                     </button>
-                                    <span class="text-sm font-semibold text-gray-700">
-                                        Trang {{ currentPage }} / {{ totalPages }}
-                                    </span>
+                                    <span class="text-sm font-semibold text-gray-700"> Trang {{ currentPage }} / {{ totalPages }} </span>
                                     <button
                                         @click="goToPage(currentPage + 1)"
                                         :disabled="currentPage >= totalPages"
-                                        :class="{'bg-gray-200': currentPage >= totalPages, 'hover:bg-blue-600 hover:text-white bg-blue-500 text-white': currentPage < totalPages}"
+                                        :class="{
+                                            'bg-gray-200': currentPage >= totalPages,
+                                            'bg-blue-500 text-white hover:bg-blue-600 hover:text-white': currentPage < totalPages,
+                                        }"
                                         class="rounded-lg p-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <ChevronRight class="h-4 w-4" />
@@ -351,9 +367,7 @@ const formattedUserShifts = computed(() => {
                                 </div>
                             </div>
                         </div>
-                        <div v-else class="text-center text-sm text-gray-500">
-                            Không có dữ liệu ca làm việc nào.
-                        </div>
+                        <div v-else class="text-center text-sm text-gray-500">Không có dữ liệu ca làm việc nào.</div>
                     </div>
                 </div>
             </div>

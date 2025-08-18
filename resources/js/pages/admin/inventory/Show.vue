@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 interface Product {
@@ -149,7 +149,7 @@ const updateInventory = async () => {
             item.current_quantity < 0 ||
             isNaN(item.current_quantity) ||
             item.current_quantity > item.ordered_quantity ||
-            item.current_quantity > item.received_quantity
+            item.current_quantity > item.received_quantity,
     );
     if (invalidItems.length > 0) {
         toastMessage.value = 'Vui lòng nhập số lượng hợp lệ (không âm, không lớn hơn số lượng đặt hoặc số lượng nhập) cho tất cả các lô.';
@@ -207,14 +207,17 @@ const firstBatchItemDetails = computed(() => {
 </script>
 
 <template>
-
     <Head :title="`Chi tiết tồn kho: ${product.name}`" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div v-if="toastMessage" :class="{
-            'bg-green-500 text-white dark:bg-green-600': toastType === 'success',
-            'bg-red-500 text-white dark:bg-red-600': toastType === 'error',
-        }" class="fixed top-4 right-4 z-50 rounded-lg p-4 shadow-lg">
+        <div
+            v-if="toastMessage"
+            :class="{
+                'bg-green-500 text-white dark:bg-green-600': toastType === 'success',
+                'bg-red-500 text-white dark:bg-red-600': toastType === 'error',
+            }"
+            class="fixed top-4 right-4 z-50 rounded-lg p-4 shadow-lg"
+        >
             {{ toastMessage }}
         </div>
 
@@ -226,11 +229,12 @@ const firstBatchItemDetails = computed(() => {
                 <div class="grid grid-cols-1 items-start gap-4 p-6 text-sm md:grid-cols-3">
                     <div class="flex justify-center md:col-span-1">
                         <div v-if="product.image_url" class="rounded-md border p-2 shadow-sm dark:border-gray-700">
-                            <img :src="product.image_url" :alt="product.name"
-                                class="h-32 w-32 rounded-md object-contain" />
+                            <img :src="product.image_url" :alt="product.name" class="h-32 w-32 rounded-md object-contain" />
                         </div>
-                        <div v-else
-                            class="flex h-32 w-32 items-center justify-center rounded-md border border-gray-300 bg-gray-100 text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                        <div
+                            v-else
+                            class="flex h-32 w-32 items-center justify-center rounded-md border border-gray-300 bg-gray-100 text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                        >
                             Không có ảnh
                         </div>
                     </div>
@@ -242,37 +246,36 @@ const firstBatchItemDetails = computed(() => {
                         <p><strong class="mr-2">Nhà cung cấp:</strong> {{ firstBatchItemDetails.supplierName }}</p>
                         <p>
                             <strong class="mr-2">Trạng thái thanh toán:</strong>
-                            <span :class="{
-                                'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200':
-                                    firstBatchItemDetails.paymentStatus === 'Chưa thanh toán',
-                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100':
-                                    firstBatchItemDetails.paymentStatus === 'Đã thanh toán một phần',
-                                'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100':
-                                    firstBatchItemDetails.paymentStatus === 'Đã thanh toán',
-                            }" class="inline-flex rounded-full px-2 py-1 text-xs font-medium">
+                            <span
+                                :class="{
+                                    'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200':
+                                        firstBatchItemDetails.paymentStatus === 'Chưa thanh toán',
+                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100':
+                                        firstBatchItemDetails.paymentStatus === 'Đã thanh toán một phần',
+                                    'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100':
+                                        firstBatchItemDetails.paymentStatus === 'Đã thanh toán',
+                                }"
+                                class="inline-flex rounded-full px-2 py-1 text-xs font-medium"
+                            >
                                 {{ firstBatchItemDetails.paymentStatus }}
                             </span>
                         </p>
                     </div>
 
                     <div class="space-y-2 md:col-span-1">
-                        <p><strong class="mr-2">Tổng tồn kho:</strong> {{ totalInventory.toLocaleString('vi-VN') }} {{
-                            product.unit }}</p>
+                        <p><strong class="mr-2">Tổng tồn kho:</strong> {{ totalInventory.toLocaleString('vi-VN') }} {{ product.unit }}</p>
 
                         <p v-if="product.sku"><strong class="mr-2">SKU:</strong> {{ product.sku }}</p>
                         <p v-if="product.status"><strong class="mr-2">Trạng thái:</strong> {{ product.status }}</p>
-                        <p v-if="product.price"><strong class="mr-2">Giá bán:</strong> {{
-                            product.price.toLocaleString('vi-VN') }} VNĐ</p>
+                        <p v-if="product.price"><strong class="mr-2">Giá bán:</strong> {{ product.price.toLocaleString('vi-VN') }} VNĐ</p>
                         <p><strong class="mr-2">Giá mua:</strong> {{ firstBatchItemDetails.purchasePrice }}</p>
                         <p><strong class="mr-2">Tổng giá trị:</strong> {{ firstBatchItemDetails.totalItemAmount }}</p>
                     </div>
 
-                    <div v-if="product.description"
-                        class="mt-4 space-y-2 border-t pt-4 md:col-span-3 dark:border-gray-700">
+                    <div v-if="product.description" class="mt-4 space-y-2 border-t pt-4 md:col-span-3 dark:border-gray-700">
                         <p><strong class="mr-2">Mô tả sản phẩm:</strong> {{ product.description }}</p>
                     </div>
-                    <div class="space-y-2 md:col-span-3"
-                        :class="{ 'mt-4 border-t pt-4 dark:border-gray-700': !product.description }">
+                    <div class="space-y-2 md:col-span-3" :class="{ 'mt-4 border-t pt-4 dark:border-gray-700': !product.description }">
                         <p><strong class="mr-2">Ghi chú:</strong> {{ firstBatchItemDetails.notes }}</p>
                     </div>
                 </div>
@@ -297,26 +300,36 @@ const firstBatchItemDetails = computed(() => {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="item in editableBatchItems" :key="item.id"
-                                class="border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900">
+                            <tr
+                                v-for="item in editableBatchItems"
+                                :key="item.id"
+                                class="border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+                            >
                                 <td class="p-3">{{ item.batch_number }}</td>
                                 <td class="p-3">{{ formatDate(item.received_date) }}</td>
                                 <td class="p-3">{{ item.ordered_quantity }}</td>
                                 <td class="p-3">{{ item.received_quantity }}</td>
                                 <td class="p-3">
-                                    <input type="number" v-model.number="item.current_quantity"
-                                        @input="handleQuantityChange(item)" min="0"
+                                    <input
+                                        type="number"
+                                        v-model.number="item.current_quantity"
+                                        @input="handleQuantityChange(item)"
+                                        min="0"
                                         :max="Math.min(item.ordered_quantity, item.received_quantity)"
-                                        class="w-full rounded border border-gray-300 bg-gray-50 p-1 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" />
+                                        class="w-full rounded border border-gray-300 bg-gray-50 p-1 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                    />
                                 </td>
                                 <td class="p-3">
-                                    <span :class="{
-                                        'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100': item.inventory_status === 'active',
-                                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100':
-                                            item.inventory_status === 'low_stock',
-                                        'bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100':
-                                            item.inventory_status === 'out_of_stock' || item.inventory_status === 'expired',
-                                    }" class="inline-flex rounded-full px-2 py-1 text-xs font-medium">
+                                    <span
+                                        :class="{
+                                            'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100': item.inventory_status === 'active',
+                                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100':
+                                                item.inventory_status === 'low_stock',
+                                            'bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100':
+                                                item.inventory_status === 'out_of_stock' || item.inventory_status === 'expired',
+                                        }"
+                                        class="inline-flex rounded-full px-2 py-1 text-xs font-medium"
+                                    >
                                         {{ getInventoryStatusText(item.inventory_status) }}
                                     </span>
                                 </td>
@@ -332,16 +345,20 @@ const firstBatchItemDetails = computed(() => {
             </div>
 
             <div class="mt-4 flex justify-center gap-4">
-                <a :href="`/admin/inventory`"
-                    class="inline-flex items-center rounded bg-gray-200 px-4 py-2 text-gray-800 transition duration-150 ease-in-out hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                <a
+                    :href="`/admin/inventory`"
+                    class="inline-flex items-center rounded bg-gray-200 px-4 py-2 text-gray-800 transition duration-150 ease-in-out hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                >
                     Quay lại danh sách
                 </a>
-                <button @click="updateInventory" :disabled="isLoading"
-                    class="inline-flex items-center rounded bg-blue-600 px-4 py-2 text-white transition duration-150 ease-in-out hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                <button
+                    @click="updateInventory"
+                    :disabled="isLoading"
+                    class="inline-flex items-center rounded bg-blue-600 px-4 py-2 text-white transition duration-150 ease-in-out hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
                     <span v-if="isLoading" class="mr-2">
                         <svg class="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
-                                fill="none" />
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" />
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                         </svg>
                     </span>

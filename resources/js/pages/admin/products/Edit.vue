@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import InputError from '@/components/InputError.vue';
 import MultiSelectSearch from '@/components/MultiSelectSearch.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -35,9 +35,7 @@ const form = useForm({
     selling_price: props.product.selling_price ?? 0,
     min_stock_level: props.product.min_stock_level ?? 0,
     max_stock_level: props.product.max_stock_level ?? 0,
-    is_active: typeof props.product.is_active === 'boolean'
-        ? Number(props.product.is_active)
-        : 1,
+    is_active: typeof props.product.is_active === 'boolean' ? Number(props.product.is_active) : 1,
     suppliers: Array.isArray(props.productSuppliers) ? [...props.productSuppliers] : [],
     image_url: props.product.image_url ?? '',
     image_file: null as File | null,
@@ -96,20 +94,15 @@ function formatCurrency(value: number): string {
 function goBack() {
     router.visit('/admin/products');
 }
-
 </script>
 
 <template>
-
     <Head title="Cập nhật sản phẩm" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="container mx-auto mt-8 max-w-5xl">
             <div class="rounded-xl bg-white p-8 shadow">
                 <div class="flex items-center gap-3">
-                    <button @click="goBack"
-                        class="h-9 w-9 rounded border border-gray-300 bg-white text-gray-700 hover:border-gray-400">
-                        ←
-                    </button>
+                    <button @click="goBack" class="h-9 w-9 rounded border border-gray-300 bg-white text-gray-700 hover:border-gray-400">←</button>
                     <div>
                         <h1 class="text-xl font-bold text-gray-800">{{ props.product.name }}</h1>
                     </div>
@@ -119,43 +112,41 @@ function goBack() {
                         <!-- Cột trái -->
                         <div class="space-y-4">
                             <div>
-                                <label class="mb-1 mt-5 block font-semibold">Tên sản phẩm</label>
-                                <input v-model="form.name" type="text" class="w-full rounded border px-3 py-2"
-                                    placeholder="Nhập tên sản phẩm" />
+                                <label class="mt-5 mb-1 block font-semibold">Tên sản phẩm</label>
+                                <input v-model="form.name" type="text" class="w-full rounded border px-3 py-2" placeholder="Nhập tên sản phẩm" />
                             </div>
                             <div class="flex gap-4">
                                 <div class="flex-1">
                                     <label class="mb-1 block font-semibold">Giá bán</label>
-                                    <input v-model="displaySellingPrice" type="text"
-                                        class="w-full rounded border px-3 py-2" />
+                                    <input v-model="displaySellingPrice" type="text" class="w-full rounded border px-3 py-2" />
                                 </div>
                             </div>
                             <div>
                                 <label class="mb-1 block font-semibold">Danh mục</label>
                                 <select v-model="form.category_id" class="w-full rounded border px-3 py-2">
                                     <option :value="null">Chọn danh mục</option>
-                                    <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">{{ cat.name }}
-                                    </option>
+                                    <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                                 </select>
                             </div>
                             <div class="flex gap-4">
                                 <div class="flex-1">
                                     <label class="mb-1 block font-semibold">Tồn kho tối thiểu</label>
-                                    <input v-model="form.min_stock_level" type="number" min="0"
-                                        class="w-full rounded border px-3 py-2" />
+                                    <input v-model="form.min_stock_level" type="number" min="0" class="w-full rounded border px-3 py-2" />
                                 </div>
                                 <div class="flex-1">
                                     <label class="mb-1 block font-semibold">Tồn kho tối đa</label>
-                                    <input v-model="form.max_stock_level" type="number" min="0"
-                                        class="w-full rounded border px-3 py-2" />
+                                    <input v-model="form.max_stock_level" type="number" min="0" class="w-full rounded border px-3 py-2" />
                                 </div>
                             </div>
                             <div>
                                 <label class="mb-1 block font-semibold">Mô tả</label>
-                                <textarea v-model="form.description" class="w-full rounded border px-3 py-2" rows="3"
-                                    placeholder="Mô tả về sản phẩm"></textarea>
-                                <div class="mt-1 text-right text-xs text-gray-400">{{ form.description.length }}/5000 ký
-                                    tự</div>
+                                <textarea
+                                    v-model="form.description"
+                                    class="w-full rounded border px-3 py-2"
+                                    rows="3"
+                                    placeholder="Mô tả về sản phẩm"
+                                ></textarea>
+                                <div class="mt-1 text-right text-xs text-gray-400">{{ form.description.length }}/5000 ký tự</div>
                             </div>
                         </div>
                         <!-- Cột phải -->
@@ -163,16 +154,13 @@ function goBack() {
                             <div class="mt-4">
                                 <label class="mb-1 block font-semibold">Xem trước ảnh</label>
                                 <div v-if="form.image_type === 'url' && form.image_url">
-                                    <img :src="form.image_url" alt="Preview"
-                                        class="h-[160px] w-[160px] object-contain" />
+                                    <img :src="form.image_url" alt="Preview" class="h-[160px] w-[160px] object-contain" />
                                 </div>
                                 <div v-else-if="form.image_type === 'upload' && form.image_file">
-                                    <img :src="URL.createObjectURL(form.image_file)" alt="Preview"
-                                        class="h-[160px] w-[160px] object-contain" />
+                                    <img :src="URL.createObjectURL(form.image_file)" alt="Preview" class="h-[160px] w-[160px] object-contain" />
                                 </div>
                                 <div v-else-if="props.product.image_url">
-                                    <img :src="props.product.image_url" alt="Ảnh hiện tại"
-                                        class="h-[160px] w-[160px] object-contain" />
+                                    <img :src="props.product.image_url" alt="Ảnh hiện tại" class="h-[160px] w-[160px] object-contain" />
                                 </div>
                             </div>
                             <div>
@@ -188,21 +176,26 @@ function goBack() {
                                     </label>
                                 </div>
                                 <div v-if="form.image_type === 'url'">
-                                    <input v-model="form.image_url" type="text" class="w-full rounded border px-3 py-2"
-                                        placeholder="Nhập URL ảnh sản phẩm" />
+                                    <input
+                                        v-model="form.image_url"
+                                        type="text"
+                                        class="w-full rounded border px-3 py-2"
+                                        placeholder="Nhập URL ảnh sản phẩm"
+                                    />
                                 </div>
                                 <div v-else>
-                                    <input type="file" @change="handleFileChange" class="w-full rounded border px-3 py-2"/>
+                                    <input type="file" @change="handleFileChange" class="w-full rounded border px-3 py-2" />
                                 </div>
                             </div>
                             <div>
-                                <label class="mb-2 block font-medium text-gray-700 dark:text-gray-300">Nhà cung
-                                    cấp</label>
-                                <MultiSelectSearch v-model="form.suppliers"
+                                <label class="mb-2 block font-medium text-gray-700 dark:text-gray-300">Nhà cung cấp</label>
+                                <MultiSelectSearch
+                                    v-model="form.suppliers"
                                     :options="props.suppliers.map((s) => ({ label: s.name, value: s.id }))"
                                     placeholder="Tìm kiếm nhà cung cấp"
                                     no-results-text="Không tìm thấy nhà cung cấp nào."
-                                    no-options-text="Không có nhà cung cấp để lựa chọn." />
+                                    no-options-text="Không có nhà cung cấp để lựa chọn."
+                                />
                                 <span class="mt-1 block text-xs text-gray-500">Có thể chọn nhiều nhà cung cấp</span>
                                 <InputError :message="form.errors.selected_supplier_ids" />
                             </div>
@@ -216,25 +209,29 @@ function goBack() {
                             <div>
                                 <label class="mb-1 block font-semibold">Mã vạch</label>
                                 <div class="flex gap-2">
-                                    <input v-model="form.barcode" type="text" class="flex-1 rounded border px-3 py-2"
-                                        placeholder="Nhập hoặc tạo mã vạch" />
+                                    <input
+                                        v-model="form.barcode"
+                                        type="text"
+                                        class="flex-1 rounded border px-3 py-2"
+                                        placeholder="Nhập hoặc tạo mã vạch"
+                                    />
                                 </div>
                             </div>
                             <div>
                                 <label class="mb-1 block font-semibold">Đơn vị tính</label>
                                 <select v-model="form.unit_id" class="w-full rounded border px-3 py-2">
                                     <option :value="null">Chọn đơn vị tính</option>
-                                    <option v-for="unit in props.units" :key="unit.id" :value="unit.id">{{ unit.name }}
-                                    </option>
+                                    <option v-for="unit in props.units" :key="unit.id" :value="unit.id">{{ unit.name }}</option>
                                 </select>
                             </div>
                         </div>
                     </div>
                     <div class="mt-8 flex justify-end gap-2">
-                        <Link href="/admin/products"
-                            class="rounded bg-gray-200 px-6 py-2 text-gray-700 hover:bg-gray-300">Quay lại</Link>
-                        <button type="submit"
-                            class="rounded bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-2 font-semibold text-white transition hover:from-purple-600 hover:to-pink-600">
+                        <Link href="/admin/products" class="rounded bg-gray-200 px-6 py-2 text-gray-700 hover:bg-gray-300">Quay lại</Link>
+                        <button
+                            type="submit"
+                            class="rounded bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-2 font-semibold text-white transition hover:from-purple-600 hover:to-pink-600"
+                        >
                             Lưu
                         </button>
                     </div>

@@ -76,32 +76,40 @@ function printInvoice() {
 <template>
     <Head :title="`Chi tiết Hóa đơn #${bill.bill_number}`" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div id="content-to-print" class="p-6 main-container">
-            <div id="invoice-content" class="max-w-xl mx-auto bg-white shadow-lg p-8 rounded-lg font-mono text-sm">
-                <div class="flex justify-end mb-4 print:hidden">
+        <div id="content-to-print" class="main-container p-6">
+            <div id="invoice-content" class="mx-auto max-w-xl rounded-lg bg-white p-8 font-mono text-sm shadow-lg">
+                <div class="mb-4 flex justify-end print:hidden">
                     <button @click="printInvoice" class="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                        <Printer class="w-4 h-4" />
+                        <Printer class="h-4 w-4" />
                         <span>In</span>
                     </button>
                 </div>
-                
-                <div class="text-center mb-6">
+
+                <div class="mb-6 text-center">
                     <h1 class="text-xl font-bold">Hóa Đơn Bán Hàng</h1>
                     <p class="mt-1">Cửa hàng bán lẻ G7 Mart</p>
                     <p>Trịnh Văn Bô, Hà Nội</p>
                     <p>Hotline: 4444 6666</p>
                 </div>
-                
-                <hr class="border-t-2 border-dashed border-gray-400 my-4">
+
+                <hr class="my-4 border-t-2 border-dashed border-gray-400" />
 
                 <div class="mb-4">
-                    <p>Mã hóa đơn: <span class="font-semibold">{{ bill.bill_number }}</span></p>
-                    <p>Ngày giờ: <span class="font-semibold">{{ new Date(bill.created_at).toLocaleString('vi-VN') }}</span></p>
-                    <p>Nhân viên: <span class="font-semibold">{{ bill.cashier?.name ?? 'N/A' }}</span></p>
-                    <p>Khách hàng: <span class="font-semibold">{{ bill.customer?.customer_name ?? 'Khách lẻ' }}</span></p>
+                    <p>
+                        Mã hóa đơn: <span class="font-semibold">{{ bill.bill_number }}</span>
+                    </p>
+                    <p>
+                        Ngày giờ: <span class="font-semibold">{{ new Date(bill.created_at).toLocaleString('vi-VN') }}</span>
+                    </p>
+                    <p>
+                        Nhân viên: <span class="font-semibold">{{ bill.cashier?.name ?? 'N/A' }}</span>
+                    </p>
+                    <p>
+                        Khách hàng: <span class="font-semibold">{{ bill.customer?.customer_name ?? 'Khách lẻ' }}</span>
+                    </p>
                 </div>
 
-                <hr class="border-t-2 border-dashed border-gray-400 my-4">
+                <hr class="my-4 border-t-2 border-dashed border-gray-400" />
 
                 <div class="mb-4">
                     <table class="w-full">
@@ -124,24 +132,38 @@ function printInvoice() {
                     </table>
                 </div>
 
-                <hr class="border-t border-gray-400 my-4">
+                <hr class="my-4 border-t border-gray-400" />
 
                 <div class="text-right">
-                    <p class="mb-1">Tổng tiền hàng: <span class="font-semibold">{{ formatCurrency(subtotal_amount) }}</span></p>
-                    <p class="mb-1">Giảm giá: <span class="font-semibold">{{ formatCurrency(bill.discount_amount ?? 0) }}</span></p>
-                    <p class="text-lg font-bold">Tổng thanh toán: <span class="font-bold">{{ formatCurrency(bill.total_amount) }}</span></p>
+                    <p class="mb-1">
+                        Tổng tiền hàng: <span class="font-semibold">{{ formatCurrency(subtotal_amount) }}</span>
+                    </p>
+                    <p class="mb-1">
+                        Giảm giá: <span class="font-semibold">{{ formatCurrency(bill.discount_amount ?? 0) }}</span>
+                    </p>
+                    <p class="text-lg font-bold">
+                        Tổng thanh toán: <span class="font-bold">{{ formatCurrency(bill.total_amount) }}</span>
+                    </p>
                 </div>
-                
-                <hr class="border-t-2 border-dashed border-gray-400 my-4">
 
-                <div class="text-right mb-4">
-                    <p>Phương thức: <span class="font-semibold">{{ getPaymentMethodName(bill.payment_method) }}</span></p>
-                    <p>Khách đưa: <span class="font-semibold">{{ formatCurrency(bill.customer_paid ?? bill.total_amount) }}</span></p>
-                    <p>Tiền thối: <span class="font-semibold">{{ formatCurrency(bill.change_due ?? 0) }}</span></p>
-                    <p>Ghi chú: <span class="font-semibold">{{ bill.note ?? 'Không có' }}</span></p>
+                <hr class="my-4 border-t-2 border-dashed border-gray-400" />
+
+                <div class="mb-4 text-right">
+                    <p>
+                        Phương thức: <span class="font-semibold">{{ getPaymentMethodName(bill.payment_method) }}</span>
+                    </p>
+                    <p>
+                        Khách đưa: <span class="font-semibold">{{ formatCurrency(bill.customer_paid ?? bill.total_amount) }}</span>
+                    </p>
+                    <p>
+                        Tiền thối: <span class="font-semibold">{{ formatCurrency(bill.change_due ?? 0) }}</span>
+                    </p>
+                    <p>
+                        Ghi chú: <span class="font-semibold">{{ bill.note ?? 'Không có' }}</span>
+                    </p>
                 </div>
-                
-                <hr class="border-t-2 border-dashed border-gray-400 my-4">
+
+                <hr class="my-4 border-t-2 border-dashed border-gray-400" />
 
                 <div class="text-center text-xs">
                     <p>Cảm ơn quý khách!</p>
@@ -185,7 +207,7 @@ function printInvoice() {
         width: 300px !important; /* Chiều rộng tương đương giấy K80 */
         margin: 0 auto !important; /* Căn giữa trên trang in */
         padding: 10px !important; /* Giảm padding */
-        
+
         /* Bỏ các hiệu ứng không cần thiết khi in */
         box-shadow: none !important;
         border: none !important;

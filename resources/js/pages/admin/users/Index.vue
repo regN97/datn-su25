@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Pencil, Trash, Eye } from 'lucide-vue-next';
+import { Eye, Pencil, Trash } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
 interface User {
@@ -51,7 +51,7 @@ function submit() {
                 alert('Thêm người dùng thành công');
             },
         });
-    } 
+    }
 }
 
 function goToShowPage(id: number) {
@@ -177,9 +177,13 @@ onMounted(() => {
                                     <td class="px-6 py-4">{{ user.phone_number }}</td>
                                     <td class="px-6 py-4">{{ user.role?.name }}</td>
                                     <td class="rounded-r-lg px-6 py-4 text-center">
-                                        <button class="p-1 text-gray-600 transition hover:text-gray-800" title="Xem chi tiết" @click="goToShowPage(user.id)">
+                                        <button
+                                            class="p-1 text-gray-600 transition hover:text-gray-800"
+                                            title="Xem chi tiết"
+                                            @click="goToShowPage(user.id)"
+                                        >
                                             <Eye class="h-5 w-5" />
-                                         </button>
+                                        </button>
                                         <button class="p-1 text-blue-600 transition hover:text-blue-800" title="Sửa" @click="editUser(user)">
                                             <Pencil class="h-5 w-5" />
                                         </button>

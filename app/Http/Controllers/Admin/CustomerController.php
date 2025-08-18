@@ -25,35 +25,55 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'customer_name' => ['required', 'string', 'max:30', Rule::unique('customers', 'customer_name')],
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('customers', 'email')],
-            'phone' => ['required', 'string', 'max:20', Rule::unique('customers', 'phone')],
-            'address' => ['nullable', 'string'],
-            'wallet' => ['nullable', 'integer', 'min:0'],
+            'customer_name' => ['required', 'string', 'max:30'],
+            'email' => ['required', 'email', 'max:255'],
+            'phone' => ['required', 'string', 'max:20'],
+            'wallet' => ['required', 'integer', 'min:0'],
         ];
 
         $messages = [
             'customer_name.required' => 'Tên khách hàng là bắt buộc.',
             'customer_name.string' => 'Tên khách hàng phải là chuỗi ký tự.',
             'customer_name.max' => 'Tên khách hàng không được vượt quá :max ký tự.',
-            'customer_name.unique' => 'Tên khách hàng này đã tồn tại.',
 
+            'email.required' => 'Email là bắt buộc.',
             'email.email' => 'Email phải là định dạng email hợp lệ.',
             'email.max' => 'Email không được vượt quá :max ký tự.',
-            'email.unique' => 'Email này đã tồn tại.',
 
             'phone.required' => 'Số điện thoại là bắt buộc.',
             'phone.string' => 'Số điện thoại phải là chuỗi ký tự.',
             'phone.max' => 'Số điện thoại không được vượt quá :max ký tự.',
-            'phone.unique' => 'Số điện thoại này đã tồn tại.',
 
-            'address.string' => 'Địa chỉ phải là chuỗi ký tự.',
-
+            'wallet.required' => 'Ví tiền là bắt buộc.',
             'wallet.integer' => 'Ví tiền phải là số nguyên.',
             'wallet.min' => 'Ví tiền không được nhỏ hơn 0.',
         ];
 
         $validatedData = $request->validate($rules, $messages);
+
+        // Kiểm tra khách hàng trùng tên kể cả đã xóa mềm
+        $existingCustomer = Customer::withTrashed()->where('customer_name', $validatedData['customer_name'])->first();
+        if ($existingCustomer) {
+            if ($existingCustomer->trashed()) {
+                return back()->withErrors(['customer_name' => 'Tên khách hàng này đã bị xóa mềm. Vui lòng chọn tên khác hoặc khôi phục khách hàng.']);
+            } else {
+                return back()->withErrors(['customer_name' => 'Tên khách hàng này đã tồn tại.']);
+            }
+        }
+
+        // Kiểm tra email và phone trùng với khách hàng đã xóa mềm
+        if (!empty($validatedData['email'])) {
+            $existingEmail = Customer::withTrashed()->where('email', $validatedData['email'])->first();
+            if ($existingEmail) {
+                return back()->withErrors(['email' => 'Email này đã tồn tại hoặc đã bị xóa mềm.']);
+            }
+        }
+        if (!empty($validatedData['phone'])) {
+            $existingPhone = Customer::withTrashed()->where('phone', $validatedData['phone'])->first();
+            if ($existingPhone) {
+                return back()->withErrors(['phone' => 'Số điện thoại này đã tồn tại hoặc đã bị xóa mềm.']);
+            }
+        }
 
         Customer::create($validatedData);
 
@@ -73,10 +93,9 @@ class CustomerController extends Controller
     {
         $rules = [
             'customer_name' => ['required', 'string', 'max:30', Rule::unique('customers', 'customer_name')->ignore($customer->id)],
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('customers', 'email')->ignore($customer->id)],
+            'email' => ['required', 'email', 'max:255', Rule::unique('customers', 'email')->ignore($customer->id)],
             'phone' => ['required', 'string', 'max:20', Rule::unique('customers', 'phone')->ignore($customer->id)],
-            'address' => ['nullable', 'string'],
-            'wallet' => ['nullable', 'integer', 'min:0'],
+            'wallet' => ['required', 'integer', 'min:0'],
         ];
 
         $messages = [
@@ -85,6 +104,7 @@ class CustomerController extends Controller
             'customer_name.max' => 'Tên khách hàng không được vượt quá :max ký tự.',
             'customer_name.unique' => 'Tên khách hàng này đã tồn tại.',
 
+            'email.required' => 'Email là bắt buộc.',
             'email.email' => 'Email phải là định dạng email hợp lệ.',
             'email.max' => 'Email không được vượt quá :max ký tự.',
             'email.unique' => 'Email này đã tồn tại.',
@@ -94,8 +114,7 @@ class CustomerController extends Controller
             'phone.max' => 'Số điện thoại không được vượt quá :max ký tự.',
             'phone.unique' => 'Số điện thoại này đã tồn tại.',
 
-            'address.string' => 'Địa chỉ phải là chuỗi ký tự.',
-
+            'wallet.required' => 'Ví tiền là bắt buộc.',
             'wallet.integer' => 'Ví tiền phải là số nguyên.',
             'wallet.min' => 'Ví tiền không được nhỏ hơn 0.',
         ];
@@ -115,7 +134,6 @@ class CustomerController extends Controller
     public function destroy(Customer $customer)
     {
         $customer->delete();
-
         return redirect()->route('admin.customers.index')->with('status', 'success')->with('message', 'Khách hàng đã được xóa thành công.');
     }
 

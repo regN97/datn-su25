@@ -106,9 +106,7 @@ const submitForm = () => {
                             </div>
 
                             <div>
-                                <label for="email" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                                    Email
-                                </label>
+                                <label for="email" class="mb-2 block font-medium text-gray-700 dark:text-gray-300"> Email <span class="text-red-500">*</span></label>
                                 <input
                                     type="email"
                                     id="email"
@@ -136,9 +134,7 @@ const submitForm = () => {
                             </div>
 
                             <div>
-                                <label for="wallet" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                                    Ví tiền
-                                </label>
+                                <label for="wallet" class="mb-2 block font-medium text-gray-700 dark:text-gray-300"> Ví tiền <span class="text-red-500">*</span></label>
                                 <input
                                     type="number"
                                     id="wallet"
@@ -150,20 +146,7 @@ const submitForm = () => {
                                 <InputError :message="page.props.errors.wallet" class="mt-1" />
                             </div>
 
-                            <div class="md:col-span-2">
-                                <label for="address" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                                    Địa chỉ
-                                </label>
-                                <textarea
-                                    id="address"
-                                    v-model="form.address"
-                                    class="w-full rounded-md border-gray-300 bg-white p-2 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                                    :class="{ 'border-red-500': page.props.errors.address }"
-                                    rows="3"
-                                    placeholder="Nhập địa chỉ khách hàng"
-                                ></textarea>
-                                <InputError :message="page.props.errors.address" class="mt-1" />
-                            </div>
+                            <!-- Trường địa chỉ đã bị xóa hoàn toàn -->
                         </div>
 
                         <div class="mt-8 flex justify-end space-x-4">
@@ -172,7 +155,7 @@ const submitForm = () => {
                                 @click="goBack"
                                 class="inline-flex items-center rounded-md border border-gray-300 bg-white px-5 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors duration-200 ease-in-out hover:bg-gray-100 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none dark:border-gray-500 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
                             >
-                                 Quay lại
+                                Quay lại
                             </button>
 
                             <button
