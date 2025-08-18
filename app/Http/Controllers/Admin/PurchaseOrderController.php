@@ -84,57 +84,95 @@ class PurchaseOrderController extends Controller
     public function store(Request $request)
     {
 
-        $user_id = $request->user_id;
-        if ($user_id === null) {
-            $user_id = Auth::id();
-        }
+        // Validate dữ liệu đầu vào
+        $validated = $request->validate([
+            'supplier_id' => ['required', 'exists:suppliers,id'],
+            'products' => ['required', 'array', 'min:1'],
+            'products.*.id' => ['required', 'exists:products,id'],
+            'products.*.name' => ['required', 'string'],
+            'products.*.sku' => ['required', 'string'],
+            'products.*.quantity' => ['required', 'integer', 'min:1'],
+            'products.*.purchase_price' => ['required', 'numeric', 'min:0'],
+            'products.*.sub_total' => ['required', 'numeric', 'min:0'],
+            'discount.type' => ['nullable', 'in:amount,percent'],
+            'discount.value' => ['nullable', 'numeric', 'min:0'],
+            'total_amount' => ['required', 'numeric'],
+            // 'total_amount' => ['required', 'numeric'],
+            'user_id' => ['required', 'exists:users,id'],
+            'expected_import_date' => ['required', 'date','after_or_equal:today'],
+            'order_code' => ['nullable', 'string'],
+            'note' => ['nullable', 'string'],
+        ], [
+            'supplier_id.required' => 'Nhà cung cấp không được để trống.',
+            'supplier_id.exists' => 'Nhà cung cấp không hợp lệ.',
+            'products.required' => 'Phải chọn ít nhất một sản phẩm.',
+            'products.array' => 'Danh sách sản phẩm không hợp lệ.',
+            'products.*.id.required' => 'Thiếu thông tin sản phẩm.',
+            'products.*.id.exists' => 'Sản phẩm không tồn tại.',
+            'products.*.name.required' => 'Tên sản phẩm không được để trống.',
+            'products.*.sku.required' => 'SKU sản phẩm không được để trống.',
+            'products.*.quantity.required' => 'Số lượng sản phẩm không được để trống.',
+            'products.*.quantity.integer' => 'Số lượng sản phẩm phải là số nguyên.',
+            'products.*.quantity.min' => 'Số lượng sản phẩm phải lớn hơn 0.',
+            'products.*.purchase_price.required' => 'Đơn giá sản phẩm không được để trống.',
+            'products.*.purchase_price.numeric' => 'Đơn giá sản phẩm phải là số.',
+            'products.*.purchase_price.min' => 'Đơn giá sản phẩm phải >= 0.',
+            'products.*.sub_total.required' => 'Thành tiền không được để trống.',
+            'products.*.sub_total.numeric' => 'Thành tiền phải là số.',
+            'products.*.sub_total.min' => 'Thành tiền phải >= 0.',
+            'discount.type.in' => 'Loại chiết khấu không hợp lệ.',
+            'discount.value.numeric' => 'Giá trị chiết khấu phải là số.',
+            'discount.value.min' => 'Giá trị chiết khấu phải >= 0.',
+            'total_amount.required' => 'Tổng tiền không được để trống.',
+            'total_amount.numeric' => 'Tổng tiền phải là số.',
+            // 'total_amount.min' => 'Tổng tiền phải >= 0.',
+            'user_id.required' => 'Nhân viên phụ trách không được để trống.',
+            'user_id.exists' => 'Nhân viên phụ trách không hợp lệ.',
+            'expected_import_date.required' => 'Ngày nhập dự kiến không được để trống.',
+            'expected_import_date.date' => 'Ngày nhập dự kiến không hợp lệ.',
+            'expected_import_date.after_or_equal' => 'Ngày nhập dự kiến phải lớn hơn hoặc bằng ngày đặt.',        ]);
 
+        $user_id = $validated['user_id'];
         // 2. Xác định po_number (order_code)
-        $po_number = $request->order_code;
+        $po_number = $validated['order_code'] ?? null;
         if ($po_number === null) {
             $today = Carbon::now()->format('Ymd');
             $prefix = "PO-{$today}-";
-
-            // Lấy po_number cuối cùng trong ngày hiện tại
             $lastPo = PurchaseOrder::withTrashed()
                 ->where('po_number', 'like', $prefix . '%')
                 ->lockForUpdate()
                 ->orderByRaw('CAST(SUBSTRING_INDEX(po_number, "-", -1) AS UNSIGNED) DESC')
                 ->first();
-
             if ($lastPo) {
-                // Tách số thứ tự cuối cùng
                 $lastNumber = (int) substr($lastPo->po_number, -3);
                 $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
             } else {
                 $nextNumber = '001';
             }
-
             $po_number = "{$prefix}{$nextNumber}";
         }
 
-        // 3. Khởi tạo dữ liệu để insert vào bảng purchase_orders
         $po_data = [
             'po_number' => $po_number,
-            'supplier_id' => $request->supplier_id,
+            'supplier_id' => $validated['supplier_id'],
             'status_id' => 1,
             'order_date' => now(),
-            'expected_delivery_date' => $request->expected_import_date,
+            'expected_delivery_date' => $validated['expected_import_date'],
             'actual_delivery_date' => null,
-            'discount_type' => $request->discount['type'] ?? null,
-            'discount_amount' => $request->discount['value'] ?? null,
-            'total_amount' => $request->total_amount,
+            'discount_type' => $validated['discount']['type'] ?? null,
+            'discount_amount' => $validated['discount']['value'] ?? null,
+            'total_amount' => $validated['total_amount'],
             'created_by' => $user_id,
             'approved_by' => null,
             'approved_at' => null,
-            'notes' => $request->note,
+            'notes' => $validated['note'] ?? null,
         ];
 
         $purchaseOrder = PurchaseOrder::create($po_data);
         $purchaseOrderId = $purchaseOrder->id;
 
         $po_items_data = [];
-        foreach ($request->products as $product) {
+        foreach ($validated['products'] as $product) {
             $dbProduct = Product::find($product['id']);
             if (!$dbProduct || !$dbProduct->is_active) {
                 return back()->withErrors(['products' => "Sản phẩm {$product['name']} đã bị ẩn và không thể nhập hàng."]);
@@ -154,8 +192,6 @@ class PurchaseOrderController extends Controller
                 'notes'             => null,
             ];
         }
-
-        // Insert nhiều bản ghi vào bảng purchase_order_items
         PurchaseOrderItem::insert($po_items_data);
 
         $purchaseOrderItem = PurchaseOrderItem::where('purchase_order_id', '=', $purchaseOrderId)->with('product')->get();
@@ -359,6 +395,27 @@ class PurchaseOrderController extends Controller
                 return redirect()->route('admin.purchase-orders.show', $id)
                     ->with('error', 'Không thể cập nhật đơn hàng đã nhập hàng hoặc đã hủy!');
             }
+            // ✅ Validate dữ liệu đầu vào
+        $validated = $request->validate([
+            'supplier_id' => ['required', 'exists:suppliers,id'],
+            'products' => ['required', 'array', 'min:1'],
+            'products.*.id' => ['required', 'exists:products,id'],
+            'products.*.name' => ['required', 'string'],
+            'products.*.sku' => ['required', 'string'],
+            'products.*.quantity' => ['required', 'integer', 'min:1'],
+            'products.*.purchase_price' => ['required', 'numeric', 'min:0'],
+            'products.*.sub_total' => ['required', 'numeric', 'min:0'],
+            'discount.type' => ['nullable', 'in:amount,percent'],
+            'discount.value' => ['nullable', 'numeric', 'min:0'],
+            'total_amount' => ['required', 'numeric'],
+            'user_id' => ['required', 'exists:users,id'],
+            // 🚀 check ngày nhập dự kiến >= ngày đặt (order_date trong DB)
+            'expected_import_date' => ['required', 'date', 'after_or_equal:' . $purchaseOrder->order_date],
+            'order_code' => ['nullable', 'string'],
+            'note' => ['nullable', 'string'],
+        ], [
+            'expected_import_date.after_or_equal' => 'Ngày nhập dự kiến phải lớn hơn hoặc bằng ngày đặt hàng (' . $purchaseOrder->order_date . ').',
+        ]);
 
             // Cập nhật thông tin đơn hàng
             $purchaseOrder->po_number = $request->order_code ?? $purchaseOrder->po_number;

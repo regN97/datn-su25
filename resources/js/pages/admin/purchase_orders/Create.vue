@@ -161,6 +161,10 @@ function selectProduct(product: Product) {
         });
     }
 
+    if (selectedProducts.value.length > 0) {
+        productsError.value = '';
+    }
+
     searchQuery.value = '';
     closeDropdown();
 
@@ -184,12 +188,15 @@ function updateQuantity(productId: number, quantity: number) {
     if (product && quantity > 0) {
         product.quantity = quantity;
         product.total = product.quantity * product.purchase_price;
+        
+        if (priceErrors.value[productId]) {
+            delete priceErrors.value[productId];
+        }
     }
 }
 
 const userDropdownRef = ref<HTMLElement>();
 
-// Add these reactive refs after existing refs
 const supplierSearchQuery = ref('');
 const isSupplierDropdownOpen = ref(false);
 const selectedSupplier = ref<Supplier | null>(null);
@@ -217,6 +224,7 @@ function closeSupplierDropdown() {
 function selectSupplier(supplier: Supplier) {
     selectedSupplier.value = supplier;
     supplierSearchQuery.value = ''; // Clear the search query
+    supplierError.value = ''; // xóa lỗi nhà cung cấp 
     closeSupplierDropdown();
 }
 
@@ -258,6 +266,11 @@ function savePrice() {
     if (product) {
         product.purchase_price = editingPrice.value;
         product.total = product.quantity * product.purchase_price;
+        
+        // Clear price error if exists
+        if (editingProductId.value && priceErrors.value[editingProductId.value]) {
+            delete priceErrors.value[editingProductId.value];
+        }
     }
     closePriceModal();
 }
@@ -340,22 +353,79 @@ watch(searchQuery, (newQuery) => {
     }
 });
 
+// Watch for date changes to clear error
+watch(expectedImportDate, (newDate) => {
+    if (newDate && dateError.value) {
+        dateError.value = '';
+    }
+});
+
 const note = ref('');
 const supplierError = ref('');
+const formErrors = ref<Record<string, string>>({});
+const productsError = ref('');
+const dateError = ref('');
+const priceErrors = ref<Record<number, string>>({});
 
-function submitOrder() {
+// Validation tổng thể
+function validateForm(): string[] {
+    const errors: string[] = [];
+    
+    // Reset all errors
+    supplierError.value = '';
+    productsError.value = '';
+    dateError.value = '';
+    priceErrors.value = {};
+    
+    // Validate supplier
     if (!selectedSupplier.value) {
         supplierError.value = 'Nhà cung cấp không được để trống';
-        if (supplierError.value.length > 0) {
-            return Swal.fire({
-                icon: 'error',
-                title: 'Có lỗi xảy ra, vui lòng kiểm tra lại',
-                showConfirmButton: false,
-                timer: 2000,
-            });
+        errors.push('Nhà cung cấp là bắt buộc');
+    }
+    
+    // Validate products
+    if (selectedProducts.value.length === 0) {
+        productsError.value = 'Phải chọn ít nhất 1 sản phẩm';
+        errors.push('Phải chọn ít nhất 1 sản phẩm');
+    }
+    
+    // Validate expected import date
+    if (!expectedImportDate.value) {
+        dateError.value = 'Ngày nhập dự kiến là bắt buộc';
+        errors.push('Ngày nhập dự kiến là bắt buộc');
+    } else if (new Date(expectedImportDate.value) < new Date()) {
+        dateError.value = 'Ngày nhập dự kiến không được trong quá khứ';
+        errors.push('Ngày nhập dự kiến không được trong quá khứ');
+    }
+    
+    // Validate products details
+    selectedProducts.value.forEach((product, index) => {
+        if (product.purchase_price <= 0) {
+            priceErrors.value[product.id] = 'Giá nhập phải lớn hơn 0';
+            errors.push(`Sản phẩm "${product.name}" chưa có giá nhập hợp lệ`);
         }
-    } else {
-        supplierError.value = '';
+        if (product.quantity <= 0) {
+            errors.push(`Sản phẩm "${product.name}" phải có số lượng lớn hơn 0`);
+        }
+    });
+    
+   
+    
+    return errors;
+}
+
+function submitOrder() {
+    formErrors.value = {};
+    
+    // Validate form
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+        return Swal.fire({
+            icon: 'error',
+            title: 'Vui lòng kiểm tra lại thông tin',
+            html: validationErrors.map(error => `• ${error}`).join('<br>'),
+            showConfirmButton: true,
+        });
     }
 
     router.post(route('admin.purchase-orders.store'), {
@@ -377,6 +447,17 @@ function submitOrder() {
         expected_import_date: expectedImportDate.value,
         order_code: orderCode.value,
         note: note.value,
+    }, {
+        onError: (errors) => {
+            formErrors.value = errors;
+            let errorMsg = Object.values(errors).join('\n');
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi nhập liệu',
+                text: errorMsg,
+                showConfirmButton: true,
+            });
+        },
     });
 }
 
@@ -414,9 +495,13 @@ onUnmounted(() => {
                                 <h2 class="text-lg font-semibold">Chi tiết đơn hàng</h2>
                             </div>
                             <div class="space-y-6 p-6">
+                                <!-- Products Error -->
+                                <div v-if="productsError" class="text-sm text-red-500 bg-red-50 border border-red-200 rounded p-3">
+                                    {{ productsError }}
+                                </div>
                                 <!-- Selected Products -->
                                 <div v-if="selectedProducts.length > 0" class="space-y-3">
-                                    <h3 class="text-sm font-medium text-gray-700">Sản phẩm đã chọn</h3>
+                                    <h3 class="text-sm font-medium text-gray-700">Sản phẩm đã chọn <span class="text-red-500">*</span></h3>
                                     <table class="min-w-full divide-y divide-gray-200">
                                         <thead class="bg-gray-50">
                                             <tr>
@@ -475,13 +560,19 @@ onUnmounted(() => {
                                                     />
                                                 </td>
                                                 <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                                    <button
-                                                        class="text-blue-600 underline hover:text-blue-800"
-                                                        @click="openPriceModal(product)"
-                                                        type="button"
-                                                    >
-                                                        {{ formatPrice(product.purchase_price) }}
-                                                    </button>
+                                                    <div>
+                                                        <button
+                                                            class="text-blue-600 underline hover:text-blue-800"
+                                                            @click="openPriceModal(product)"
+                                                            type="button"
+                                                            :class="{ 'text-red-600': priceErrors[product.id] }"
+                                                        >
+                                                            {{ formatPrice(product.purchase_price) }}
+                                                        </button>
+                                                        <div v-if="priceErrors[product.id]" class="text-xs text-red-500 mt-1">
+                                                            {{ priceErrors[product.id] }}
+                                                        </div>
+                                                    </div>
                                                 </td>
                                                 <td class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">
                                                     {{ formatPrice(product.total) }}
@@ -618,8 +709,8 @@ onUnmounted(() => {
                         <!-- Suppliers Search -->
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
-                                <h2 class="text-lg font-semibold">Tìm kiếm hay thêm mới nhà cung cấp</h2>
-                                <div v-if="supplierError.length > 0" class="text-sm text-red-500">
+                                <h2 class="text-lg font-semibold">Tìm kiếm hay thêm mới nhà cung cấp <span class="text-red-500">*</span></h2>
+                                <div v-if="supplierError.length > 0" class="text-sm text-red-500 mt-2 bg-red-50 border border-red-200 rounded p-2">
                                     {{ supplierError }}
                                 </div>
                             </div>
@@ -717,12 +808,18 @@ onUnmounted(() => {
                                 </div>
                                 <!-- Ngày nhập dự kiến -->
                                 <div>
-                                    <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập dự kiến</label>
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập dự kiến <span class="text-red-500">*</span></label>
                                     <input
                                         type="datetime-local"
                                         v-model="expectedImportDate"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                        :class="[
+                                            'h-10 w-full rounded-md border px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500',
+                                            dateError ? 'border-red-300' : 'border-gray-300'
+                                        ]"
                                     />
+                                    <div v-if="dateError" class="text-sm text-red-500 mt-1">
+                                        {{ dateError }}
+                                    </div>
                                 </div>
                                 <!-- Mã đơn đặt hàng nhập -->
                                 <div>
@@ -752,17 +849,9 @@ onUnmounted(() => {
                         </div>
 
                         <button
-                            class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600"
+                            class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             @click="submitOrder"
-                            v-if="selectedProducts.length > 0"
-                        >
-                            Lưu đơn hàng
-                        </button>
-                        <button
-                            class="mt-4 h-12 w-full rounded-md bg-gray-500 font-medium text-white hover:bg-gray-600"
-                            @click="submitOrder"
-                            v-else
-                            disabled
+                            :disabled="selectedProducts.length === 0"
                         >
                             Lưu đơn hàng
                         </button>
