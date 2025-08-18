@@ -12,19 +12,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Step 1: Remove foreign key constraint from user_shifts
-        Schema::table('user_shifts', function (Blueprint $table) {
-            $table->dropForeign(['shift_id']);
+     // Step 1: Remove foreign key constraint and column if exists
+    Schema::table('user_shifts', function (Blueprint $table) {
+        // Kiểm tra nếu cột shift_id tồn tại thì mới xóa
+        if (Schema::hasColumn('user_shifts', 'shift_id')) {
+            // Xóa khóa ngoại nếu tồn tại
+            try {
+                $table->dropForeign(['shift_id']);
+            } catch (\Exception $e) {}
             $table->dropColumn('shift_id');
-        });
+        }
+    });
 
-        // Step 2: Drop the work_shifts table
-        Schema::dropIfExists('work_shifts');
+    // Step 2: Drop the work_shifts table
+    Schema::dropIfExists('work_shifts');
 
-        // Step 3: Add total_hours column to user_shifts
+    // Step 3: Add total_hours column to user_shifts
+    if (!Schema::hasColumn('user_shifts', 'total_hours')) {
         Schema::table('user_shifts', function (Blueprint $table) {
             $table->decimal('total_hours', 5, 2)->nullable()->comment('Tổng số giờ làm việc (tính bằng giờ)')->after('check_out');
         });
+    }
 
         
     }
