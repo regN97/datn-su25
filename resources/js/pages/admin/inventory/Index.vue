@@ -136,7 +136,7 @@ function changePerPage(event: Event) {
 }
 
 function goToShowPage(id: number) {
-    router.visit(route('admin.products.show', id));
+    router.visit(route('admin.inventory.show', id));
 }
 
 const showDeleteModal = ref(false);

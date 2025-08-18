@@ -4,7 +4,7 @@ import { Head } from '@inertiajs/vue3';
 import { CheckCircle2, ChevronLeft, ChevronRight, Search, XCircle } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
-// Định nghĩa giao diện cho dữ liệu người dùng
+// Định nghĩa giao diện cho dữ liệu tài khoản
 interface User {
     id: number;
     name: string;
@@ -18,7 +18,7 @@ interface User {
     };
 }
 
-// Định nghĩa giao diện cho dữ liệu ca làm việc của người dùng
+// Định nghĩa giao diện cho dữ liệu ca làm việc của tài khoản
 interface UserShift {
     id: number;
     user_id: number;
@@ -192,19 +192,19 @@ const formattedUserShifts = computed(() => {
 </script>
 
 <template>
-    <Head :title="`Chi tiết người dùng: ${user.name}`" />
-    <AppLayout :breadcrumbs="[{ title: 'Quản lý người dùng', href: '/admin/users' }]">
+    <Head :title="`Chi tiết tài khoản: ${user.name}`" />
+    <AppLayout :breadcrumbs="[{ title: 'Quản lý tài khoản', href: '/admin/users' }]">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div class="border-sidebar-border/70 relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
-                    <h1 class="mb-6 text-2xl font-bold text-gray-800">Thông tin chi tiết người dùng</h1>
+                    <h1 class="text-2xl font-bold text-gray-800 mb-6">Thông tin chi tiết tài khoản</h1>
 
                     <!-- Thông tin cá nhân -->
                     <div class="mb-6 rounded-xl bg-white p-6 shadow">
                         <h2 class="mb-4 text-xl font-semibold text-gray-700">Thông tin cá nhân</h2>
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                             <div>
-                                <p class="text-sm font-medium text-gray-500">Tên người dùng</p>
+                                <p class="text-sm font-medium text-gray-500">Tên tài khoản</p>
                                 <p class="mt-1 text-lg font-medium text-gray-900">{{ user.name }}</p>
                             </div>
                             <div>

@@ -70,7 +70,7 @@ function forceDeleteCustomer(id: number) {
                             <th class="p-3 text-sm font-semibold">Tên khách hàng</th>
                             <th class="p-3 text-sm font-semibold">Email</th>
                             <th class="p-3 text-sm font-semibold">SĐT</th>
-                            <!-- <th class="p-3 text-sm font-semibold">Địa chỉ</th> -->
+                            <!-- Đã xóa cột địa chỉ -->
                             <th class="p-3 text-sm font-semibold">Ví tiền</th>
                             <th class="p-3 text-sm font-semibold">Thời gian xóa</th>
                             <th class="p-3 text-sm font-semibold">Thao tác</th>
@@ -81,7 +81,7 @@ function forceDeleteCustomer(id: number) {
                             <td class="p-3 text-sm">{{ customer.customer_name }}</td>
                             <td class="p-3 text-sm">{{ customer.email || 'N/A' }}</td>
                             <td class="p-3 text-sm">{{ customer.phone || 'N/A' }}</td>
-                            <!-- <td class="p-3 text-sm">{{ customer.address || 'N/A' }}</td> -->
+                            <!-- Đã xóa cột địa chỉ -->
                             <td class="p-3 text-sm">{{ customer.wallet.toLocaleString('vi-VN') }} VND</td>
                             <td class="p-3 text-sm text-gray-500">{{ customer.deleted_at }}</td>
                             <td class="p-3 text-center text-sm">

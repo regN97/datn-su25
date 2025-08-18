@@ -33,10 +33,14 @@ class InventoryController extends Controller
     }
     public function show($id)
     {
-
+        $product = Product::with(['category', 'unit', 'suppliers'])->find($id);
+        return Inertia::render('admin/inventory/Show')->with([
+            'product' => $product,
+            'unit' => $product->unit,
+            'category' => $product->category,
+            'batch' => $product->batches,
+            'batchItems' => $product->batchItems
+        ]);
     }
-    public function update(Request $request, $id)
-    {
-
-    }
+    public function update(Request $request, $id) {}
 }

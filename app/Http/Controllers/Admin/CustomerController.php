@@ -25,15 +25,16 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'customer_name' => ['required', 'string', 'max:30'],
+            'customer_name' => ['required', 'string', 'min:3', 'max:30'],
             'email' => ['required', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['required', 'digits:10'],
             'wallet' => ['required', 'integer', 'min:0'],
         ];
 
         $messages = [
             'customer_name.required' => 'Tên khách hàng là bắt buộc.',
             'customer_name.string' => 'Tên khách hàng phải là chuỗi ký tự.',
+            'customer_name.min' => 'Tên khách hàng phải lớn hơn 2 ký tự.',
             'customer_name.max' => 'Tên khách hàng không được vượt quá :max ký tự.',
 
             'email.required' => 'Email là bắt buộc.',
@@ -41,8 +42,7 @@ class CustomerController extends Controller
             'email.max' => 'Email không được vượt quá :max ký tự.',
 
             'phone.required' => 'Số điện thoại là bắt buộc.',
-            'phone.string' => 'Số điện thoại phải là chuỗi ký tự.',
-            'phone.max' => 'Số điện thoại không được vượt quá :max ký tự.',
+            'phone.digits' => 'Số điện thoại phải là số và đúng 10 ký tự.',
 
             'wallet.required' => 'Ví tiền là bắt buộc.',
             'wallet.integer' => 'Ví tiền phải là số nguyên.',
@@ -51,27 +51,24 @@ class CustomerController extends Controller
 
         $validatedData = $request->validate($rules, $messages);
 
-        // Kiểm tra khách hàng trùng tên kể cả đã xóa mềm
-        $existingCustomer = Customer::withTrashed()->where('customer_name', $validatedData['customer_name'])->first();
+        // Kiểm tra khách hàng trùng tên, email, sđt kể cả đã xóa mềm
+        $existingCustomer = Customer::withTrashed()->where('customer_name', $validatedData['customer_name'])
+            ->orWhere('email', $validatedData['email'])
+            ->orWhere('phone', $validatedData['phone'])
+            ->first();
         if ($existingCustomer) {
             if ($existingCustomer->trashed()) {
-                return back()->withErrors(['customer_name' => 'Tên khách hàng này đã bị xóa mềm. Vui lòng chọn tên khác hoặc khôi phục khách hàng.']);
+                return back()->withErrors(['customer_name' => 'Khách hàng này đã bị xóa mềm. Vui lòng chọn thông tin khác hoặc khôi phục khách hàng.']);
             } else {
-                return back()->withErrors(['customer_name' => 'Tên khách hàng này đã tồn tại.']);
-            }
-        }
-
-        // Kiểm tra email và phone trùng với khách hàng đã xóa mềm
-        if (!empty($validatedData['email'])) {
-            $existingEmail = Customer::withTrashed()->where('email', $validatedData['email'])->first();
-            if ($existingEmail) {
-                return back()->withErrors(['email' => 'Email này đã tồn tại hoặc đã bị xóa mềm.']);
-            }
-        }
-        if (!empty($validatedData['phone'])) {
-            $existingPhone = Customer::withTrashed()->where('phone', $validatedData['phone'])->first();
-            if ($existingPhone) {
-                return back()->withErrors(['phone' => 'Số điện thoại này đã tồn tại hoặc đã bị xóa mềm.']);
+                if ($existingCustomer->customer_name === $validatedData['customer_name']) {
+                    return back()->withErrors(['customer_name' => 'Tên khách hàng này đã tồn tại.']);
+                }
+                if ($existingCustomer->email === $validatedData['email']) {
+                    return back()->withErrors(['email' => 'Email này đã tồn tại.']);
+                }
+                if ($existingCustomer->phone === $validatedData['phone']) {
+                    return back()->withErrors(['phone' => 'Số điện thoại này đã tồn tại.']);
+                }
             }
         }
 

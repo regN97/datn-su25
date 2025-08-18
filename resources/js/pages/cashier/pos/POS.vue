@@ -1,5 +1,11 @@
 <script setup>
 import POSKeyboardHandler from '@/components/cashier/POSKeyboardHandler.vue';
+<<<<<<< HEAD
+=======
+import { Head, usePage, useForm } from '@inertiajs/vue3';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { MenuIcon, BadgeInfo, X, FileText, LogOutIcon, Loader2 } from 'lucide-vue-next';
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
 import InputError from '@/components/InputError.vue';
 import CashierLayout from '@/layouts/CashierLayout.vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
@@ -49,6 +55,8 @@ const interval = ref(null);
 const bankQRCode = ref(null);
 const isLoadingBankQR = ref(false);
 const bankTransactionInfo = ref(null);
+const walletAmount = ref(0);
+
 
 // Forms
 const sessionForm = useForm({
@@ -341,8 +349,7 @@ const generateShiftReport = async () => {
     }
 };
 
-// Cart management
-const newOrder = () => {
+const createNewOrder = () => {
     cart.value = [];
     selectedCustomer.value = null;
     form.customer_id = null;
@@ -366,17 +373,16 @@ const holdOrder = () => {
         return;
     }
     const orderId = pendingOrders.value.length + 1;
-    const newOrder = {
+    const order = {
         id: orderId,
         cart: [...cart.value],
         customer: selectedCustomer.value ? { ...selectedCustomer.value } : null,
         orderNotes: form.orderNotes || '',
         timestamp: DateTime.now().toISO(),
     };
-    pendingOrders.value.push(newOrder);
-    // Lưu vào localStorage
+    pendingOrders.value.push(order);
     localStorage.setItem('pendingOrders', JSON.stringify(pendingOrders.value));
-    newOrder();
+    createNewOrder();
     successMessage.value = `Đã lưu đơn hàng #${orderId}!`;
     showSuccessModal.value = true;
     autoHideMessage();
@@ -533,7 +539,21 @@ const showPayment = () => {
     billNumber.value = 'HD' + Date.now();
     showPaymentModal.value = true;
 };
-
+const cashAmountForCombined = computed(() => {
+    if (form.paymentMethod === 'combined' && selectedCustomer.value) {
+        const walletBalance = Number(selectedCustomer.value.wallet) || 0;
+        const total = cartTotal.value;
+        const walletUsed = Math.min(walletBalance, total, Number(walletAmount.value) || 0);
+        return total - walletUsed;
+    }
+    return 0;
+});
+const combinedChange = computed(() => {
+    if (form.paymentMethod === 'combined' && form.amountReceived >= cashAmountForCombined.value) {
+        return form.amountReceived - cashAmountForCombined.value;
+    }
+    return 0;
+});
 const submitSale = async () => {
     if (!hasActiveSession.value) {
         errorMessage.value = 'Vui lòng mở ca trước khi thanh toán.';
@@ -565,10 +585,21 @@ const submitSale = async () => {
         autoHideMessage();
         return;
     }
-
+    if (form.paymentMethod === 'combined') {
+        if (!selectedCustomer.value || Number(walletAmount.value) > selectedCustomer.value.wallet) {
+            errorMessage.value = 'Số dư ví không đủ hoặc chưa chọn khách hàng.';
+            autoHideMessage();
+            return;
+        }
+        if (Number(form.amountReceived) < cashAmountForCombined.value) {
+            errorMessage.value = 'Số tiền mặt khách đưa không đủ.';
+            autoHideMessage();
+            return;
+        }
+        
+    }
     form.cart = cart.value;
     form.customer_id = selectedCustomer.value?.id || null;
-
     try {
         const payload = {
             cart: form.cart.map((item) => ({ id: item.id, quantity: item.quantity })),
@@ -581,14 +612,24 @@ const submitSale = async () => {
         if (form.paymentMethod === 'bank_transfer') {
             payload.orderId = billNumber.value || 'HD' + Date.now();
         }
+        if (form.paymentMethod === 'combined') {
+            payload.walletAmount = Number(walletAmount.value) || 0;
+            payload.cashAmount = Number(form.amountReceived) || 0;
+        }
         const response = await axios.post('/cashier/pos/sale', payload);
-
-        // Tải lại toàn bộ danh sách sản phẩm
+        // Tải lại danh sách sản phẩm
         const productResponse = await axios.get('/cashier/pos/products');
-        products.value = productResponse.data.products || []; // Cập nhật danh sách sản phẩm đầy đủ
-
+        products.value = productResponse.data.products || [];
+        // Tải lại danh sách khách hàng để cập nhật số dư ví
+        const customerResponse = await axios.get('/cashier/pos/customers');
+        customers.value = customerResponse.data.customers || [];
+        if (selectedCustomer.value) {
+            const updatedCustomer = customers.value.find(c => c.id === selectedCustomer.value.id);
+            if (updatedCustomer) selectedCustomer.value = updatedCustomer;
+        }
         cart.value = [];
         form.reset('cart', 'customer_id', 'paymentMethod', 'amountReceived', 'orderNotes', 'printReceipt');
+        walletAmount.value = 0; // Reset wallet amount
         clearCustomer();
         hasActiveSession.value = response.data.hasActiveSession || true;
         await fetchShiftReport();
@@ -665,7 +706,18 @@ const confirmPayment = async () => {
         autoHideMessage();
         return;
     }
-
+    if (form.paymentMethod === 'combined') {
+        if (!selectedCustomer.value || selectedCustomer.value.wallet < walletAmount.value) {
+            errorMessage.value = 'Số dư ví không đủ hoặc chưa chọn khách hàng.';
+            autoHideMessage();
+            return;
+        }
+        if (Number(form.amountReceived) < cashAmountForCombined.value) {
+            errorMessage.value = 'Số tiền mặt khách đưa không đủ.';
+            autoHideMessage();
+            return;
+        }
+    }
     try {
         const cartSnapshot = [...cart.value];
         const paymentMethodSnapshot = form.paymentMethod;
@@ -680,6 +732,7 @@ const confirmPayment = async () => {
         showSuccessModal.value = true;
         bankQRCode.value = null;
         bankTransactionInfo.value = null;
+        walletAmount.value = 0; // Reset wallet amount
         autoHideMessage();
     } catch (error) {
         if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
@@ -706,11 +759,14 @@ const printReceipt = (
         autoHideMessage();
         return;
     }
+<<<<<<< HEAD
 
     const subtotal = cartData.reduce((total, item) => total + item.price * item.quantity, 0);
+=======
+    const subtotal = cartData.reduce((total, item) => total + (item.price * item.quantity), 0);
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
     const tax = 0;
     const total = subtotal + tax;
-
     try {
         printWindow.document.write(`
       <html>
@@ -719,96 +775,95 @@ const printReceipt = (
           <style>
             @media print {
               @page { size: 80mm auto; margin: 5mm; }
-              body { 
-                font-family: 'Courier New', monospace; 
-                font-size: 10pt; 
-                width: 80mm; 
-                margin: 0; 
-                padding: 5mm; 
-                line-height: 1.4; 
-                color: #000; 
-                background: #fff; 
+              body {
+                font-family: 'Courier New', monospace;
+                font-size: 10pt;
+                width: 80mm;
+                margin: 0;
+                padding: 5mm;
+                line-height: 1.4;
+                color: #000;
+                background: #fff;
               }
-              .header { 
-                text-align: center; 
-                border-bottom: 2px dashed #000; 
-                padding-bottom: 8px; 
-                margin-bottom: 8px; 
+              .header {
+                text-align: center;
+                border-bottom: 2px dashed #000;
+                padding-bottom: 8px;
+                margin-bottom: 8px;
               }
-              .store-info { 
-                font-size: 9pt; 
-                text-align: center; 
-                margin-bottom: 8px; 
+              .store-info {
+                font-size: 9pt;
+                text-align: center;
+                margin-bottom: 8px;
               }
-              .bill-info { 
-                font-size: 9pt; 
-                margin-bottom: 8px; 
+              .bill-info {
+                font-size: 9pt;
+                margin-bottom: 8px;
               }
-              table { 
-                width: 100%; 
-                border-collapse: collapse; 
-                margin: 8px 0; 
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 8px 0;
               }
-              th, td { 
-                padding: 4px 2px; 
-                font-size: 9pt; 
-                text-align: left; 
+              th, td {
+                padding: 4px 2px;
+                font-size: 9pt;
+                text-align: left;
               }
-              th { 
-                border-bottom: 1px solid #000; 
-                font-weight: bold; 
+              th {
+                border-bottom: 1px solid #000;
+                font-weight: bold;
               }
-              .text-right { 
-                text-align: right; 
+              .text-right {
+                text-align: right;
               }
-              .text-center { 
-                text-align: center; 
+              .text-center {
+                text-align: center;
               }
-              .total-section { 
-                border-top: 1px dashed #000; 
-                padding-top: 8px; 
-                margin-top: 8px; 
-                font-size: 9pt; 
+              .total-section {
+                border-top: 1px dashed #000;
+                padding-top: 8px;
+                margin-top: 8px;
+                font-size: 9pt;
               }
-              .total { 
-                font-size: 10pt; 
-                font-weight: bold; 
+              .total {
+                font-size: 10pt;
+                font-weight: bold;
               }
-              .footer { 
-                text-align: center; 
-                font-size: 8pt; 
-                margin-top: 8px; 
-                border-top: 2px dashed #000; 
-                padding-top: 8px; 
+              .footer {
+                text-align: center;
+                font-size: 8pt;
+                margin-top: 8px;
+                border-top: 2px dashed #000;
+                padding-top: 8px;
               }
-              .no-print { 
-                display: none; 
+              .no-print {
+                display: none;
               }
             }
-            /* Screen preview styles to mimic print */
-            body { 
-              font-family: 'Courier New', monospace; 
-              font-size: 10pt; 
-              width: 80mm; 
-              margin: 10px auto; 
-              padding: 5mm; 
-              line-height: 1.4; 
-              color: #000; 
-              background: #fff; 
-              border: 1px solid #ccc; 
-              box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+            body {
+              font-family: 'Courier New', monospace;
+              font-size: 10pt;
+              width: 80mm;
+              margin: 10px auto;
+              padding: 5mm;
+              line-height: 1.4;
+              color: #000;
+              background: #fff;
+              border: 1px solid #ccc;
+              box-shadow: 0 0 10px rgba(0,0,0,0.1);
             }
-            .no-print { 
-              display: block; 
-              margin-top: 10px; 
-              width: 100%; 
-              padding: 5px; 
-              background: #007bff; 
-              color: #fff; 
-              border: none; 
-              border-radius: 3px; 
-              cursor: pointer; 
-              text-align: center; 
+            .no-print {
+              display: block;
+              margin-top: 10px;
+              width: 100%;
+              padding: 5px;
+              background: #007bff;
+              color: #fff;
+              border: none;
+              border-radius: 3px;
+              cursor: pointer;
+              text-align: center;
             }
           </style>
         </head>
@@ -845,8 +900,8 @@ const printReceipt = (
                 <tr>
                   <td>${sanitizeHTML(item.name || 'Unknown')}</td>
                   <td class="text-center">${item.quantity || 0}</td>
-                  <td class="text-right">${sanitizeHTML(formatCurrency(item.selling_price || 0))}</td>
-                  <td class="text-right">${sanitizeHTML(formatCurrency((item.selling_price || 0) * (item.quantity || 0)))}</td>
+                  <td class="text-right">${sanitizeHTML(formatCurrency(item.price || 0))}</td>
+                  <td class="text-right">${sanitizeHTML(formatCurrency((item.price || 0) * (item.quantity || 0)))}</td>
                 </tr>
               `,
                             )
@@ -864,6 +919,7 @@ const printReceipt = (
             <p class="text-right"><strong>Giảm giá:</strong> ${sanitizeHTML(formatCurrency(0))}</p>
             <p class="text-right total"><strong>Tổng thanh toán:</strong> ${sanitizeHTML(formatCurrency(total))}</p>
             <p class="text-right"><strong>Phương thức:</strong> ${sanitizeHTML(
+<<<<<<< HEAD
                 paymentMethod === 'cash'
                     ? 'Tiền mặt'
                     : paymentMethod === 'credit_card'
@@ -875,15 +931,32 @@ const printReceipt = (
             ${
                 paymentMethod === 'cash'
                     ? `
+=======
+            paymentMethod === 'cash' ? 'Tiền mặt' :
+                paymentMethod === 'credit_card' ? 'Thẻ ngân hàng' :
+                    paymentMethod === 'bank_transfer' ? 'Chuyển khoản ngân hàng' :
+                        paymentMethod === 'wallet' ? 'Ví khách hàng' :
+                            'Kết hợp (Ví + Tiền mặt)'
+        )}</p>
+            ${paymentMethod === 'cash' ? `
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
               <p class="text-right"><strong>Khách đưa:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) || 0))}</p>
               <p class="text-right"><strong>Tiền thối:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) - total || 0))}</p>
             `
                     : paymentMethod === 'bank_transfer' && bankTransactionInfo.value
                       ? `
               <p class="text-right"><strong>Mô tả:</strong> ${sanitizeHTML(bankTransactionInfo.value.description)}</p>
+<<<<<<< HEAD
             `
                       : ''
             }
+=======
+            ` : paymentMethod === 'combined' ? `
+              <p class="text-right"><strong>Thanh toán bằng ví:</strong> ${sanitizeHTML(formatCurrency(Number(walletAmount.value) || 0))}</p>
+              <p class="text-right"><strong>Thanh toán bằng tiền mặt:</strong> ${sanitizeHTML(formatCurrency(Number(form.amountReceived) || 0))}</p>
+              <p class="text-right"><strong>Tiền thối:</strong> ${sanitizeHTML(formatCurrency(Number(form.amountReceived) - cashAmountForCombined.value || 0))}</p>
+            ` : ''}
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
             <p class="text-right"><strong>Ghi chú:</strong> ${sanitizeHTML(form.orderNotes || 'Không có')}</p>
           </div>
           <div class="footer">
@@ -1055,7 +1128,7 @@ const handleKeydown = (event) => {
     if (event.key === 'Escape') closeModalsAndSidebars();
     if (event.key === 'F9') {
         event.preventDefault();
-        newOrder();
+        createNewOrder();
     }
 };
 
@@ -1142,6 +1215,35 @@ const searchByBarcode = async (barcode) => {
         isProcessingBarcode = false;
     }
 };
+
+// Cải thiện phần thanh toán kết hợp
+watch(() => form.paymentMethod, (newMethod) => {
+    if (newMethod === 'combined' && selectedCustomer.value) {
+        walletAmount.value = Math.min(selectedCustomer.value.wallet, cartTotal.value); // Tự động set walletAmount tối đa có thể
+        form.amountReceived = 0; // Reset tiền mặt
+    }
+});
+
+watch(walletAmount, (newValue) => {
+    const walletBalance = selectedCustomer.value ? Number(selectedCustomer.value.wallet) : 0;
+    const maxWallet = Math.min(walletBalance, cartTotal.value);
+    if (newValue > maxWallet) {
+        walletAmount.value = maxWallet;
+        errorMessage.value = 'Số tiền ví không được vượt quá số dư hoặc tổng đơn.';
+        autoHideMessage();
+    } else if (newValue < 0) {
+        walletAmount.value = 0;
+    }
+    // Tự động cập nhật tiền mặt cần trả khi thay đổi walletAmount
+    form.amountReceived = Math.max(form.amountReceived, cashAmountForCombined.value);
+});
+
+watch(cashAmountForCombined, (newValue) => {
+    if (form.amountReceived < newValue) {
+        form.amountReceived = newValue; // Đảm bảo tiền mặt tối thiểu
+    }
+});
+
 </script>
 
 <template>
@@ -1193,12 +1295,20 @@ const searchByBarcode = async (barcode) => {
                         <div>
                             <p class="mt-0.5 text-[11px] text-gray-600">Sản phẩm phù hợp: {{ filteredProducts.length }}</p>
                             <div class="mb-2">
+<<<<<<< HEAD
                                 <label class="mb-1 block text-xs font-medium text-gray-700">Danh mục:</label>
                                 <select
                                     v-model="selectedCategory"
                                     class="w-full rounded border border-gray-300 p-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                 >
                                     <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+=======
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Danh mục:</label>
+                                <select v-model="selectedCategory"
+                                    class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option v-for="category in categories" :key="category" :value="category">{{ category
+                                        }}</option>
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                                 </select>
                             </div>
                             <div class="mb-2">
@@ -1495,6 +1605,7 @@ const searchByBarcode = async (barcode) => {
                     <div class="mb-1 flex items-center justify-between">
                         <div class="flex items-center space-x-1">
                             <!-- Nút mở báo cáo -->
+<<<<<<< HEAD
                             <button
                                 @click="toggleReportSidebar"
                                 class="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-300"
@@ -1525,12 +1636,45 @@ const searchByBarcode = async (barcode) => {
                                     class="text-blue-500 hover:underline focus:outline-none"
                                 >
                                     <X class="mr-1 inline-block h-4 w-4" />
+=======
+<button @click="toggleReportSidebar"
+    class="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200"
+    title="Xem báo cáo ca làm việc">
+    <FileText class="w-4 h-4" />
+    <span>Ca làm</span>
+</button>
+
+<!-- Nút mở bộ lọc -->
+<button @click="toggleFilterSidebar"
+    class="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded text-xs hover:bg-green-200"
+    title="Bộ lọc dữ liệu báo cáo">
+    <MenuIcon class="w-4 h-4" />
+    <span>Bộ lọc</span>
+</button>
+
+                            <div class="flex justify-between items-center mt-1 text-[11px] text-gray-600">
+                                <button v-if="
+                                    searchTerm ||
+                                    selectedCategory !== 'Tất cả' ||
+                                    priceRange.min ||
+                                    priceRange.max ||
+                                    stockRange.min ||
+                                    stockRange.max ||
+                                    sortBy !== 'none'
+                                " @click="resetFilters" class="text-blue-500 hover:underline focus:outline-none">
+                                    <X class="w-4 h-4 inline-block mr-1" />
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                                 </button>
                             </div>
                             <h2 class="text-base font-semibold">Sản phẩm</h2>
                         </div>
                         <div v-if="activeShift" class="text-[11px] text-gray-600">
+<<<<<<< HEAD
                             <p><strong>Ca làm việc:</strong> {{ activeShift.shift_name }} (Bắt đầu: {{ formattedOpenedAt }})</p>
+=======
+                            <p><strong>Ca làm việc:</strong> {{ activeShift.shift_name }} (Bắt đầu: {{ formattedOpenedAt
+                                }})</p>
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                         </div>
                     </div>
                     <div class="mb-1">
@@ -1581,7 +1725,12 @@ const searchByBarcode = async (barcode) => {
                     <div class="flex items-center justify-between">
                         <h2 class="text-base font-semibold">Giỏ hàng</h2>
                         <div class="flex space-x-1">
+<<<<<<< HEAD
                             <button class="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-300" @click="newOrder">
+=======
+                            <button class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs hover:bg-gray-300"
+                                @click="createNewOrder">
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                                 Đơn mới (F9)
                             </button>
                             <button class="rounded bg-yellow-500 px-2 py-0.5 text-xs text-white hover:bg-yellow-600" @click="holdOrder">
@@ -1741,9 +1890,14 @@ const searchByBarcode = async (barcode) => {
                         <!-- Header -->
                         <div class="mb-4 flex items-center justify-between">
                             <h2 class="text-2xl font-bold text-gray-900">Xác nhận thanh toán</h2>
+<<<<<<< HEAD
                             <span class="text-sm text-gray-600"
                                 >Nhân viên: <strong>{{ props.auth?.user?.name || 'N/A' }}</strong></span
                             >
+=======
+                            <span class="text-sm text-gray-600">Nhân viên: <strong>{{ props.auth?.user?.name || 'N/A'
+                                    }}</strong></span>
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                         </div>
                         <!-- Bill Information in Rectangular Frame -->
                         <div class="rounded-lg border border-gray-300 bg-gray-50 p-6 shadow-sm">
@@ -1783,7 +1937,12 @@ const searchByBarcode = async (barcode) => {
                                                 <td class="p-3">{{ item.name }}</td>
                                                 <td class="p-3 text-center">{{ item.quantity }}</td>
                                                 <td class="p-3 text-right">{{ formatCurrency(item.price) }}</td>
+<<<<<<< HEAD
                                                 <td class="p-3 text-right">{{ formatCurrency(item.price * item.quantity) }}</td>
+=======
+                                                <td class="p-3 text-right">{{ formatCurrency(item.price * item.quantity)
+                                                    }}</td>
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1816,7 +1975,15 @@ const searchByBarcode = async (barcode) => {
                                 <option value="cash">Tiền mặt</option>
                                 <option value="credit_card">Thẻ ngân hàng</option>
                                 <option value="bank_transfer">Chuyển khoản ngân hàng</option>
+<<<<<<< HEAD
                                 <option value="wallet" :disabled="!selectedCustomer || selectedCustomer.wallet < cartTotal">Ví khách hàng</option>
+=======
+                                
+
+                                <option value="combined" :disabled="!selectedCustomer || selectedCustomer.wallet <= 0">
+                                    Kết hợp (Ví + Tiền mặt)
+                                </option>
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                             </select>
                             <InputError class="mt-1 text-[10px]" :message="form.errors.paymentMethod" />
                         </div>
@@ -1881,6 +2048,34 @@ const searchByBarcode = async (barcode) => {
                                     <p><strong>Chủ tài khoản:</strong> {{ bankTransactionInfo.accountName }}</p>
                                     <p><strong>Số tiền:</strong> {{ formatCurrency(bankTransactionInfo.amount) }}</p>
                                     <p><strong>Nội dung:</strong> {{ bankTransactionInfo.description }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="form.paymentMethod === 'combined'" class="space-y-3 text-sm">
+                            <div>
+                                <label class="block font-semibold">Số tiền từ ví (Tối đa: {{ formatCurrency(selectedCustomer?.wallet || 0) }}):</label>
+                                <input type="number" v-model.number="walletAmount" :max="selectedCustomer?.wallet || 0" min="0"
+                                    :placeholder="'Nhập số tiền từ ví (tối đa ' + formatCurrency(Math.min(selectedCustomer?.wallet || 0, cartTotal)) + ')'"
+                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" />
+                            </div>
+                            <div>
+                                <label class="block font-semibold">Số tiền mặt cần trả: {{ formatCurrency(cashAmountForCombined) }}</label>
+                                <div class="flex flex-wrap gap-2 mb-2">
+                                    <button v-for="amount in quickAmounts" :key="amount" @click="form.amountReceived = amount"
+                                        class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs hover:bg-blue-200 transition-all shadow-sm">
+                                        {{ formatCurrency(amount) }}
+                                    </button>
+                                    <button @click="form.amountReceived = cashAmountForCombined"
+                                        class="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs hover:bg-green-200 transition-all shadow-sm">
+                                        Chính xác
+                                    </button>
+                                </div>
+                                <input type="number" v-model.number="form.amountReceived"
+                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                                    min="0" placeholder="Nhập số tiền khách đưa" />
+                                <div class="flex justify-between text-sm mt-2">
+                                    <span class="font-semibold">Tiền thối lại:</span>
+                                    <span class="font-bold text-blue-600">{{ formatCurrency(combinedChange) }}</span>
                                 </div>
                             </div>
                         </div>

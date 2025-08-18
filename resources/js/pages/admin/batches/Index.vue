@@ -315,6 +315,7 @@ function exportBatchesToExcel() {
         isLoading.value = false;
     }
 }
+<<<<<<< HEAD
 function deleteBatch() {
     if (batchToDelete.value) {
         router.delete(route('admin.batches.destroy', batchToDelete.value), {
@@ -325,6 +326,11 @@ function deleteBatch() {
             },
         });
     }
+=======
+function goToCreatePage() {
+router.visit(route("admin.batches.create"));
+    
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
 }
 
 function getPaymentStatusDisplayName(status: 'unpaid' | 'partially_paid' | 'paid') {
@@ -533,7 +539,13 @@ async function importBatchesFromExcel(event: Event) {
                                     }}</span>
                             </label> -->
 
+<<<<<<< HEAD
                             <button class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
+=======
+                            <button
+                            @click="goToCreatePage"
+                                class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                                 <PackagePlus class="h-5 w-5" />
                                 <span class="ml-2 hidden md:inline">Tạo Đơn nhập Hàng Mới</span>
                             </button>

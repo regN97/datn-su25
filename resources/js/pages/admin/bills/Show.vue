@@ -63,7 +63,8 @@ function getPaymentMethodName(method: string) {
 }
 
 function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    const formatted = new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+    return formatted;
 }
 
 const subtotal_amount = bill.details.reduce((sum, item) => sum + item.subtotal, 0);

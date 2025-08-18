@@ -5,12 +5,12 @@ import { Head, router } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import { computed, ref, watch } from 'vue';
 
-// Define props
+// Định nghĩa props nhận từ controller
 const props = defineProps<{
     purchaseOrder: {
         id: number | null;
         code: string;
-        supplier_id: number; // Thêm supplier_id vào đây để sử dụng
+        supplier_id: number;
         supplier_name: string;
         supplier_email?: string;
         supplier_phone?: string;
@@ -35,7 +35,7 @@ const props = defineProps<{
     error?: string;
 }>();
 
-// Data for the return form
+// Dữ liệu cho form trả hàng
 const returnForm = ref({
     purchase_order_id: props.purchaseOrder?.id || null,
     return_order_code: props.purchaseOrder ? `TRA-${props.purchaseOrder.code}` : '',
@@ -44,8 +44,7 @@ const returnForm = ref({
     additional_cost: 0,
     deduction: 0,
     tags: [] as string[],
-    // Thêm các trạng thái thanh toán mới
-    payment_status: 'unpaid', // Mặc định là chưa thanh toán
+    payment_status: 'unpaid',
     payment_amount: 0,
     paid_at: null as string | null,
 });
@@ -61,16 +60,19 @@ const getImage = (url?: string | null) => {
     return `/storage/${url}`;
 };
 
+// Tính toán tổng giá trị sản phẩm trả lại
 const totalReturnProductValue = computed(() => {
     return returnForm.value.return_items.reduce((sum, item) => {
         return sum + item.quantity_to_return * item.unit_cost;
     }, 0);
 });
 
+// Tính toán tổng giá trị hoàn lại sau chi phí và giảm trừ
 const totalRefundValue = computed(() => {
     return totalReturnProductValue.value - returnForm.value.additional_cost - returnForm.value.deduction;
 });
 
+<<<<<<< HEAD
 // Watch tổng giá trị hoàn trả và trạng thái thanh toán để cập nhật số tiền thanh toán
 watch(
     () => [totalRefundValue.value, returnForm.value.payment_status],
@@ -128,6 +130,28 @@ const getCurrentVietnamTime = () => {
         hour12: false,
     });
 };
+=======
+// Tự động cập nhật số tiền thanh toán khi tổng giá trị hoặc trạng thái thanh toán thay đổi
+watch(() => [totalRefundValue.value, returnForm.value.payment_status], ([newTotal, newStatus]) => {
+    if (newStatus === 'paid') {
+        returnForm.value.payment_amount = newTotal;
+    } else {
+        returnForm.value.payment_amount = 0;
+    }
+}, { immediate: true });
+
+// Tự động cập nhật ngày giờ khi chuyển trạng thái sang "paid"
+watch(() => returnForm.value.payment_status, (newStatus) => {
+    if (newStatus === 'paid') {
+        const now = new Date();
+        const vietnamTime = new Date(now.getTime() + 7 * 60 * 60000); // UTC+7
+        returnForm.value.paid_at = vietnamTime.toISOString().slice(0, 16);
+    } else {
+        returnForm.value.paid_at = null;
+    }
+});
+
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
 
 const cancelReturn = () => {
     if (confirm('Bạn có chắc muốn hủy tạo đơn trả hàng? Các thay đổi sẽ không được lưu.')) {
@@ -186,7 +210,6 @@ const createReturnOrder = () => {
         return;
     }
 
-    // Thêm các trường thanh toán vào dữ liệu gửi đi
     const postData = {
         supplier_id,
         purchase_order_id,
@@ -230,7 +253,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Logic for product quantity
+// Logic kiểm soát số lượng sản phẩm trả lại
 const updateQuantity = (productId: number, newQuantity: string | number) => {
     const item = returnForm.value.return_items.find((i) => i.product_id === productId);
     if (item) {
@@ -262,6 +285,7 @@ const removeProduct = (productId: number) => {
     returnForm.value.return_items = returnForm.value.return_items.filter((item) => item.product_id !== productId);
 };
 
+<<<<<<< HEAD
 // Watch for props changes
 watch(
     () => props.purchaseOrder,
@@ -269,6 +293,13 @@ watch(
         if (newPurchaseOrder) {
             returnForm.value.purchase_order_id = newPurchaseOrder.id;
             returnForm.value.return_order_code = `TRA-${newPurchaseOrder.code}`;
+=======
+// Theo dõi thay đổi của props và cập nhật form
+watch(() => props.purchaseOrder, (newPurchaseOrder) => {
+    if (newPurchaseOrder) {
+        returnForm.value.purchase_order_id = newPurchaseOrder.id;
+        returnForm.value.return_order_code = `TRA-${newPurchaseOrder.code}`;
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
 
             const aggregatedItems: any[] = [];
             const itemMap = new Map();
@@ -401,9 +432,13 @@ watch(
                                             >
                                                 -
                                             </button>
+<<<<<<< HEAD
                                             <input
                                                 type="number"
                                                 :value="item.quantity_to_return"
+=======
+                                            <input type="number" v-model="item.quantity_to_return"
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                                                 @input="updateQuantity(item.product_id, ($event.target as HTMLInputElement).value)"
                                                 @blur="updateQuantity(item.product_id, ($event.target as HTMLInputElement).value)"
                                                 min="0"
@@ -587,6 +622,7 @@ watch(
                             </div>
 
                             <div class="form-group">
+<<<<<<< HEAD
                                 <label class="mb-1 block text-sm font-medium text-gray-700">Ngày giờ thanh toán</label>
                                 <input
                                     type="datetime-local"
@@ -603,6 +639,12 @@ watch(
                                     </div>
                                 </div> -->
                             </div>
+=======
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Ngày giờ thanh toán</label>
+                                <input type="datetime-local" :value="returnForm.paid_at" readonly
+                                    class="w-full p-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-gray-100 cursor-not-allowed" />
+                                </div>
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                         </div>
                     </div>
                 </div>

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { CheckCircle, ChevronLeft, CircleAlert } from 'lucide-vue-next';
+import { CheckCircle, ChevronLeft, CircleAlert, Edit, CheckSquare } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { Money3Directive } from 'v-money3';
 import { computed, ref } from 'vue';
 
-// Types
+// Types (giữ nguyên như cũ)
 interface Product {
     id: number;
     name: string;
@@ -36,7 +36,12 @@ interface Batch {
     total_amount: number;
     payment_status: 'unpaid' | 'partially_paid' | 'paid';
     paid_amount: number;
+<<<<<<< HEAD
     receipt_status: 'partially_received' | 'completed' | 'cancelled';
+=======
+    receipt_status: "partially_received" | "completed"; // Receipt status từ migration
+    status: "draft" | "pending" | "completed"; // Status chính để quản lý workflow
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
     notes: string | null;
     created_by: number;
     creator?: User;
@@ -96,7 +101,7 @@ interface User {
 interface Props {
     suppliers?: Supplier[];
     users?: User[];
-    batch: Batch[];
+    batch: Batch | null; // Cập nhật kiểu dữ liệu
     batchItem: BatchItem[];
 }
 
@@ -154,16 +159,9 @@ interface PurchaseOrder {
 const props = withDefaults(defineProps<Props>(), {
     suppliers: () => [],
     users: () => [],
-    batch: () => [],
+    batch: null,
     batchItem: () => [],
 });
-
-// const breadcrumbs: BreadcrumbItem[] = [
-//     {
-//         title: 'Chi tiết lô hàng',
-//         href: '/admin/batches/show',
-//     },
-// ];
 
 const po_products = ref<BatchItem[]>(
     props.batchItem.map((item) => ({
@@ -190,10 +188,9 @@ const aggregatedProducts = computed(() => {
 
     return Array.from(productMap.values());
 });
-// === Kết thúc logic mới ===
 
 // Sử dụng computed để truy cập phần tử đầu tiên của mảng batch
-const currentBatch = computed(() => props.batch[0] || null);
+const currentBatch = computed(() => props.batch);
 
 const selectedUser = computed(() => props.users.find((u) => u.id === currentBatch.value?.created_by) || null);
 
@@ -207,11 +204,21 @@ const formattedReceivedDate = computed(() => {
 });
 
 const formattedDiscount = computed(() => {
-    if (!currentBatch.value || currentBatch.value.discount_amount === 0) return '0₫';
-    if (currentBatch.value.discount_type === 'amount') {
-        return `-${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(currentBatch.value.discount_amount)}`;
+    const batch = currentBatch.value;
+    if (!batch) return '0₫';
+
+    const discountAmount = batch.discount_amount ?? 0;
+    const discountType = batch.discount_type ?? 'amount';
+
+    if (discountAmount <= 0) return '0₫';
+
+    if (discountType === 'amount') {
+        return `-${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(discountAmount)}`;
+    } else if (discountType === 'percent') {
+        return `-${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(discountAmount)}%`;
     }
-    return `-${currentBatch.value.discount_amount}%`;
+
+    return '0₫';
 });
 
 const formattedSubtotal = computed(() => {
@@ -224,22 +231,24 @@ const formattedSubtotal = computed(() => {
 
 const totalAfterDiscount = computed(() => {
     const subtotal = aggregatedProducts.value.reduce((sum, item) => sum + item.total_amount, 0);
-    const discountAmount = currentBatch.value?.discount_amount || 0;
-    const discountType = currentBatch.value?.discount_type || 'amount';
-    const shippingFee = currentBatch.value?.shipping_fee || 0;
+    const batch = currentBatch.value;
+    if (!batch) return '0₫';
+
+    const discountAmount = batch.discount_amount ?? 0;
+    const discountType = batch.discount_type ?? 'amount';
+    const shippingFee = batch.shipping_fee ?? 0;
 
     let total = subtotal;
+
     if (discountType === 'amount') {
         total -= discountAmount;
     } else if (discountType === 'percent') {
         total -= (subtotal * discountAmount) / 100;
     }
+
     total += shippingFee;
 
-    return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND',
-    }).format(total);
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(total);
 });
 
 function formatPrice(price: number): string {
@@ -249,13 +258,26 @@ function formatPrice(price: number): string {
     }).format(price);
 }
 
+// Updated receipt status label để bao gồm draft
 const receiptStatusLabel = computed(() => {
-    const status = currentBatch.value?.receipt_status;
-    if (status === 'completed') return 'Hoàn thành';
-    if (status === 'partially_received') return 'Nhận một phần';
-    if (status === 'cancelled') return 'Đã hủy';
+    const receiptStatus = currentBatch.value?.receipt_status;
+    if (receiptStatus === 'completed') return 'Hoàn thành';
+    if (receiptStatus === 'partially_received') return 'Nhận một phần';
     return 'Không rõ';
 });
+
+// Status label cho workflow chính
+const statusLabel = computed(() => {
+    const status = currentBatch.value?.status;
+    if (status === 'draft') return 'Nháp';
+    if (status === 'pending') return 'Đang xử lý';
+    if (status === 'completed') return 'Hoàn thành';
+    return 'Không rõ';
+});
+
+// Computed để kiểm tra status draft
+const isDraft = computed(() => currentBatch.value?.status === 'draft');
+const isCompleted = computed(() => currentBatch.value?.status === 'completed');
 
 const paymentStatusInfo = computed(() => {
     const status = currentBatch.value?.payment_status;
@@ -341,6 +363,101 @@ function handlePayment() {
         };
         showPaymentForm.value = true;
     }
+}
+
+// NEW FUNCTIONS FOR DRAFT STATUS
+function handleEditBatch() {
+    if (currentBatch.value?.id) {
+        router.visit(route('admin.batches.edit', { batch: currentBatch.value.id }));
+    }
+}
+
+function handleApproveBatch() {
+    if (!currentBatch.value?.id) return;
+
+    Swal.fire({
+        title: 'Xác nhận duyệt đơn',
+        html: `
+            <p>Sau khi duyệt, bạn sẽ không thể chỉnh sửa đơn này nữa.</p>
+            <p><strong>Dữ liệu sẽ được cập nhật vào kho:</strong></p>
+            <ul style="text-align: left; margin: 10px 0;">
+                ${aggregatedProducts.value.map(item => 
+                    `<li>${item.product_name}: +${item.received_quantity} sản phẩm</li>`
+                ).join('')}
+            </ul>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Đồng ý duyệt',
+        cancelButtonText: 'Hủy',
+        reverseButtons: true,
+        width: 600,
+        customClass: {
+            htmlContainer: 'text-left'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Hiển thị loading
+            Swal.fire({
+                title: 'Đang xử lý...',
+                text: 'Vui lòng chờ trong giây lát',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Call API to approve batch
+            router.post(route('admin.batches.approve', { id: currentBatch.value?.id }), {}, {
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Duyệt đơn thành công!',
+                        html: `
+                            <p>Dữ liệu đã được cập nhật vào kho.</p>
+                            <p>Trạng thái đơn đã chuyển sang <strong>Hoàn thành</strong></p>
+                        `,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Tải lại trang',
+                        timer: 3000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        // Refresh page để cập nhật UI
+                        router.visit(route('admin.batches.show', { id: currentBatch.value?.id }));
+                    });
+                },
+                onError: (errors) => {
+                    console.error('Approval errors:', errors);
+                    let errorMessage = 'Không thể duyệt đơn. Vui lòng thử lại.';
+                    
+                    // Xử lý lỗi cụ thể nếu có
+                    if (errors.general) {
+                        errorMessage = errors.general;
+                    } else if (typeof errors === 'string') {
+                        errorMessage = errors;
+                    }
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Có lỗi xảy ra!',
+                        text: errorMessage,
+                        confirmButtonText: 'Đóng'
+                    });
+                },
+                onFinish: () => {
+                    // Đảm bảo loading được tắt
+                    if (Swal.isLoading()) {
+                        Swal.close();
+                    }
+                }
+            });
+        }
+    });
 }
 
 const money = {
@@ -476,7 +593,6 @@ function goBack() {
 
 <template>
     <Head title="Chi tiết lô hàng" />
-    <!-- <AppLayout :breadcrumbs="breadcrumbs"> -->
     <AppLayout>
         <div class="no-print min-h-screen bg-gray-50 p-4">
             <div class="mx-auto max-w-7xl">
@@ -492,37 +608,62 @@ function goBack() {
                         <span
                             class="ml-2 rounded-full px-3 py-1 text-sm font-medium"
                             :class="{
-                                'bg-green-100 text-green-700': currentBatch?.receipt_status === 'completed',
-                                'bg-yellow-100 text-yellow-700': currentBatch?.receipt_status === 'partially_received',
-                                'bg-red-100 text-red-700': currentBatch?.receipt_status === 'cancelled',
+                                'bg-gray-100 text-gray-700': currentBatch?.status === 'draft',
+                                'bg-blue-100 text-blue-700': currentBatch?.status === 'pending',
+                                'bg-green-100 text-green-700': currentBatch?.status === 'completed',
                             }"
                         >
-                            {{ receiptStatusLabel }}
+                            {{ statusLabel }}
                         </span>
+
                     </div>
                     <div class="flex items-center gap-2 pr-2">
-                        <button
-                            v-if="currentBatch?.receipt_status === 'completed' || currentBatch?.receipt_status === 'partially_received'"
-                            @click="goReturn"
-                            class="flex items-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-300 ease-in-out hover:border-gray-400 hover:bg-gray-100"
-                            title="Tạo đơn hoàn trả"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-5 w-5 text-gray-600"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="2"
+                        <!-- Draft Status Buttons -->
+                        <template v-if="isDraft">
+                            <button
+                                @click="handleEditBatch"
+                                class="flex items-center space-x-2 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition-all duration-300 ease-in-out hover:border-blue-400 hover:bg-blue-100"
+                                title="Sửa đơn nhập hàng"
                             >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                                />
-                            </svg>
-                            <span>Hoàn trả</span>
-                        </button>
+                                <Edit class="h-5 w-5" />
+                                <span>Sửa đơn</span>
+                            </button>
+                            <button
+                                @click="handleApproveBatch"
+                                class="flex items-center space-x-2 rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 shadow-sm transition-all duration-300 ease-in-out hover:border-green-400 hover:bg-green-100"
+                                title="Duyệt đơn nhập hàng"
+                            >
+                                <CheckSquare class="h-5 w-5" />
+                                <span>Duyệt đơn</span>
+                            </button>
+                        </template>
+                        
+                        <!-- Completed Status Buttons -->
+                        <template v-if="isCompleted">
+                            <button
+                                @click="goReturn"
+                                class="flex items-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-300 ease-in-out hover:border-gray-400 hover:bg-gray-100"
+                                title="Tạo đơn hoàn trả"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-5 w-5 text-gray-600"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                                    />
+                                </svg>
+                                <span>Hoàn trả</span>
+                            </button>
+                        </template>
+
+                        <!-- Print button - always show -->
                         <button
                             @click="printOrder"
                             class="flex items-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-300 hover:bg-gray-100"
@@ -607,7 +748,9 @@ function goBack() {
                                 </div>
                             </div>
                         </div>
-                        <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+                        
+                        <!-- Payment section - Only show for completed batches -->
+                        <div v-if="!isDraft" class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-100 p-4">
                                 <div class="flex items-center space-x-2">
                                     <component :is="paymentStatusInfo.icon" class="h-5 w-5" :class="paymentStatusInfo.class" />
@@ -665,6 +808,7 @@ function goBack() {
                             </div>
                         </div>
 
+                        <!-- Payment Form Modal -->
                         <div
                             v-if="showPaymentForm"
                             class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300"
@@ -695,12 +839,18 @@ function goBack() {
                                         </div>
 
                                         <div>
+<<<<<<< HEAD
                                             <label class="mb-1 block text-sm font-medium text-gray-700">Ngày ghi nhận</label>
                                             <input
                                                 type="date"
                                                 v-model="paymentForm.paymentDate"
                                                 class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                             />
+=======
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Ngày ghi nhận</label>
+                                            <input type="date" v-model="paymentForm.paymentDate"
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                                         </div>
 
                                         <div>
@@ -731,6 +881,7 @@ function goBack() {
                         </div>
                     </div>
 
+                    <!-- Sidebar -->
                     <div class="space-y-6">
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
@@ -784,6 +935,19 @@ function goBack() {
                                         class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
+
+                                <!-- Draft Status Info -->
+                                <div v-if="isDraft" class="rounded-md bg-amber-50 border border-amber-200 p-3">
+                                    <div class="flex items-center">
+                                        <svg class="h-5 w-5 text-amber-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span class="text-sm font-medium text-amber-800">Đơn hàng chưa được duyệt</span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-amber-700">
+                                        Đơn hàng này đang ở trạng thái nháp. Bạn có thể chỉnh sửa hoặc duyệt đơn để cập nhật vào kho.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -791,6 +955,7 @@ function goBack() {
             </div>
         </div>
 
+        <!-- Print Section -->
         <div class="print-only">
             <div class="receipt-container">
                 <div class="receipt-header">
@@ -884,9 +1049,13 @@ function goBack() {
                 </div>
             </div>
         </div>
+<<<<<<< HEAD
         -->
+=======
+>>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
     </AppLayout>
 </template>
+
 <style scoped>
 /* Base styles for screen (hide print-only content) */
 .print-only {
@@ -959,7 +1128,6 @@ function goBack() {
 
     .flex-container .col-6 {
         width: 48%;
-        /* Adjust for spacing */
         display: flex;
         justify-content: space-between;
         align-items: center;

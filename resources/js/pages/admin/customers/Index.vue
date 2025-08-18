@@ -124,7 +124,7 @@ function cancelDelete() {
                                     <th class="w-[20%] p-3 text-left text-sm font-semibold">Tên khách hàng</th>
                                     <th class="w-[20%] p-3 text-left text-sm font-semibold">Email</th>
                                     <th class="w-[15%] p-3 text-center text-sm font-semibold">SĐT</th>
-                                    <!-- <th class="w-[25%] p-3 text-left text-sm font-semibold">Địa chỉ</th> -->
+                                    <!-- Đã xóa cột địa chỉ -->
                                     <th class="w-[10%] p-3 text-center text-sm font-semibold">Ví tiền</th>
                                     <th class="w-[10%] p-3 text-center text-sm font-semibold">Thao tác</th>
                                 </tr>
@@ -145,7 +145,7 @@ function cancelDelete() {
                                     <td class="w-[15%] p-3 text-center text-sm">
                                         {{ customer.phone || 'N/A' }}
                                     </td>
-                                    <!-- Đã xóa cột địa chỉ, chỉ còn ví tiền -->
+                                    <!-- Đã xóa cột địa chỉ -->
                                     <td class="w-[10%] p-3 text-center text-sm">
                                         {{ (typeof customer.wallet === 'number' && !isNaN(customer.wallet)) ? customer.wallet.toLocaleString('vi-VN') + ' VND' : 'N/A' }}
                                     </td>

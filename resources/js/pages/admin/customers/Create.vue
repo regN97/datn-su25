@@ -10,7 +10,6 @@ interface Customer {
     customer_name: string;
     email: string | null;
     phone: string;
-    address: string | null;
     wallet: number;
 }
 
@@ -32,7 +31,6 @@ const form = ref<Customer>({
     customer_name: '',
     email: '',
     phone: '',
-    address: null,
     wallet: 0,
 });
 
@@ -48,7 +46,6 @@ const resetForm = () => {
         customer_name: '',
         email: '',
         phone: '',
-        address: null,
         wallet: 0,
     };
 };
@@ -106,9 +103,11 @@ const submitForm = () => {
                             </div>
 
                             <div>
-                                <label for="email" class="mb-2 block font-medium text-gray-700 dark:text-gray-300"> Email <span class="text-red-500">*</span></label>
+                                <label for="email" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
+                                    Email <span class="text-red-500">*</span>
+                                </label>
                                 <input
-                                    type="email"
+                                    type="text"
                                     id="email"
                                     v-model="form.email"
                                     class="w-full rounded-md border-gray-300 bg-white p-2 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
