@@ -17,7 +17,7 @@ return new class extends Migration
     if (Schema::hasColumn('user_shifts', 'shift_id')) {
         // Xóa index nếu tồn tại
         try {
-            DB::statement('DROP INDEX IF EXISTS user_shifts_shift_id_index');
+            // DB::statement('DROP INDEX IF EXISTS user_shifts_shift_id_index');
         } catch (\Exception $e) {}
         // Xóa khóa ngoại nếu tồn tại
         Schema::table('user_shifts', function (Blueprint $table) {
