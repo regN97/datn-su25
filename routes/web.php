@@ -1,4 +1,5 @@
 <?php
+
 use Inertia\Inertia;
 
 use Illuminate\Support\Facades\Route;
@@ -15,11 +16,13 @@ use App\Http\Controllers\Admin\{
     InventoryController,
     UserController,
     BillController,
-    InventoryTransactionController
+    InventoryTransactionController,
+    StockRequestController
 };
 use App\Http\Controllers\TestController;
 
 Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
+
 
 Route::prefix('admin')
     ->name('admin.')
@@ -54,7 +57,12 @@ Route::prefix('admin')
         Route::resource('suppliers', SupplierController::class);
 
         // Purchase Return
-        Route::patch('purchaseReturn/{purchaseReturn}/complete', [PurchaseReturnController::class, 'complete'])->name('purchaseReturn.complete');
+        Route::patch('/purchaseReturn/{purchaseReturn}/complete', [PurchaseReturnController::class, 'complete'])->name('purchaseReturn.complete');
+        Route::patch(
+            '/admin/purchaseReturn/{purchaseReturn}/confirm-payment',
+            [PurchaseReturnController::class, 'confirmPayment']
+        )->name('admin.purchaseReturn.confirmPayment');
+
         Route::resource('purchaseReturn', PurchaseReturnController::class);
 
         // Purchase Orders
@@ -90,6 +98,15 @@ Route::prefix('admin')
 
         // Bills
         Route::resource('bills', BillController::class);
+
+        Route::get('/stock-requests', [StockRequestController::class, 'index'])->name('stock.requests.index');
+
+        Route::post('/stock-requests/{notificationId}/read', [StockRequestController::class, 'markAsRead'])->name('stock.requests.read');
+
+        Route::delete('/stock-requests/{notificationId}/delete', [StockRequestController::class, 'delete'])->name('stock.requests.delete');
+
+        Route::get('/stock/requests/unread-count', [StockRequestController::class, 'getUnreadNotificationsCount'])
+            ->name('stock.requests.unread-count');
     });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

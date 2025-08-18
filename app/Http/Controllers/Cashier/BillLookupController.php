@@ -14,7 +14,7 @@ class BillLookupController extends Controller
     public function index()
     {
         $bills = Bill::query()
-            ->with(['customer', 'details.product', 'details.batch'])
+            ->with(['customer', 'details.product', 'details.batch', 'cashier'])
             ->latest()
             ->take(50)
             ->paginate(5);
@@ -28,6 +28,7 @@ class BillLookupController extends Controller
                 'total_amount' => $bill->total_amount,
                 'payment_method' => $bill->payment_method,
                 'payment_proof_url' => $bill->payment_proof_url ? Storage::url($bill->payment_proof_url) : null, // Use Storage::url()
+                'cashier_name' => $bill->cashier?->name,
                 'created_at' => $bill->created_at->format('d/m/Y H:i'),
                 'details' => $bill->details->map(function ($detail) {
                     return [
@@ -58,7 +59,7 @@ class BillLookupController extends Controller
         $query = $request->input('query');
 
         $bills = Bill::query()
-            ->with(['customer', 'details.product', 'details.batch'])
+            ->with(['customer', 'details.product', 'details.batch', 'cashier'])
             ->when($query, function ($q) use ($query) {
                 $q->where('bill_number', 'like', "%{$query}%")
                     ->orWhereHas('customer', function ($q) use ($query) {
@@ -82,6 +83,7 @@ class BillLookupController extends Controller
                 'total_amount' => $bill->total_amount,
                 'payment_method' => $bill->payment_method,
                 'payment_proof_url' => $bill->payment_proof_url ? Storage::url($bill->payment_proof_url) : null, // Use Storage::url()
+                'cashier_name' => $bill->cashier?->name,
                 'created_at' => $bill->created_at->format('d/m/Y H:i'),
                 'details' => $bill->details->map(function ($detail) {
                     return [
