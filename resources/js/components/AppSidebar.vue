@@ -2,24 +2,7 @@
 import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { Link } from '@inertiajs/vue3';
-<<<<<<< HEAD
-import {
-    Boxes,
-    FilePlus2,
-    Layers3,
-    LayoutGrid,
-    PackageSearch,
-    PencilRuler,
-    RotateCw,
-    TrendingUp,
-    Truck,
-    User,
-    UserCog,
-    Warehouse,
-} from 'lucide-vue-next';
-=======
 import { FilePlus2, KeyRound, Layers3, LayoutGrid, PackageSearch, RotateCw, Truck, User, UserCog, Users, Warehouse, PencilRuler, TrendingUp, Bell } from 'lucide-vue-next';
->>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
 import AppLogo from './AppLogo.vue';
 </script>
 
@@ -145,35 +128,25 @@ import AppLogo from './AppLogo.vue';
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.inventory.index')" class="flex items-center gap-2">
-<<<<<<< HEAD
-                                <Layers3 class="h-4 w-4" />
-                                Quản lý tồn kho
-=======
                             <Layers3 class="w-4 h-4" />
                             Quản lý tồn kho
 
->>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
                 </SidebarMenu>
-                <div
+                <!-- <div
                     class="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase sidebar-section-label">
                     <Bell class="w-4 h-4" />
-                    <span class="sidebar-section-text">Thông báo</span>
-                </div>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton as-child>
+                    <span class="sidebar-section-text">Thông báo</span> -->
                             <!-- <Link :href="route('admin.stock.requests.index')" class="flex items-center gap-2">
                                 <Bell class="w-4 h-4" />
                                 Thông báo nhập hàng
-
                             </Link> -->
-                        </SidebarMenuButton>
+                        <!-- </SidebarMenuButton>
                     </SidebarMenuItem>
-                </SidebarMenu>
+                </SidebarMenu> -->
 
                 <div class="sidebar-section-label mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase">
                     <User class="h-4 w-4" />
@@ -191,13 +164,8 @@ import AppLogo from './AppLogo.vue';
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.users.index')" class="flex items-center gap-2">
-<<<<<<< HEAD
-                                <UserCog class="h-4 w-4" />
-                                Quản lý nhân viên
-=======
                             <UserCog class="w-4 h-4" />
                             Quản lý tài khoản
->>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
