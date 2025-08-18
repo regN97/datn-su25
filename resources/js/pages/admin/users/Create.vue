@@ -30,7 +30,7 @@ function submit() {
 <template>
     <Head title="Thêm tài khoản mới" />
     <AppLayout>
-        <h1 class="mb-4 text-2xl font-bold">Thêm tài khoản mới</h1>
+        <h1 class="mb-4 text-2xl font-bold px-4">Thêm tài khoản mới</h1>
 
         <form @submit.prevent="submit" class="grid grid-cols-1 gap-4 md:grid-cols-2 border rounded p-4 bg-white shadow">
             <div>

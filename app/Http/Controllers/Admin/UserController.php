@@ -145,10 +145,22 @@ public function destroy(User $user)
     if ($user->role && $user->role->name !== 'Nhân viên bán hàng') {
         return redirect()->back()->with('error', 'Bạn chỉ có thể xóa nhân viên bán hàng!');
     }
+
     // Không cho xóa tài khoản đang đăng nhập
     if ($user->id === auth()->id()) {
         return redirect()->back()->with('error', 'Bạn không thể xóa tài khoản đang đăng nhập!');
     }
+
+    // Kiểm tra nhân viên bán hàng đang trong ca làm việc
+    $hasActiveShift = $user->userShifts()
+        ->whereDate('date', now()->toDateString())
+        ->whereNull('end_time') // Giả sử ca làm việc chưa kết thúc nếu end_time là null
+        ->exists();
+
+    if ($hasActiveShift) {
+        return redirect()->back()->with('error', 'Nhân viên đang trong ca làm việc, không thể xóa!');
+    }
+
     $user->delete();
     return redirect()->back()->with('success', 'Xoá người dùng thành công');
 }
