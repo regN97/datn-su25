@@ -13,16 +13,20 @@ return new class extends Migration
     public function up(): void
     {
      // Step 1: Remove foreign key constraint and column if exists
-    Schema::table('user_shifts', function (Blueprint $table) {
-        // Kiểm tra nếu cột shift_id tồn tại thì mới xóa
-        if (Schema::hasColumn('user_shifts', 'shift_id')) {
-            // Xóa khóa ngoại nếu tồn tại
+    // Kiểm tra và xóa index shift_id nếu tồn tại
+    if (Schema::hasColumn('user_shifts', 'shift_id')) {
+        // Xóa index nếu tồn tại
+        try {
+            DB::statement('DROP INDEX IF EXISTS user_shifts_shift_id_index');
+        } catch (\Exception $e) {}
+        // Xóa khóa ngoại nếu tồn tại
+        Schema::table('user_shifts', function (Blueprint $table) {
             try {
                 $table->dropForeign(['shift_id']);
             } catch (\Exception $e) {}
             $table->dropColumn('shift_id');
-        }
-    });
+        });
+    }
 
     // Step 2: Drop the work_shifts table
     Schema::dropIfExists('work_shifts');
