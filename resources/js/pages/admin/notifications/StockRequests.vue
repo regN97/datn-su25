@@ -10,7 +10,7 @@ const props = defineProps({
 });
 
 const breadcrumbs = [
-    { title: 'Thông báo nhập hàng', href: route('admin.stock.requests.index') },
+    // { title: 'Thông báo nhập hàng', href: route('admin.stock.requests.index') },
 ];
 
 const perPageOptions = [5, 10, 25, 50];

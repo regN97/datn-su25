@@ -15,7 +15,7 @@ use App\Http\Controllers\Admin\{
     InventoryController,
     UserController,
     BillController,
-    InventoryTransactionController
+    InventoryTransactionController,
     StockRequestController
 };
 use App\Http\Controllers\TestController;

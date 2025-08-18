@@ -151,11 +151,11 @@ import { Boxes } from 'lucide-vue-next';
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
-                            <Link :href="route('admin.stock.requests.index')" class="flex items-center gap-2">
+                            <!-- <Link :href="route('admin.stock.requests.index')" class="flex items-center gap-2">
                                 <Bell class="w-4 h-4" />
                                 Thông báo nhập hàng
 
-                            </Link>
+                            </Link> -->
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
