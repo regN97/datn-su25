@@ -119,40 +119,7 @@ function changePerPage(event: Event) {
 function goToShowBill(id: number) {
     router.visit(`/admin/bills/${id}`);
 }
-function goToCreatePage() {
-    router.visit('/admin/bills/create');
-}
-function goToTrashedPage() {
-    router.visit('/admin/bills/trashed');
-}
 
-// Logic cho modal xóa
-const showDeleteModal = ref(false);
-const billToDelete = ref<number | null>(null);
-
-function confirmDelete(id: number) {
-    billToDelete.value = id;
-    showDeleteModal.value = true;
-}
-
-function handleDeleteBill() {
-    if (!billToDelete.value) return;
-
-    router.delete(`/admin/bills/${billToDelete.value}`, {
-        onSuccess: () => {
-            const idx = bills.value.findIndex((b) => b.id === billToDelete.value);
-            if (idx !== -1) bills.value.splice(idx, 1);
-            showDeleteModal.value = false;
-            billToDelete.value = null;
-        },
-        preserveState: true,
-    });
-}
-
-function cancelDelete() {
-    showDeleteModal.value = false;
-    billToDelete.value = null;
-}
 
 // Hàm định dạng tiền tệ
 function formatCurrency(amount: number) {
@@ -234,14 +201,6 @@ function getPaymentMethodName(method: string) {
         <div class="container mx-auto p-6">
           <div class="mb-4 flex items-center justify-between">
             <h1 class="text-2xl font-bold">Danh sách Hóa đơn</h1>
-            <div class="flex gap-2">
-              <button @click="goToCreatePage"
-                class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
-                <PackagePlus />
-              </button>
-              <button @click="goToTrashedPage"
-                class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng rác</button>
-            </div>
           </div>
 
           <div class="mb-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
@@ -304,11 +263,6 @@ function getPaymentMethodName(method: string) {
                         @click="goToShowBill(bill.id)">
                         <Eye class="h-4 w-4" />
                     </button>
-                    <button
-                        class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
-                        @click="confirmDelete(bill.id)">
-                        <Trash2 class="h-4 w-4" />
-                    </button>
                 </td>
             </tr>
             <tr v-if="paginatedBills.length === 0">
@@ -354,24 +308,6 @@ function getPaymentMethodName(method: string) {
       </div>
     </div>
 
-    <DeleteModal :is-open="showDeleteModal" title="Xóa hóa đơn"
-      message="Bạn có chắc chắn muốn xóa hóa đơn này?" @confirm="handleDeleteBill"
-      @cancel="cancelDelete" />
-
-<div 
-  v-if="showProofModal" 
-  @click.self="closeProofModal" 
-  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
->
-  <div class="relative max-w-xl mx-auto p-4 bg-white rounded-lg shadow-lg">
-    <button @click="closeProofModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800">
-      <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-      </svg>
-    </button>
-    <img :src="proofImageUrl" alt="Ảnh minh chứng thanh toán" class="max-h-[80vh] w-auto">
-  </div>
-</div>
   </AppLayout></template>
 
 <style lang="css" scoped>

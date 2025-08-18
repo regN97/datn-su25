@@ -5,12 +5,12 @@ import { ref, computed, watch } from 'vue';
 import { type BreadcrumbItem } from '@/types';
 import Swal from 'sweetalert2';
 
-// Define props
+// Định nghĩa props nhận từ controller
 const props = defineProps<{
     purchaseOrder: {
         id: number | null;
         code: string;
-        supplier_id: number; // Thêm supplier_id vào đây để sử dụng
+        supplier_id: number;
         supplier_name: string;
         supplier_email?: string;
         supplier_phone?: string;
@@ -35,7 +35,7 @@ const props = defineProps<{
     error?: string;
 }>();
 
-// Data for the return form
+// Dữ liệu cho form trả hàng
 const returnForm = ref({
     purchase_order_id: props.purchaseOrder?.id || null,
     return_order_code: props.purchaseOrder ? `TRA-${props.purchaseOrder.code}` : '',
@@ -44,8 +44,7 @@ const returnForm = ref({
     additional_cost: 0,
     deduction: 0,
     tags: [] as string[],
-    // Thêm các trạng thái thanh toán mới
-    payment_status: 'unpaid', // Mặc định là chưa thanh toán
+    payment_status: 'unpaid',
     payment_amount: 0,
     paid_at: null as string | null,
 });
@@ -61,17 +60,19 @@ const getImage = (url?: string | null) => {
     return `/storage/${url}`;
 };
 
+// Tính toán tổng giá trị sản phẩm trả lại
 const totalReturnProductValue = computed(() => {
     return returnForm.value.return_items.reduce((sum, item) => {
         return sum + (item.quantity_to_return * item.unit_cost);
     }, 0);
 });
 
+// Tính toán tổng giá trị hoàn lại sau chi phí và giảm trừ
 const totalRefundValue = computed(() => {
     return totalReturnProductValue.value - returnForm.value.additional_cost - returnForm.value.deduction;
 });
 
-// Watch tổng giá trị hoàn trả và trạng thái thanh toán để cập nhật số tiền thanh toán
+// Tự động cập nhật số tiền thanh toán khi tổng giá trị hoặc trạng thái thanh toán thay đổi
 watch(() => [totalRefundValue.value, returnForm.value.payment_status], ([newTotal, newStatus]) => {
     if (newStatus === 'paid') {
         returnForm.value.payment_amount = newTotal;
@@ -80,7 +81,7 @@ watch(() => [totalRefundValue.value, returnForm.value.payment_status], ([newTota
     }
 }, { immediate: true });
 
-// Khi chuyển trạng thái sang "paid", tự động cập nhật ngày giờ
+// Tự động cập nhật ngày giờ khi chuyển trạng thái sang "paid"
 watch(() => returnForm.value.payment_status, (newStatus) => {
     if (newStatus === 'paid') {
         const now = new Date();
@@ -90,37 +91,6 @@ watch(() => returnForm.value.payment_status, (newStatus) => {
         returnForm.value.paid_at = null;
     }
 });
-
-// Định dạng thời gian đã chọn để hiển thị
-const formattedPaymentTime = computed(() => {
-    if (!returnForm.value.paid_at) {
-        return 'Chưa có';
-    }
-    const date = new Date(returnForm.value.paid_at);
-    return date.toLocaleString('vi-VN', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    });
-});
-
-// Lấy thời gian hiện tại theo giờ Việt Nam để hiển thị
-const getCurrentVietnamTime = () => {
-    const now = new Date();
-    const vietnamTime = new Date(now.getTime() + 7 * 60 * 60000); // UTC+7
-    return vietnamTime.toLocaleString('vi-VN', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    });
-};
 
 
 const cancelReturn = () => {
@@ -183,7 +153,6 @@ const createReturnOrder = () => {
         return;
     }
 
-    // Thêm các trường thanh toán vào dữ liệu gửi đi
     const postData = {
         supplier_id,
         purchase_order_id,
@@ -227,7 +196,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Logic for product quantity
+// Logic kiểm soát số lượng sản phẩm trả lại
 const updateQuantity = (productId: number, newQuantity: string | number) => {
     const item = returnForm.value.return_items.find(i => i.product_id === productId);
     if (item) {
@@ -259,7 +228,7 @@ const removeProduct = (productId: number) => {
     returnForm.value.return_items = returnForm.value.return_items.filter(item => item.product_id !== productId);
 };
 
-// Watch for props changes
+// Theo dõi thay đổi của props và cập nhật form
 watch(() => props.purchaseOrder, (newPurchaseOrder) => {
     if (newPurchaseOrder) {
         returnForm.value.purchase_order_id = newPurchaseOrder.id;
@@ -300,7 +269,6 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
 </script>
 
 <template>
-
     <Head title="Tạo đơn trả hàng" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-6 bg-gray-50 min-h-screen">
@@ -387,7 +355,7 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                                                 class="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 -
                                             </button>
-                                            <input type="number" :value="item.quantity_to_return"
+                                            <input type="number" v-model="item.quantity_to_return"
                                                 @input="updateQuantity(item.product_id, ($event.target as HTMLInputElement).value)"
                                                 @blur="updateQuantity(item.product_id, ($event.target as HTMLInputElement).value)"
                                                 min="0" :max="item.max_quantity_can_return"
@@ -540,15 +508,7 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Ngày giờ thanh toán</label>
                                 <input type="datetime-local" :value="returnForm.paid_at" readonly
                                     class="w-full p-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-gray-100 cursor-not-allowed" />
-                                <!-- <div class="text-xs text-gray-500 mt-1 space-y-1">
-                                    <div v-if="returnForm.paid_at">
-                                        Thời gian đã chọn: {{ formattedPaymentTime }}
-                                    </div>
-                                    <div>
-                                        Thời gian hiện tại: {{ getCurrentVietnamTime() }}
-                                    </div>
-                                </div> -->
-                            </div>
+                                </div>
                         </div>
                     </div>
                 </div>

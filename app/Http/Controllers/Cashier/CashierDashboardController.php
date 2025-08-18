@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\ProductAddedToCart;
+use App\Notifications\StockReplenishmentRequest;
 
 class CashierDashboardController extends Controller
 {
@@ -30,7 +31,7 @@ class CashierDashboardController extends Controller
             ->whereNotNull('check_in')
             ->where(function ($query) use ($now) {
                 $query->whereNull('check_out')
-                      ->orWhere('check_out', '>=', $now);
+                    ->orWhere('check_out', '>=', $now);
             })
             ->with('user')
             ->first();
@@ -157,6 +158,28 @@ class CashierDashboardController extends Controller
         return response()->json([
             'message' => 'Sản phẩm đã được thêm vào giỏ hàng!',
             'cart' => $cart,
+        ]);
+    }
+    public function requestStock(Request $request)
+    {
+        $productId = $request->input('product_id');
+        $quantity = $request->input('quantity', 1); // Lấy số lượng từ request, mặc định là 1 nếu không có
+
+        $product = Product::findOrFail($productId);
+        $cashier = Auth::user();
+
+        // Gửi thông báo đến tất cả các admin
+        $admins = User::where('role_id', 1)->get(); // role_id 1 là admin
+        foreach ($admins as $admin) {
+            $admin->notify(new StockReplenishmentRequest($cashier, [
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'quantity' => $quantity, // Truyền số lượng vào thông báo
+            ]));
+        }
+
+        return response()->json([
+            'message' => "Yêu cầu nhập thêm {$quantity} sản phẩm '{$product->name}' đã được gửi đến admin!",
         ]);
     }
 }

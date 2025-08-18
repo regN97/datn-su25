@@ -16,10 +16,12 @@ use App\Http\Controllers\Admin\{
     UserController,
     BillController,
     InventoryTransactionController
+    StockRequestController
 };
 use App\Http\Controllers\TestController;
 
 Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
+
 
 Route::prefix('admin')
     ->name('admin.')
@@ -54,7 +56,12 @@ Route::prefix('admin')
         Route::resource('suppliers', SupplierController::class);
 
         // Purchase Return
-        Route::patch('purchaseReturn/{purchaseReturn}/complete', [PurchaseReturnController::class, 'complete'])->name('purchaseReturn.complete');
+        Route::patch('/purchaseReturn/{purchaseReturn}/complete', [PurchaseReturnController::class, 'complete'])->name('purchaseReturn.complete');
+        Route::patch(
+            '/admin/purchaseReturn/{purchaseReturn}/confirm-payment',
+            [PurchaseReturnController::class, 'confirmPayment']
+        )->name('admin.purchaseReturn.confirmPayment');
+
         Route::resource('purchaseReturn', PurchaseReturnController::class);
 
         // Purchase Orders
