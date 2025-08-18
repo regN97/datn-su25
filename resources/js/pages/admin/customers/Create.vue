@@ -10,7 +10,6 @@ interface Customer {
     customer_name: string;
     email: string | null;
     phone: string;
-    address: string | null;
     wallet: number;
 }
 
@@ -32,7 +31,6 @@ const form = ref<Customer>({
     customer_name: '',
     email: '',
     phone: '',
-    address: null,
     wallet: 0,
 });
 
@@ -48,7 +46,6 @@ const resetForm = () => {
         customer_name: '',
         email: '',
         phone: '',
-        address: null,
         wallet: 0,
     };
 };
@@ -107,10 +104,10 @@ const submitForm = () => {
 
                             <div>
                                 <label for="email" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                                    Email
+                                    Email <span class="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="email"
+                                    type="text"
                                     id="email"
                                     v-model="form.email"
                                     class="w-full rounded-md border-gray-300 bg-white p-2 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
@@ -150,20 +147,7 @@ const submitForm = () => {
                                 <InputError :message="page.props.errors.wallet" class="mt-1" />
                             </div>
 
-                            <div class="md:col-span-2">
-                                <label for="address" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                                    Địa chỉ
-                                </label>
-                                <textarea
-                                    id="address"
-                                    v-model="form.address"
-                                    class="w-full rounded-md border-gray-300 bg-white p-2 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                                    :class="{ 'border-red-500': page.props.errors.address }"
-                                    rows="3"
-                                    placeholder="Nhập địa chỉ khách hàng"
-                                ></textarea>
-                                <InputError :message="page.props.errors.address" class="mt-1" />
-                            </div>
+                            <!-- Trường địa chỉ đã bị xóa hoàn toàn -->
                         </div>
 
                         <div class="mt-8 flex justify-end space-x-4">
