@@ -13,17 +13,17 @@ return new class extends Migration
     {
         Schema::create('batches', function (Blueprint $table) {
             $table->id();
-            $table->string('batch_number', 100);
+            $table->string('batch_number', 100)->unique();
             $table->foreignId('purchase_order_id')->nullable()->constrained('purchase_orders');  // Thêm liên kết với PO
             $table->foreignId('supplier_id')->nullable()->constrained('suppliers');
             $table->date('received_date');
-            $table->string('invoice_number', 100)->nullable();
+            $table->string('invoice_number', 100)->nullable()->unique();
 
             $table->unsignedInteger('discount_amount')->default(0)->nullable();
             $table->enum('discount_type', ['percent', 'amount'])->nullable();
 
             $table->unsignedInteger('total_amount')->default(0);
-            $table->enum('payment_status', ['unpaid', 'partially_paid', 'paid'])->default('unpaid');
+            $table->enum('payment_status', ['unpaid', 'partially_paid', 'paid'])->default('unpaid')->nullable();
             $table->enum('payment_method', ['cash', 'bank_transfer', 'credit_card'])->nullable();
             $table->date('payment_date')->nullable();
             $table->unsignedInteger('paid_amount')->default(0);
@@ -31,6 +31,7 @@ return new class extends Migration
 
             $table->enum('receipt_status', ['partially_received', 'completed'])->default('completed');
 
+            $table->enum('status', ['draft', 'pending', 'completed'])->default('draft');
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users');
             $table->foreignId('updated_by')->nullable()->constrained('users');

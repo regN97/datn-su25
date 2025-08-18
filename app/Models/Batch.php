@@ -30,6 +30,7 @@ class Batch extends Model
         'remaining_amount',
         'receipt_status',
         'notes',
+        'status',
         'created_by',
         'updated_by'
     ];

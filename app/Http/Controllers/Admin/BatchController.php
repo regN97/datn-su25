@@ -180,7 +180,7 @@ class BatchController extends Controller
             $users = User::select('id', 'name')->get();
 
             return Inertia::render('admin/batches/Show', [
-                'batch' => [$batch], // Wrap in array to match Vue component props
+                'batch' => $batch, // Wrap in array to match Vue component props
                 'batchItem' => $batchItems,
                 'suppliers' => $suppliers,
                 'users' => $users,
@@ -323,6 +323,7 @@ class BatchController extends Controller
                     'remaining_amount' => $remainingAmount,
                     'payment_reference' => $request->payment_reference,
                     'receipt_status' => $receipt_status,
+                    'status' => 'completed',
                     'created_by' => $user_id,
                     'notes' => $request->notes,
                 ]);
@@ -357,35 +358,36 @@ class BatchController extends Controller
                     if ($existingBatchItem) {
                         // Nếu đã có thì update các trường
                         $existingBatchItem->update([
-                            'ordered_quantity'    => $orderedQty,
-                            'received_quantity'   => $newTotalReceived,      // Cập nhật tổng số lượng đã nhận
-                            'rejected_quantity'   => $rejectedQty,                      // Reset về 0 vì đã nhận bù
-                            'remaining_quantity'  => $remainingQty,
-                            'current_quantity'    => $newTotalReceived,      // current = tổng số đã nhận
-                            'purchase_price'      => $item['purchase_price'],
-                            'total_amount'        => $item['total_amount'],
-                            'manufacturing_date'  => $item['manufacturing_date'] ?? null,
-                            'expiry_date'         => $item['expiry_date'] ?? null,
-                            'inventory_status'    => 'active',
-                            'updated_by'          => $user_id,
+                            'ordered_quantity' => $orderedQty,
+                            'received_quantity' => $newTotalReceived,      // Cập nhật tổng số lượng đã nhận
+                            'rejected_quantity' => $rejectedQty,                      // Reset về 0 vì đã nhận bù
+                            'remaining_quantity' => $remainingQty,
+                            'current_quantity' => $newTotalReceived,      // current = tổng số đã nhận
+                            'purchase_price' => $item['purchase_price'],
+                            'total_amount' => $item['total_amount'],
+                            'manufacturing_date' => $item['manufacturing_date'] ?? null,
+                            'expiry_date' => $item['expiry_date'] ?? null,
+                            'inventory_status' => 'active',
+                            'updated_by' => $user_id,
                         ]);
                     } else {
                         // Nếu chưa có thì tạo mới
                         BatchItem::create([
-                            'batch_id'            => $batch->id,
-                            'product_id'          => $item['product_id'],
+                            'batch_id' => $batch->id,
+                            'product_id' => $item['product_id'],
                             'purchase_order_item_id' => $item['purchase_order_item_id'],
-                            'ordered_quantity'    => $orderedQty,
-                            'received_quantity'   => $receivedQty,
-                            'rejected_quantity'   => $rejectedQty,
-                            'remaining_quantity'  => $remainingQty,
-                            'current_quantity'    => $receivedQty,
-                            'purchase_price'      => $item['purchase_price'],
-                            'total_amount'        => $item['total_amount'],
-                            'manufacturing_date'  => $item['manufacturing_date'] ?? null,
-                            'expiry_date'         => $item['expiry_date'] ?? null,
-                            'inventory_status'    => 'active',
-                            'created_by'          => $user_id,
+                            'ordered_quantity' => $orderedQty,
+                            'received_quantity' => $receivedQty,
+                            'rejected_quantity' => $rejectedQty,
+                            'remaining_quantity' => $remainingQty,
+                            'current_quantity' => $receivedQty,
+                            'purchase_price' => $item['purchase_price'],
+                            'total_amount' => $item['total_amount'],
+                            'manufacturing_date' => $item['manufacturing_date'] ?? null,
+                            'expiry_date' => $item['expiry_date'] ?? null,
+                            'inventory_status' => 'active',
+                            'status' => 'completed',
+                            'created_by' => $user_id,
                         ]);
                     }
 
@@ -497,17 +499,292 @@ class BatchController extends Controller
         return Inertia::location(route('admin.batches.show', $batch->id));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return Inertia::render('admin/batches/Create');
+        $query = Product::where('is_active', true);
+
+        // Get suppliers with search if provided
+        $suppliersQuery = Supplier::query();
+        if ($request->filled('supplier_search')) {
+            $suppliersQuery->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->supplier_search . '%')
+                    ->orWhere('email', 'like', '%' . $request->supplier_search . '%')
+                    ->orWhere('phone', 'like', '%' . $request->supplier_search . '%');
+            });
+        }
+        $suppliers = $suppliersQuery->get();
+
+        // Existing product search logic
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                    ->orWhere('sku', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $query->with('suppliers');
+
+        $products = ['data' => $query->get()];
+
+        $user = User::find(Auth::id())->toArray();
+
+        return Inertia::render('admin/batches/Add', [
+            'products' => $products,
+            'suppliers' => $suppliers,
+            'user' => $user
+        ]);
     }
 
-    public function store(Request $request)
+    public function store(BatchRequest $request)
     {
-        return $this->save($request);
+        DB::beginTransaction();
+        try {
+            // Tạo batch_number tự động
+            $today = Carbon::now()->format('Ymd');
+            $prefixBatch = "REC-{$today}-";
+            $lastBatch = Batch::where('batch_number', 'like', "{$prefixBatch}%")
+                ->orderByDesc('batch_number')
+                ->first();
+            $nextNumber = $lastBatch
+                ? str_pad((int) substr($lastBatch->batch_number, -3) + 1, 3, '0', STR_PAD_LEFT)
+                : '001';
+            $batch_number = "{$prefixBatch}{$nextNumber}";
+
+            // Tạo invoice_number tự động
+            $prefixInvoice = "INV-{$today}-";
+            $lastInvoice = Batch::where('invoice_number', 'like', "{$prefixInvoice}%")
+                ->orderByDesc('invoice_number')
+                ->first();
+            $nextNumberInv = $lastInvoice
+                ? str_pad((int) substr($lastInvoice->invoice_number, -3) + 1, 3, '0', STR_PAD_LEFT)
+                : '001';
+            $invoice_number = $request->invoice_code ?? "{$prefixInvoice}{$nextNumberInv}";
+
+            // Tính trạng thái thanh toán
+            $paidAmount = (float) $request->paid_amount;
+            $totalAmount = (float) $request->total_amount;
+
+            if ($paidAmount > 0 && $paidAmount < $totalAmount) {
+                $paymentStatus = 'partially_paid';
+            } elseif ($paidAmount >= $totalAmount) {
+                $paymentStatus = 'paid';
+            } else {
+                $paymentStatus = 'unpaid';
+            }
+            $batch = Batch::create([
+                'batch_number' => $batch_number,
+                'invoice_number' => $invoice_number,
+                'purchase_order_id' => null, // không có PO
+                'supplier_id' => $request['supplier_id'],
+                'total_amount' => $request['total_amount'],
+                'discount_type' => $request->discount['type'] ?? null,
+                'discount_amount' => $request->discount['value'] ?? 0,
+                'payment_reference' => $request->payment_reference,
+                'received_date' => $request->import_date,
+                'payment_method' => $request->payment_method,
+                'payment_date' => $request->payment_date,
+                'paid_amount' => $request->paid_amount,
+                'payment_status' => $paymentStatus,
+                'status' => 'draft', // nháp
+                'created_by' => Auth::id(),
+                'note' => $request->note,
+            ]);
+
+            foreach ($request['batch_items'] as $item) {
+
+                BatchItem::create([
+                    'batch_id' => $batch->id,
+                    'product_id' => $item['product_id'],
+                    'received_quantity' => $item['received_quantity'],
+                    'remaining_quantity' => 0, // nhập trực tiếp thì không có remaining
+                    'purchase_price' => $item['purchase_price'],
+                    'total_amount' => $item['total_amount'],
+                    'manufacturing_date' => $item['manufacturing_date'] ?? null,
+                    'expiry_date' => $item['expiry_date'] ?? null,
+                    'created_by' => Auth::id(),
+                ]);
+            }
+
+            DB::commit();
+            return redirect()
+                ->route('admin.batches.show', $batch->id)
+                ->with('success', 'Đã tạo đơn nhập hàng thành công.');
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return back()->with('error', $th->getMessage());
+        }
     }
 
+    /**
+     * Duyệt đơn nhập hàng - chuyển từ draft sang completed
+     */
+    public function edit(Batch $batch)
+    {
+        $batchItem = BatchItem::where('batch_id', $batch->id)
+            ->with('product')
+            ->get();
 
+        $batch = Batch::find($batch->id);
+
+        // Kiểm tra trạng thái nhập hàng, chỉ cho phép chỉnh sửa nếu đơn nhập là draft
+        if ($batch->status !== 'draft') {
+            return redirect()->route('admin.batches.show', $batch->id)
+                ->with('error', 'Không thể chỉnh sửa đơn nhập hàng đã được duyệt!');
+        }
+
+        // Lấy danh sách sản phẩm, nhà cung cấp và người dùng
+        $products = ['data' => Product::all()];
+        $suppliers = Supplier::all();
+        $users = User::all();
+
+        return Inertia::render('admin/batches/Edit', [
+            'batchItem' => $batchItem,
+            'batch' => $batch,
+            'products' => $products,
+            'suppliers' => $suppliers,
+            'users' => $users,
+        ]);
+    }
+
+    public function update(BatchRequest $request, Batch $batch)
+    {
+        DB::beginTransaction();
+        try {
+            // Chỉ cho phép sửa khi còn draft
+            if ($batch->status !== 'draft') {
+                return redirect()->route('admin.batches.show', $batch->id)
+                    ->with('error', 'Không thể chỉnh sửa đơn nhập hàng đã được duyệt!');
+            }
+
+            // Cập nhật thông tin batch
+            $batch->update([
+                'batch_number' => $request->batch_code ?? $batch->batch_number,
+                'supplier_id' => $request->supplier_id,
+                'import_date' => $request->import_date,
+                'discount_type' => $request->discount['type'] ?? null,
+                'discount_amount' => $request->discount['value'] ?? null,
+                'total_amount' => $request->total_amount,
+                'created_by' => $request->user_id ?? Auth::id(),
+                'notes' => $request->notes,
+            ]);
+
+            // Xóa hết items cũ
+            BatchItem::where('batch_id', $batch->id)->delete();
+
+            // Tạo items mới từ request
+            foreach ($request->batch_items as $item) {
+                BatchItem::create([
+                    'batch_id' => $batch->id,
+                    'product_id' => $item['product_id'],
+                    'received_quantity' => $item['received_quantity'],
+                    'remaining_quantity' => 0,
+                    'purchase_price' => $item['purchase_price'],
+                    'total_amount' => $item['total_amount'],
+                    'created_by' => Auth::id(),
+                    'notes' => $item['notes'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('admin.batches.show', $batch->id)
+                ->with('success', 'Cập nhật đơn nhập hàng thành công!');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return redirect()->route('admin.batches.edit', $batch->id)
+                ->with('error', 'Đã xảy ra lỗi khi cập nhật đơn nhập hàng: ' . $e->getMessage());
+        }
+    }
+
+    public function approve(Request $request, $id)
+    {
+        try {
+            return DB::transaction(function () use ($id) {
+                $batch = Batch::with(['batchItems.product'])->findOrFail($id);
+
+                // Kiểm tra trạng thái hiện tại
+                if ($batch->status !== 'draft') {
+                    return back()->with('error', 'Chỉ có thể duyệt các đơn hàng ở trạng thái nháp.');
+                }
+
+                $user_id = Auth::id();
+                $totalAmount = $batch->batchItems->sum('total_amount'); // Tổng tiền sau khi update
+                $paidAmount = $batch->paid_amount ?? 0;
+
+                if ($paidAmount >= $totalAmount) {
+                    $paymentStatus = 'paid';
+                } elseif ($paidAmount > 0) {
+                    $paymentStatus = 'partially_paid';
+                } else {
+                    $paymentStatus = 'unpaid';
+                }
+
+                // Cập nhật trạng thái batch
+                $batch->update([
+                    'status' => 'completed',
+                    'receipt_status' => 'completed',
+                    'payment_status' => $paymentStatus,
+                    'updated_by' => $user_id,
+                    'updated_at' => now(),
+                ]);
+
+                // Xử lý từng batch item để cập nhật tồn kho
+                foreach ($batch->batchItems as $batchItem) {
+                    $product = $batchItem->product;
+
+                    if (!$product) {
+                        Log::warning("Product not found for batch item ID: {$batchItem->id}");
+                        continue;
+                    }
+
+                    // Cập nhật current_quantity và inventory_status cho batch item
+                    $batchItem->update([
+                        'current_quantity' => $batchItem->received_quantity,
+                        'inventory_status' => 'active',
+                        'updated_by' => $user_id,
+                    ]);
+
+                    // Cập nhật tồn kho sản phẩm
+                    $previousStock = $product->stock_quantity ?? 0;
+                    $changeQty = $batchItem->received_quantity;
+                    $newStock = $previousStock + $changeQty;
+
+                    $product->update([
+                        'stock_quantity' => $newStock,
+                        'last_received_at' => now(),
+                    ]);
+
+                    // Ghi lại lịch sử biến động kho
+                    InventoryTransaction::create([
+                        'transaction_type_id' => 1, // ID cho loại giao dịch nhập kho
+                        'product_id' => $product->id,
+                        'quantity_change' => $changeQty,
+                        'unit_price' => $batchItem->purchase_price,
+                        'total_value' => $batchItem->purchase_price * $changeQty,
+                        'transaction_date' => now(),
+                        'related_batch_id' => $batch->id,
+                        'user_id' => $user_id,
+                        'stock_after' => $newStock,
+                        'note' => 'Duyệt đơn nhập hàng trực tiếp - Phiếu ' . $batch->batch_number
+                    ]);
+
+                    Log::info("Updated stock for product {$product->id}: {$previousStock} -> {$newStock} (+{$changeQty})");
+                }
+
+                Log::info("Direct import batch {$batch->id} approved successfully by user {$user_id}");
+
+            });
+
+        } catch (\Exception $e) {
+            Log::error('Batch approval failed:', [
+                'batch_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->with('error', 'Có lỗi xảy ra khi duyệt đơn: ' . $e->getMessage());
+        }
+    }
     public function import(Request $request)
     {
         Log::info('Import request received.');
@@ -729,4 +1006,5 @@ class BatchController extends Controller
             ]);
         }
     }
+
 }

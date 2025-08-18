@@ -76,7 +76,7 @@ class PurchaseOrderController extends Controller
 
         return Inertia::render('admin/purchase_orders/Create', [
             'products' => $products,
-            'suppliers' => $suppliers,
+            'suppliers' => $suppliers,'suppliers' => $suppliers,
             'users' => $user
         ]);
     }
