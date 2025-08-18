@@ -14,11 +14,13 @@ use App\Http\Controllers\Admin\{
     PurchaseOrderController,
     InventoryController,
     UserController,
-    BillController
+    BillController,
+    StockRequestController
 };
 use App\Http\Controllers\TestController;
 
 Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
+
 
 Route::prefix('admin')
     ->name('admin.')
