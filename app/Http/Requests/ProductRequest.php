@@ -25,7 +25,13 @@ class ProductRequest extends FormRequest
         $productId = $this->route('product'); // Lấy ID sản phẩm nếu đang edit
         
         return [
-            'name' => 'required|string|min:2|max:100',
+            'name' => [
+                'required',
+                'string',
+                'min:2',
+                'max:100',
+                Rule::unique('products', 'name')->ignore($productId),
+         ],
             'barcode' => [
                 'nullable',
                 'string',
@@ -79,6 +85,8 @@ class ProductRequest extends FormRequest
             'name.string' => 'Tên sản phẩm phải là chuỗi ký tự.',
             'name.min' => 'Tên sản phẩm phải có ít nhất :min ký tự.',
             'name.max' => 'Tên sản phẩm không được vượt quá :max ký tự.',
+            'name.unique' => 'Tên sản phẩm này đã tồn tại.',
+
             
             'barcode.string' => 'Mã vạch phải là chuỗi ký tự.',
             'barcode.min' => 'Mã vạch phải có ít nhất :min ký tự.',
