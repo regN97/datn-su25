@@ -378,7 +378,7 @@ function handleApproveBatch() {
             <p>Sau khi duyệt, bạn sẽ không thể chỉnh sửa đơn này nữa.</p>
             <p><strong>Dữ liệu sẽ được cập nhật vào kho:</strong></p>
             <ul style="text-align: left; margin: 10px 0;">
-                ${aggregatedProducts.value.map(item => 
+                ${aggregatedProducts.value.map(item =>
                     `<li>${item.product_name}: +${item.received_quantity} sản phẩm</li>`
                 ).join('')}
             </ul>
@@ -431,14 +431,14 @@ function handleApproveBatch() {
                 onError: (errors) => {
                     console.error('Approval errors:', errors);
                     let errorMessage = 'Không thể duyệt đơn. Vui lòng thử lại.';
-                    
+
                     // Xử lý lỗi cụ thể nếu có
                     if (errors.general) {
                         errorMessage = errors.general;
                     } else if (typeof errors === 'string') {
                         errorMessage = errors;
                     }
-                    
+
                     Swal.fire({
                         icon: 'error',
                         title: 'Có lỗi xảy ra!',
@@ -634,7 +634,7 @@ function goBack() {
                                 <span>Duyệt đơn</span>
                             </button>
                         </template>
-                        
+
                         <!-- Completed Status Buttons -->
                         <template v-if="isCompleted">
                             <button
@@ -745,7 +745,7 @@ function goBack() {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Payment section - Only show for completed batches -->
                         <div v-if="!isDraft" class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-100 p-4">

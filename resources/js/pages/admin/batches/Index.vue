@@ -320,7 +320,7 @@ function exportBatchesToExcel() {
 }
 function goToCreatePage() {
 router.visit(route("admin.batches.create"));
-    
+
 }
 
 function getPaymentStatusDisplayName(status: "unpaid" | "partially_paid" | "paid") {

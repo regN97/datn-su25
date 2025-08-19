@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('purchase_returns', function (Blueprint $table) {
             $table->id();
             $table->string('return_number', 50)->unique()->comment('Số phiếu trả hàng');
-            $table->foreignId('purchase_order_id')->constrained('purchase_orders')->onDelete('restrict');
+            $table->foreignId('purchase_order_id')->nullable()->constrained('purchase_orders')->onDelete('restrict');
             $table->foreignId('supplier_id')->constrained('suppliers')->onDelete('restrict');
             $table->enum('status', ['pending', 'approved', 'completed', 'rejected'])->default('pending');
             $table->date('return_date');
