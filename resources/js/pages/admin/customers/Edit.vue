@@ -135,6 +135,7 @@ const submitForm = () => {
                                     class="w-full rounded-md border-gray-300 bg-white p-2 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
                                     :class="{ 'border-red-500': page.props.errors.wallet }"
                                     placeholder="Nhập số tiền trong ví"
+                                    disabled
                                 />
                                 <InputError :message="page.props.errors.wallet" class="mt-1" />
                             </div>
