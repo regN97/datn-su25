@@ -81,99 +81,96 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    public function store(Request $request)
-    {
+public function store(Request $request)
+{
+    // 1. Validate cơ bản
+    $validated = $request->validate([
+        'supplier_id' => 'required|exists:suppliers,id',
+        'expected_import_date' => 'required|date',
+        'products' => 'required|array|min:1',
+        'products.*.id' => 'required|exists:products,id',
+        'products.*.quantity' => 'required|numeric|min:1',
+        'products.*.purchase_price' => 'required|numeric|min:0.01',
+    ], [
+        'supplier_id.required' => 'Nhà cung cấp là bắt buộc.',
+        'expected_import_date.required' => 'Vui lòng chọn ngày nhập dự kiến.',
+        'products.required' => 'Danh sách sản phẩm là bắt buộc.',
+        'products.*.purchase_price.required' => 'Vui lòng nhập đơn giá cho từng sản phẩm.',
+        'products.*.purchase_price.min' => 'Đơn giá phải lớn hơn 0.',
+    ]);
 
-        $user_id = $request->user_id;
-        if ($user_id === null) {
-            $user_id = Auth::id();
-        }
+    $order_date = now();
 
-        // 2. Xác định po_number (order_code)
-        $po_number = $request->order_code;
-        if ($po_number === null) {
-            $today = Carbon::now()->format('Ymd');
-            $prefix = "PO-{$today}-";
+    // 2. Validate logic ngày nhập dự kiến >= ngày đặt hàng
+    if (Carbon::parse($request->expected_import_date)->lt($order_date->startOfDay())) {
+        return redirect()->back()->with('error', 'Ngày nhập dự kiến phải lớn hơn hoặc bằng ngày đặt hàng.');
+    }
 
-            // Lấy po_number cuối cùng trong ngày hiện tại
-            $lastPo = PurchaseOrder::withTrashed()
-                ->where('po_number', 'like', $prefix . '%')
-                ->lockForUpdate()
-                ->orderByRaw('CAST(SUBSTRING_INDEX(po_number, "-", -1) AS UNSIGNED) DESC')
-                ->first();
+    DB::beginTransaction();
+    try {
+        // 3. Sinh po_number
+        $today = $order_date->format('Ymd');
+        $prefix = "PO-{$today}-";
+        $lastPo = PurchaseOrder::withTrashed()
+            ->where('po_number', 'like', $prefix . '%')
+            ->lockForUpdate()
+            ->orderByRaw('CAST(SUBSTRING_INDEX(po_number, "-", -1) AS UNSIGNED) DESC')
+            ->first();
 
-            if ($lastPo) {
-                // Tách số thứ tự cuối cùng
-                $lastNumber = (int) substr($lastPo->po_number, -3);
-                $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-            } else {
-                $nextNumber = '001';
-            }
+        $nextNumber = $lastPo ? str_pad(((int) substr($lastPo->po_number, -3)) + 1, 3, '0', STR_PAD_LEFT) : '001';
+        $po_number = $request->order_code ?? "{$prefix}{$nextNumber}";
 
-            $po_number = "{$prefix}{$nextNumber}";
-        }
-
-        // 3. Khởi tạo dữ liệu để insert vào bảng purchase_orders
-        $po_data = [
+        // 4. Tạo purchase order
+        $purchaseOrder = PurchaseOrder::create([
             'po_number' => $po_number,
             'supplier_id' => $request->supplier_id,
             'status_id' => 1,
-            'order_date' => now(),
+            'order_date' => $order_date,
             'expected_delivery_date' => $request->expected_import_date,
-            'actual_delivery_date' => null,
             'discount_type' => $request->discount['type'] ?? null,
             'discount_amount' => $request->discount['value'] ?? null,
             'total_amount' => $request->total_amount,
-            'created_by' => $user_id,
-            'approved_by' => null,
-            'approved_at' => null,
+            'created_by' => $request->user_id ?? Auth::id(),
             'notes' => $request->note,
-        ];
+        ]);
 
-        $purchaseOrder = PurchaseOrder::create($po_data);
-        $purchaseOrderId = $purchaseOrder->id;
-
+        // 5. Thêm items
         $po_items_data = [];
         foreach ($request->products as $product) {
-            $dbProduct = Product::find($product['id']);
-            if (!$dbProduct || !$dbProduct->is_active) {
-                return back()->withErrors(['products' => "Sản phẩm {$product['name']} đã bị ẩn và không thể nhập hàng."]);
+            if (!isset($product['id'], $product['quantity'], $product['purchase_price'])) {
+                throw new \Exception("Thiếu thông tin sản phẩm: ID, số lượng hoặc đơn giá.");
             }
+
             $po_items_data[] = [
-                'purchase_order_id' => $purchaseOrderId,
+                'purchase_order_id' => $purchaseOrder->id,
                 'product_id'        => $product['id'],
-                'product_name'      => $product['name'],
-                'product_sku'       => $product['sku'],
+                'product_name'      => $product['name'] ?? '',
+                'product_sku'       => $product['sku'] ?? '',
                 'ordered_quantity'  => $product['quantity'],
                 'received_quantity' => 0,
                 'quantity_returned' => 0,
                 'unit_cost'         => $product['purchase_price'],
-                'subtotal'          => $product['sub_total'],
+                'subtotal'          => $product['sub_total'] ?? $product['quantity'] * $product['purchase_price'],
                 'discount_amount'   => 0,
                 'discount_type'     => 'amount',
                 'notes'             => null,
             ];
         }
 
-        // Insert nhiều bản ghi vào bảng purchase_order_items
         PurchaseOrderItem::insert($po_items_data);
 
-        $purchaseOrderItem = PurchaseOrderItem::where('purchase_order_id', '=', $purchaseOrderId)->with('product')->get();
-        $purchaseOrder = PurchaseOrder::where('id', '=', $purchaseOrderId)->with('status')->get();
-        $productQuery = Product::query();
-        $products = ['data' => $productQuery->get()];
-        $supplierQuery = Supplier::query();
-        $suppliers = $supplierQuery->get();
-        $user = User::all();
+        DB::commit();
 
-        return Inertia::render('admin/purchase_orders/Show', [
-            'purchaseOrderItem' => $purchaseOrderItem,
-            'purchaseOrder' => $purchaseOrder,
-            'products' => $products,
-            'suppliers' => $suppliers,
-            'users' => $user,
-        ]);
+        return redirect()->route('admin.purchase-orders.show', $purchaseOrder->id)
+            ->with('success', 'Tạo đơn đặt hàng thành công!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()->back()
+            ->with('error', 'Lỗi khi tạo đơn đặt hàng: ' . $e->getMessage())
+            ->withInput();
     }
+}
+
 
     public function show($id)
     {
@@ -345,73 +342,79 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $id)
-    {
-        // Bắt đầu transaction để đảm bảo tính toàn vẹn dữ liệu
-        DB::beginTransaction();
+   public function update(Request $request, string $id)
+{
+    $request->validate([
+        'supplier_id' => 'required|exists:suppliers,id',
+        'expected_import_date' => 'required|date',
+        'products' => 'required|array|min:1',
+        'products.*.id' => 'required|exists:products,id',
+        'products.*.quantity' => 'required|numeric|min:1',
+        'products.*.purchase_price' => 'required|numeric|min:0.01',
+    ], [
+        'expected_import_date.required' => 'Vui lòng chọn ngày nhập dự kiến.',
+        'products.*.purchase_price.required' => 'Vui lòng nhập đơn giá cho từng sản phẩm.',
+        'products.*.purchase_price.min' => 'Đơn giá phải lớn hơn 0.',
+    ]);
 
-        try {
-            // Lấy thông tin đơn hàng hiện tại
-            $purchaseOrder = PurchaseOrder::findOrFail($id);
+    $order_date = now();
 
-            // Kiểm tra trạng thái đơn hàng, chỉ cho phép cập nhật nếu đơn hàng chưa được duyệt hoặc đã duyệt
-            if ($purchaseOrder->status_id != 1 && $purchaseOrder->status_id != 2) {
-                return redirect()->route('admin.purchase-orders.show', $id)
-                    ->with('error', 'Không thể cập nhật đơn hàng đã nhập hàng hoặc đã hủy!');
-            }
-
-            // Cập nhật thông tin đơn hàng
-            $purchaseOrder->po_number = $request->order_code ?? $purchaseOrder->po_number;
-            $purchaseOrder->supplier_id = $request->supplier_id;
-            $purchaseOrder->expected_delivery_date = $request->expected_import_date;
-            $purchaseOrder->discount_type = $request->discount['type'] ?? null;
-            $purchaseOrder->discount_amount = $request->discount['value'] ?? null;
-            $purchaseOrder->total_amount = $request->total_amount;
-            $purchaseOrder->created_by = $request->user_id ?? Auth::id();
-            $purchaseOrder->notes = $request->note;
-            $purchaseOrder->save();
-
-            // Xóa tất cả các item hiện tại của đơn hàng
-            PurchaseOrderItem::where('purchase_order_id', $id)->delete();
-
-            // Thêm lại các item mới
-            $po_items_data = [];
-            foreach ($request->products as $product) {
-                $po_items_data[] = [
-                    'purchase_order_id' => $id,
-                    'product_id'        => $product['id'],
-                    'product_name'      => $product['name'],
-                    'product_sku'       => $product['sku'],
-                    'ordered_quantity'  => $product['quantity'],
-                    'received_quantity' => 0,
-                    'quantity_returned' => 0,
-                    'unit_cost'         => $product['purchase_price'],
-                    'subtotal'          => $product['sub_total'],
-                    'discount_amount'   => 0,
-                    'discount_type'     => 'amount',
-                    'notes'             => null,
-                ];
-            }
-
-            // Insert nhiều bản ghi vào bảng purchase_order_items
-            PurchaseOrderItem::insert($po_items_data);
-
-            // Commit transaction
-            DB::commit();
-
-            // Redirect về trang chi tiết đơn hàng với thông báo thành công
-            return redirect()->route('admin.purchase-orders.show', $id)
-                ->with('success', 'Cập nhật đơn hàng thành công!');
-
-        } catch (\Exception $e) {
-            // Rollback transaction nếu có lỗi
-            DB::rollBack();
-
-            // Redirect về trang chỉnh sửa với thông báo lỗi
-            return redirect()->route('admin.purchase-orders.edit', $id)
-                ->with('error', 'Đã xảy ra lỗi khi cập nhật đơn hàng: ' . $e->getMessage());
-        }
+    // Validate ngày nhập dự kiến >= ngày đặt hàng
+    if (Carbon::parse($request->expected_import_date)->lt($order_date->startOfDay())) {
+        return back()->withErrors(['expected_import_date' => 'Ngày nhập dự kiến phải lớn hơn hoặc bằng ngày đặt hàng.']);
     }
+
+    DB::beginTransaction();
+    try {
+        $purchaseOrder = PurchaseOrder::findOrFail($id);
+
+        if ($purchaseOrder->status_id != 1 && $purchaseOrder->status_id != 2) {
+            return redirect()->route('admin.purchase-orders.show', $id)
+                ->with('error', 'Không thể cập nhật đơn hàng đã nhập hàng hoặc đã hủy!');
+        }
+
+        $purchaseOrder->update([
+            'po_number' => $request->order_code ?? $purchaseOrder->po_number,
+            'supplier_id' => $request->supplier_id,
+            'expected_delivery_date' => $request->expected_import_date,
+            'discount_type' => $request->discount['type'] ?? null,
+            'discount_amount' => $request->discount['value'] ?? null,
+            'total_amount' => $request->total_amount,
+            'created_by' => $request->user_id ?? Auth::id(),
+            'notes' => $request->note,
+        ]);
+
+        // Xóa và thêm lại items
+        PurchaseOrderItem::where('purchase_order_id', $id)->delete();
+
+        $po_items_data = [];
+        foreach ($request->products as $product) {
+            $po_items_data[] = [
+                'purchase_order_id' => $id,
+                'product_id'        => $product['id'],
+                'product_name'      => $product['name'],
+                'product_sku'       => $product['sku'],
+                'ordered_quantity'  => $product['quantity'],
+                'received_quantity' => 0,
+                'quantity_returned' => 0,
+                'unit_cost'         => $product['purchase_price'],
+                'subtotal'          => $product['sub_total'],
+                'discount_amount'   => 0,
+                'discount_type'     => 'amount',
+                'notes'             => null,
+            ];
+        }
+        PurchaseOrderItem::insert($po_items_data);
+
+        DB::commit();
+        return redirect()->route('admin.purchase-orders.show', $id)
+            ->with('success', 'Cập nhật đơn hàng thành công!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()->route('admin.purchase-orders.edit', $id)
+            ->with('error', 'Lỗi: ' . $e->getMessage());
+    }
+}
 
     public function getStatus($id)
     {

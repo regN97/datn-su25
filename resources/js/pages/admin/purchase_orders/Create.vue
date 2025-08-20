@@ -344,21 +344,48 @@ const note = ref('');
 const supplierError = ref('');
 
 function submitOrder() {
+    const errors: string[] = [];
+
+    // Kiểm tra nhà cung cấp
     if (!selectedSupplier.value) {
-        supplierError.value = 'Nhà cung cấp không được để trống';
-        if (supplierError.value.length > 0) {
-            return Swal.fire({
-                icon: 'error',
-                title: 'Có lỗi xảy ra, vui lòng kiểm tra lại',
-                showConfirmButton: false,
-                timer: 2000,
-            });
-        }
-    } else {
-        supplierError.value = '';
+        errors.push("Nhà cung cấp không được để trống");
     }
 
-    router.post(route('admin.purchase-orders.store'), {
+    // Kiểm tra đơn giá sản phẩm
+    const invalidPriceProducts = selectedProducts.value.filter((p) => p.purchase_price <= 0);
+    if (invalidPriceProducts.length > 0) {
+        errors.push(
+            "Vui lòng nhập đơn giá cho: " +
+            invalidPriceProducts.map((p) => `"${p.name}"`).join(", ")
+        );
+    }
+
+    // Kiểm tra ngày nhập dự kiến
+    if (!expectedImportDate.value) {
+        errors.push("Ngày nhập dự kiến không được để trống");
+    } else {
+        const today = new Date();
+        const importDate = new Date(expectedImportDate.value);
+
+        if (importDate < today) {
+            errors.push("Ngày nhập dự kiến phải lớn hơn hoặc bằng ngày hiện tại");
+        }
+    }
+
+    // Nếu có lỗi → show tất cả
+    if (errors.length > 0) {
+        return Swal.fire({
+            icon: "error",
+            title: "Có lỗi xảy ra, vui lòng kiểm tra lại",
+            html: `<ul style="text-align: left; color: #e53e3e;">
+                ${errors.map((err) => `<li>• ${err}</li>`).join("")}
+            </ul>`,
+            confirmButtonText: "OK",
+        });
+    }
+
+    //  Nếu hợp lệ thì gửi đơn hàng
+    router.post(route("admin.purchase-orders.store"), {
         products: selectedProducts.value.map((p) => ({
             id: p.id,
             name: p.name,

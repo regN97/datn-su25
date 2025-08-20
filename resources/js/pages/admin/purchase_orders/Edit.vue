@@ -249,6 +249,7 @@ const filteredUsers = computed(() => {
     const query = userSearchQuery.value.toLowerCase();
     return props.users.filter((user) => user.name.toLowerCase().includes(query));
 });
+const formErrors = ref<Record<string, string>>({});
 
 // Utility functions
 function goBack() {
@@ -457,13 +458,11 @@ watch(searchQuery, (newValue) => {
 
 // Submit function
 function submitOrder() {
-    // Kiểm tra xem đã chọn nhà cung cấp chưa
+    formErrors.value = {};
     if (!selectedSupplier.value) {
         supplierError.value = 'Vui lòng chọn nhà cung cấp';
         return;
     }
-
-    // Gửi dữ liệu cập nhật đơn hàng
     router.post(route('admin.purchase-orders.update', currentPurchaseOrder.value.id), {
         _method: 'PUT',
         products: selectedProducts.value.map((product) => ({
@@ -481,6 +480,10 @@ function submitOrder() {
         expected_import_date: expectedImportDate.value,
         order_code: orderCode.value,
         note: note.value,
+    }, {
+        onError: (errors) => {
+            formErrors.value = errors;
+        },
     });
 }
 </script>
@@ -527,7 +530,7 @@ function submitOrder() {
                                                 >
                                                     Số lượng
                                                 </th>
-                                                <th
+                                                  <th
                                                     scope="col"
                                                     class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
                                                 >
@@ -545,7 +548,7 @@ function submitOrder() {
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-200 bg-white">
-                                            <tr v-for="product in selectedProducts" :key="product.id">
+                                            <tr v-for="(product, idx) in selectedProducts" :key="product.id">
                                                 <!-- Trong phần Selected Products table, thay đổi cột đầu tiên: -->
                                                 <td class="px-6 py-4 whitespace-nowrap">
                                                     <div class="flex items-center space-x-4">
@@ -569,15 +572,19 @@ function submitOrder() {
                                                         class="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                                     />
                                                 </td>
-                                                <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                                    <button
-                                                        class="text-blue-600 underline hover:text-blue-800"
-                                                        @click="openPriceModal(product)"
-                                                        type="button"
-                                                    >
-                                                        {{ formatPrice(product.purchase_price) }}
-                                                    </button>
-                                                </td>
+                                                  <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+        <button
+            class="text-blue-600 underline hover:text-blue-800"
+            @click="openPriceModal(product)"
+            type="button"
+        >
+            {{ formatPrice(product.purchase_price) }}
+        </button>
+        <!-- Hiển thị lỗi đơn giá nếu có -->
+        <div v-if="formErrors[`products.${idx}.purchase_price`]" class="text-sm text-red-500 mt-1">
+            {{ formErrors[`products.${idx}.purchase_price`] }}
+        </div>
+    </td>
                                                 <td class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">
                                                     {{ formatPrice(product.total) }}
                                                 </td>
@@ -870,10 +877,13 @@ function submitOrder() {
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập dự kiến</label>
                                     <input
-                                        type="datetime-local"
-                                        v-model="expectedImportDate"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                    />
+    type="datetime-local"
+    v-model="expectedImportDate"
+    class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+/>
+<div v-if="formErrors['expected_import_date']" class="text-sm text-red-500 mt-1">
+    {{ formErrors['expected_import_date'] }}
+</div>
                                 </div>
                                 <!-- Mã đơn đặt hàng nhập -->
                                 <div>
@@ -909,14 +919,7 @@ function submitOrder() {
                         >
                             Cập nhật đơn hàng
                         </button>
-                        <button
-                            class="mt-4 h-12 w-full rounded-md bg-gray-500 font-medium text-white hover:bg-gray-600"
-                            @click="submitOrder"
-                            v-else
-                            disabled
-                        >
-                            Cập nhật đơn hàng
-                        </button>
+                       
                     </div>
                 </div>
             </div>
@@ -994,8 +997,7 @@ function submitOrder() {
                         >
                             Xóa
                         </button>
-                        <button @click="saveDiscount" class="rounded bg-blue-500 px-4 py-1 font-semibold text-white hover:bg-blue-400">Lưu</button>
-                    </div>
+                   <button @click="saveDiscount" class="rounded bg-blue-500 px-4 py-1 font-semibold text-white hover:bg-blue-400">Lưu</button>                  </div>
                 </div>
             </div>
         </div>
