@@ -81,6 +81,12 @@ const form = useForm({
     printReceipt: true,
 });
 
+const totalPayable = computed(() => {
+    if (selectedCustomer.value && walletAmount.value) {
+        return Math.max(cartTotal.value - Number(walletAmount.value), 0);
+    }
+    return cartTotal.value;
+});
 const cleanBarcode = (input) => {
     return input.trim().replace(/[\r\n]+/g, ''); // Remove newlines and extra spaces
 };
@@ -527,14 +533,15 @@ const setExactAmount = () => {
 };
 
 const showPayment = () => {
-
+    console.log('[showPayment] Cart:', cart.value);
+    console.log('[showPayment] Tổng tiền:', cartTotal.value);
     for (const item of cart.value) {
         const product = products.value.find(p => p.id === item.id);
-        
+
         // Chuyển đổi sang số và đảm bảo là số hợp lệ
         const stockQty = parseFloat(String(product.stock).replace(',', '.'));
         const itemQty = parseFloat(String(item.quantity).replace(',', '.'));
-        
+
         // Kiểm tra nếu cả hai đều là số hợp lệ và stockQty nhỏ hơn itemQty
         if (!isNaN(stockQty) && !isNaN(itemQty) && itemQty > stockQty) {
             errorMessage.value = `Số lượng ${item.name} trong giỏ hàng vượt quá số lượng trong kho.`;
@@ -577,6 +584,11 @@ const combinedChange = computed(() => {
     return 0;
 });
 const submitSale = async () => {
+    console.log('[submitSale] Bắt đầu submitSale với phương thức:', form.paymentMethod);
+    console.log('[submitSale] Cart:', cart.value);
+    console.log('[submitSale] Tổng tiền:', cartTotal.value);
+    console.log('[submitSale] Tổng cần thanh toán:', totalPayable.value);
+
     if (!hasActiveSession.value) {
         errorMessage.value = 'Vui lòng mở ca trước khi thanh toán.';
         autoHideMessage();
@@ -592,13 +604,8 @@ const submitSale = async () => {
         autoHideMessage();
         return;
     }
-    if (form.paymentMethod === 'cash' && Number(form.amountReceived) < cartTotal.value) {
+    if (form.paymentMethod === 'cash' && Number(form.amountReceived) < totalPayable.value) {
         errorMessage.value = 'Số tiền khách đưa không đủ.';
-        autoHideMessage();
-        return;
-    }
-    if (form.paymentMethod === 'wallet' && (!selectedCustomer.value || selectedCustomer.value.wallet < cartTotal.value)) {
-        errorMessage.value = 'Số dư ví không đủ hoặc chưa chọn khách hàng.';
         autoHideMessage();
         return;
     }
@@ -607,41 +614,36 @@ const submitSale = async () => {
         autoHideMessage();
         return;
     }
-    if (form.paymentMethod === 'combined') {
-        if (!selectedCustomer.value || Number(walletAmount.value) > selectedCustomer.value.wallet) {
-            errorMessage.value = 'Số dư ví không đủ hoặc chưa chọn khách hàng.';
-            autoHideMessage();
-            return;
-        }
-        if (Number(form.amountReceived) < cashAmountForCombined.value) {
-            errorMessage.value = 'Số tiền mặt khách đưa không đủ.';
-            autoHideMessage();
-            return;
-        }
-        
+    if (selectedCustomer.value && Number(walletAmount.value) > selectedCustomer.value.wallet) {
+        errorMessage.value = 'Số tiền từ ví vượt quá số dư.';
+        autoHideMessage();
+        return;
     }
+
     form.cart = cart.value;
     form.customer_id = selectedCustomer.value?.id || null;
+
     try {
         const payload = {
             cart: form.cart.map(item => ({ id: item.id, quantity: item.quantity })),
             customer_id: form.customer_id,
             paymentMethod: form.paymentMethod,
-            amountReceived: form.paymentMethod === 'cash' ? Number(form.amountReceived) : cartTotal.value,
+            amountReceived: form.paymentMethod === 'cash' ? Number(form.amountReceived) : totalPayable.value,
             orderNotes: form.orderNotes || '',
             discount_amount: 0, // Không có khuyến mãi
+            walletAmount: selectedCustomer.value ? Number(walletAmount.value) || 0 : 0, // Thêm walletAmount vào payload
         };
         if (form.paymentMethod === 'bank_transfer') {
             payload.orderId = billNumber.value || 'HD' + Date.now();
         }
-        if (form.paymentMethod === 'combined') {
-            payload.walletAmount = Number(walletAmount.value) || 0;
-            payload.cashAmount = Number(form.amountReceived) || 0;
-        }
+        console.log('[submitSale] Payload gửi lên:', payload);
         const response = await axios.post('/cashier/pos/sale', payload);
+        console.log('[submitSale] API trả về:', response.data);
+
         // Tải lại danh sách sản phẩm
         const productResponse = await axios.get('/cashier/pos/products');
         products.value = productResponse.data.products || [];
+
         // Tải lại danh sách khách hàng để cập nhật số dư ví
         const customerResponse = await axios.get('/cashier/pos/customers');
         customers.value = customerResponse.data.customers || [];
@@ -649,20 +651,22 @@ const submitSale = async () => {
             const updatedCustomer = customers.value.find(c => c.id === selectedCustomer.value.id);
             if (updatedCustomer) selectedCustomer.value = updatedCustomer;
         }
+
         cart.value = [];
         form.reset('cart', 'customer_id', 'paymentMethod', 'amountReceived', 'orderNotes', 'printReceipt');
         walletAmount.value = 0; // Reset wallet amount
         clearCustomer();
         hasActiveSession.value = response.data.hasActiveSession || true;
         await fetchShiftReport();
+        showPaymentModal.value = false;
+        successMessage.value = 'Thanh toán thành công!';
+        showSuccessModal.value = true;
+        autoHideMessage();
     } catch (error) {
-        if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
-            errorMessage.value = error.response.data.errors.server;
-        } else {
-            errorMessage.value = error.response?.data?.errors?.server || 'Lỗi xử lý thanh toán.';
-            if (error.response?.data?.errors) {
-                Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
-            }
+        console.log('[submitSale] Lỗi:', error);
+        errorMessage.value = error.response?.data?.errors?.server || 'Lỗi xử lý thanh toán.';
+        if (error.response?.data?.errors) {
+            Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
         }
         autoHideMessage();
     }
@@ -713,13 +717,11 @@ const generateBankQR = async () => {
 };
 
 const confirmPayment = async () => {
-    if (form.paymentMethod === 'cash' && Number(form.amountReceived) < cartTotal.value) {
+    console.log('[confirmPayment] Phương thức:', form.paymentMethod);
+    console.log('[confirmPayment] Tổng cần thanh toán:', totalPayable.value);
+
+    if (form.paymentMethod === 'cash' && Number(form.amountReceived) < totalPayable.value) {
         errorMessage.value = 'Số tiền khách đưa không đủ.';
-        autoHideMessage();
-        return;
-    }
-    if (form.paymentMethod === 'wallet' && (!selectedCustomer.value || selectedCustomer.value.wallet < cartTotal.value)) {
-        errorMessage.value = 'Số dư ví không đủ hoặc chưa chọn khách hàng.';
         autoHideMessage();
         return;
     }
@@ -728,24 +730,20 @@ const confirmPayment = async () => {
         autoHideMessage();
         return;
     }
-    if (form.paymentMethod === 'combined') {
-        if (!selectedCustomer.value || selectedCustomer.value.wallet < walletAmount.value) {
-            errorMessage.value = 'Số dư ví không đủ hoặc chưa chọn khách hàng.';
-            autoHideMessage();
-            return;
-        }
-        if (Number(form.amountReceived) < cashAmountForCombined.value) {
-            errorMessage.value = 'Số tiền mặt khách đưa không đủ.';
-            autoHideMessage();
-            return;
-        }
+    if (selectedCustomer.value && Number(walletAmount.value) > selectedCustomer.value.wallet) {
+        errorMessage.value = 'Số tiền từ ví vượt quá số dư.';
+        autoHideMessage();
+        return;
     }
+
     try {
         const cartSnapshot = [...cart.value];
         const paymentMethodSnapshot = form.paymentMethod;
-        const amountReceivedSnapshot = form.paymentMethod === 'cash' ? form.amountReceived : cartTotal.value;
-        const customerSnapshot = { ...selectedCustomer.value };
+        const amountReceivedSnapshot = form.paymentMethod === 'cash' ? form.amountReceived : totalPayable.value;
+        const customerSnapshot = selectedCustomer.value ? { ...selectedCustomer.value } : null;
         await submitSale();
+        console.log('[confirmPayment] submitSale đã gọi xong');
+
         if (form.printReceipt) {
             printReceipt(cartSnapshot, paymentMethodSnapshot, amountReceivedSnapshot, customerSnapshot);
         }
@@ -757,13 +755,10 @@ const confirmPayment = async () => {
         walletAmount.value = 0; // Reset wallet amount
         autoHideMessage();
     } catch (error) {
-        if (error.response?.status === 422 && error.response.data?.errors?.server?.includes('Ca làm việc đã hết hạn')) {
-            errorMessage.value = error.response.data.errors.server;
-        } else {
-            errorMessage.value = error.response?.data?.message || error.response?.data?.errors?.server || 'Lỗi thanh toán.';
-            if (error.response?.data?.errors) {
-                Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
-            }
+        console.log('[confirmPayment] Lỗi:', error);
+        errorMessage.value = error.response?.data?.message || error.response?.data?.errors?.server || 'Lỗi thanh toán.';
+        if (error.response?.data?.errors) {
+            Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
         }
         autoHideMessage();
     }
@@ -779,176 +774,173 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
     const subtotal = cartData.reduce((total, item) => total + (item.price * item.quantity), 0);
     const tax = 0;
     const total = subtotal + tax;
+    const totalPayableReceipt = customer && walletAmount.value ? Math.max(total - Number(walletAmount.value), 0) : total;
     try {
         printWindow.document.write(`
-      <html>
-        <head>
-          <title>Hóa đơn #${sanitizeHTML(billNumber.value)}</title>
-          <style>
-            @media print {
-              @page { size: 80mm auto; margin: 5mm; }
-              body {
-                font-family: 'Courier New', monospace;
-                font-size: 10pt;
-                width: 80mm;
-                margin: 0;
-                padding: 5mm;
-                line-height: 1.4;
-                color: #000;
-                background: #fff;
-              }
-              .header {
-                text-align: center;
-                border-bottom: 2px dashed #000;
-                padding-bottom: 8px;
-                margin-bottom: 8px;
-              }
-              .store-info {
-                font-size: 9pt;
-                text-align: center;
-                margin-bottom: 8px;
-              }
-              .bill-info {
-                font-size: 9pt;
-                margin-bottom: 8px;
-              }
-              table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 8px 0;
-              }
-              th, td {
-                padding: 4px 2px;
-                font-size: 9pt;
-                text-align: left;
-              }
-              th {
-                border-bottom: 1px solid #000;
-                font-weight: bold;
-              }
-              .text-right {
-                text-align: right;
-              }
-              .text-center {
-                text-align: center;
-              }
-              .total-section {
-                border-top: 1px dashed #000;
-                padding-top: 8px;
-                margin-top: 8px;
-                font-size: 9pt;
-              }
-              .total {
-                font-size: 10pt;
-                font-weight: bold;
-              }
-              .footer {
-                text-align: center;
-                font-size: 8pt;
-                margin-top: 8px;
-                border-top: 2px dashed #000;
-                padding-top: 8px;
-              }
-              .no-print {
-                display: none;
-              }
-            }
-            body {
-              font-family: 'Courier New', monospace;
-              font-size: 10pt;
-              width: 80mm;
-              margin: 10px auto;
-              padding: 5mm;
-              line-height: 1.4;
-              color: #000;
-              background: #fff;
-              border: 1px solid #ccc;
-              box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            }
-            .no-print {
-              display: block;
-              margin-top: 10px;
-              width: 100%;
-              padding: 5px;
-              background: #007bff;
-              color: #fff;
-              border: none;
-              border-radius: 3px;
-              cursor: pointer;
-              text-align: center;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2 style="margin: 0; font-size: 12pt;">Hóa Đơn Bán Hàng</h2>
-            <div class="store-info">
-              <p style="margin: 2px 0;">Cửa hàng bán lẻ G7 Mart</p>
-              <p style="margin: 2px 0;">Trịnh Văn Bô, Hà Nội</p>
-              <p style="margin: 2px 0;">Hotline: 4444 6666</p>
-            </div>
-          </div>
-          <div class="bill-info">
-            <p><strong>Mã hóa đơn:</strong> ${sanitizeHTML(billNumber.value)}</p>
-            <p><strong>Ngày giờ:</strong> ${sanitizeHTML(formatDateTime(DateTime.now().toISO()))}</p>
-            <p><strong>Nhân viên:</strong> ${sanitizeHTML(props.auth?.user?.name || 'N/A')}</p>
-            <p><strong>Khách hàng:</strong> ${sanitizeHTML(customer?.customer_name || 'Khách lẻ')}</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 40%;">Tên hàng</th>
-                <th style="width: 15%; text-align: center;">SL</th>
-                <th style="width: 25%; text-align: right;">Đơn giá</th>
-                <th style="width: 20%; text-align: right;">Thành tiền</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${cartData.length > 0 ? cartData.map(item => `
-                <tr>
-                  <td>${sanitizeHTML(item.name || 'Unknown')}</td>
-                  <td class="text-center">${item.quantity || 0}</td>
-                  <td class="text-right">${sanitizeHTML(formatCurrency(item.price || 0))}</td>
-                  <td class="text-right">${sanitizeHTML(formatCurrency((item.price || 0) * (item.quantity || 0)))}</td>
-                </tr>
-              `).join('') : `
-                <tr>
-                  <td colspan="4" class="text-center">Không có sản phẩm</td>
-                </tr>
-              `}
-            </tbody>
-          </table>
-          <div class="total-section">
-            <p class="text-right"><strong>Tổng tiền hàng:</strong> ${sanitizeHTML(formatCurrency(subtotal))}</p>
-            <p class="text-right"><strong>Giảm giá:</strong> ${sanitizeHTML(formatCurrency(0))}</p>
-            <p class="text-right total"><strong>Tổng thanh toán:</strong> ${sanitizeHTML(formatCurrency(total))}</p>
-            <p class="text-right"><strong>Phương thức:</strong> ${sanitizeHTML(
-            paymentMethod === 'cash' ? 'Tiền mặt' :
-                paymentMethod === 'credit_card' ? 'Thẻ ngân hàng' :
-                    paymentMethod === 'bank_transfer' ? 'Chuyển khoản ngân hàng' :
-                        paymentMethod === 'wallet' ? 'Ví khách hàng' :
-                            'Kết hợp (Ví + Tiền mặt)'
-        )}</p>
-            ${paymentMethod === 'cash' ? `
-              <p class="text-right"><strong>Khách đưa:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) || 0))}</p>
-              <p class="text-right"><strong>Tiền thối:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) - total || 0))}</p>
-            ` : paymentMethod === 'bank_transfer' && bankTransactionInfo.value ? `
-              <p class="text-right"><strong>Mô tả:</strong> ${sanitizeHTML(bankTransactionInfo.value.description)}</p>
-            ` : paymentMethod === 'combined' ? `
-              <p class="text-right"><strong>Thanh toán bằng ví:</strong> ${sanitizeHTML(formatCurrency(Number(walletAmount.value) || 0))}</p>
-              <p class="text-right"><strong>Thanh toán bằng tiền mặt:</strong> ${sanitizeHTML(formatCurrency(Number(form.amountReceived) || 0))}</p>
-              <p class="text-right"><strong>Tiền thối:</strong> ${sanitizeHTML(formatCurrency(Number(form.amountReceived) - cashAmountForCombined.value || 0))}</p>
-            ` : ''}
-            <p class="text-right"><strong>Ghi chú:</strong> ${sanitizeHTML(form.orderNotes || 'Không có')}</p>
-          </div>
-          <div class="footer">
-            <p>Cảm ơn quý khách!</p>
-            <p>Vui lòng kiểm tra hàng trước khi rời đi.</p>
-          </div>
-          <button class="no-print" onclick="window.print(); window.close();">In hóa đơn</button>
-        </body>
-      </html>
-    `);
+            <html>
+                <head>
+                    <title>Hóa đơn #${sanitizeHTML(billNumber.value)}</title>
+                    <style>
+                        @media print {
+                            @page { size: 80mm auto; margin: 5mm; }
+                            body {
+                                font-family: 'Courier New', monospace;
+                                font-size: 10pt;
+                                width: 80mm;
+                                margin: 0;
+                                padding: 5mm;
+                                line-height: 1.4;
+                                color: #000;
+                                background: #fff;
+                            }
+                            .header {
+                                text-align: center;
+                                border-bottom: 2px dashed #000;
+                                padding-bottom: 8px;
+                                margin-bottom: 8px;
+                            }
+                            .store-info {
+                                font-size: 9pt;
+                                text-align: center;
+                                margin-bottom: 8px;
+                            }
+                            .bill-info {
+                                font-size: 9pt;
+                                margin-bottom: 8px;
+                            }
+                            table {
+                                width: 100%;
+                                border-collapse: collapse;
+                                margin: 8px 0;
+                            }
+                            th, td {
+                                padding: 4px 2px;
+                                font-size: 9pt;
+                                text-align: left;
+                            }
+                            th {
+                                border-bottom: 1px solid #000;
+                                font-weight: bold;
+                            }
+                            .text-right {
+                                text-align: right;
+                            }
+                            .text-center {
+                                text-align: center;
+                            }
+                            .total-section {
+                                border-top: 1px dashed #000;
+                                padding-top: 8px;
+                                margin-top: 8px;
+                                font-size: 9pt;
+                            }
+                            .total {
+                                font-size: 10pt;
+                                font-weight: bold;
+                            }
+                            .footer {
+                                text-align: center;
+                                font-size: 8pt;
+                                margin-top: 8px;
+                                border-top: 2px dashed #000;
+                                padding-top: 8px;
+                            }
+                            .no-print {
+                                display: none;
+                            }
+                        }
+                        body {
+                            font-family: 'Courier New', monospace;
+                            font-size: 10pt;
+                            width: 80mm;
+                            margin: 10px auto;
+                            padding: 5mm;
+                            line-height: 1.4;
+                            color: #000;
+                            background: #fff;
+                            border: 1px solid #ccc;
+                            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                        }
+                        .no-print {
+                            display: block;
+                            margin-top: 10px;
+                            width: 100%;
+                            padding: 5px;
+                            background: #007bff;
+                            color: #fff;
+                            border: none;
+                            border-radius: 3px;
+                            cursor: pointer;
+                            text-align: center;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2 style="margin: 0; font-size: 12pt;">Hóa Đơn Bán Hàng</h2>
+                        <div class="store-info">
+                            <p style="margin: 2px 0;">Cửa hàng bán lẻ G7 Mart</p>
+                            <p style="margin: 2px 0;">Trịnh Văn Bô, Hà Nội</p>
+                            <p style="margin: 2px 0;">Hotline: 4444 6666</p>
+                        </div>
+                    </div>
+                    <div class="bill-info">
+                        <p><strong>Mã hóa đơn:</strong> ${sanitizeHTML(billNumber.value)}</p>
+                        <p><strong>Ngày giờ:</strong> ${sanitizeHTML(formatDateTime(DateTime.now().toISO()))}</p>
+                        <p><strong>Nhân viên:</strong> ${sanitizeHTML(props.auth?.user?.name || 'N/A')}</p>
+                        <p><strong>Khách hàng:</strong> ${sanitizeHTML(customer?.customer_name || 'Khách lẻ')}</p>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40%;">Tên hàng</th>
+                                <th style="width: 15%; text-align: center;">SL</th>
+                                <th style="width: 25%; text-align: right;">Đơn giá</th>
+                                <th style="width: 20%; text-align: right;">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cartData.length > 0 ? cartData.map(item => `
+                                <tr>
+                                    <td>${sanitizeHTML(item.name || 'Unknown')}</td>
+                                    <td class="text-center">${item.quantity || 0}</td>
+                                    <td class="text-right">${sanitizeHTML(formatCurrency(item.price || 0))}</td>
+                                    <td class="text-right">${sanitizeHTML(formatCurrency((item.price || 0) * (item.quantity || 0)))}</td>
+                                </tr>
+                            `).join('') : `
+                                <tr>
+                                    <td colspan="4" class="text-center">Không có sản phẩm</td>
+                                </tr>
+                            `}
+                        </tbody>
+                    </table>
+                    <div class="total-section">
+                        <p class="text-right"><strong>Tổng tiền hàng:</strong> ${sanitizeHTML(formatCurrency(subtotal))}</p>
+                        ${customer && walletAmount.value > 0 ? `
+                            <p class="text-right"><strong>Thanh toán bằng ví:</strong> ${sanitizeHTML(formatCurrency(Number(walletAmount.value) || 0))}</p>
+                        ` : ''}
+                        <p class="text-right total"><strong>Tổng cần thanh toán:</strong> ${sanitizeHTML(formatCurrency(totalPayableReceipt))}</p>
+                        <p class="text-right"><strong>Phương thức:</strong> ${sanitizeHTML(
+                            paymentMethod === 'cash' ? 'Tiền mặt' :
+                            paymentMethod === 'bank_transfer' ? 'Chuyển khoản ngân hàng' :
+                            paymentMethod === 'vnpay' ? 'VNPay' : 'Không xác định'
+                        )}</p>
+                        ${paymentMethod === 'cash' ? `
+                            <p class="text-right"><strong>Khách đưa:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) || 0))}</p>
+                            <p class="text-right"><strong>Tiền thối:</strong> ${sanitizeHTML(formatCurrency(Number(amountReceived) - totalPayableReceipt || 0))}</p>
+                        ` : paymentMethod === 'bank_transfer' && bankTransactionInfo.value ? `
+                            <p class="text-right"><strong>Mô tả:</strong> ${sanitizeHTML(bankTransactionInfo.value.description)}</p>
+                        ` : ''}
+                        <p class="text-right"><strong>Ghi chú:</strong> ${sanitizeHTML(form.orderNotes || 'Không có')}</p>
+                    </div>
+                    <div class="footer">
+                        <p>Cảm ơn quý khách!</p>
+                        <p>Vui lòng kiểm tra hàng trước khi rời đi.</p>
+                    </div>
+                    <button class="no-print" onclick="window.print(); window.close();">In hóa đơn</button>
+                </body>
+            </html>
+        `);
         printWindow.document.close();
         printWindow.onload = () => {
             printWindow.focus();
@@ -1198,15 +1190,21 @@ const searchByBarcode = async (barcode) => {
     }
 };
 
-// Cải thiện phần thanh toán kết hợp
-watch(() => form.paymentMethod, (newMethod) => {
-    if (newMethod === 'combined' && selectedCustomer.value) {
-        walletAmount.value = Math.min(selectedCustomer.value.wallet, cartTotal.value); // Tự động set walletAmount tối đa có thể
-        form.amountReceived = 0; // Reset tiền mặt
+
+
+watch(() => selectedCustomer.value, (newCustomer) => {
+    if (!newCustomer) {
+        walletAmount.value = 0; // Reset wallet amount khi không chọn khách hàng
+    } else {
+        walletAmount.value = Math.min(newCustomer.wallet, cartTotal.value); // Tự động set walletAmount tối đa có thể
     }
 });
 
 watch(walletAmount, (newValue) => {
+    if (!selectedCustomer.value) {
+        walletAmount.value = 0;
+        return;
+    }
     const walletBalance = selectedCustomer.value ? Number(selectedCustomer.value.wallet) : 0;
     const maxWallet = Math.min(walletBalance, cartTotal.value);
     if (newValue > maxWallet) {
@@ -1216,8 +1214,6 @@ watch(walletAmount, (newValue) => {
     } else if (newValue < 0) {
         walletAmount.value = 0;
     }
-    // Tự động cập nhật tiền mặt cần trả khi thay đổi walletAmount
-    form.amountReceived = Math.max(form.amountReceived, cashAmountForCombined.value);
 });
 
 watch(cashAmountForCombined, (newValue) => {
@@ -1225,6 +1221,51 @@ watch(cashAmountForCombined, (newValue) => {
         form.amountReceived = newValue; // Đảm bảo tiền mặt tối thiểu
     }
 });
+const initiateVNPayPayment = async () => {
+    if (!hasActiveSession.value) {
+        errorMessage.value = 'Vui lòng mở ca trước khi thanh toán.';
+        autoHideMessage();
+        return;
+    }
+    if (cart.value.length === 0) {
+        errorMessage.value = 'Giỏ hàng trống. Vui lòng thêm sản phẩm!';
+        autoHideMessage();
+        return;
+    }
+    if (selectedCustomer.value && Number(walletAmount.value) > selectedCustomer.value.wallet) {
+        errorMessage.value = 'Số tiền từ ví vượt quá số dư.';
+        autoHideMessage();
+        return;
+    }
+    console.log('[initiateVNPayPayment] Bắt đầu với cart:', cart.value);
+    console.log('[initiateVNPayPayment] Tổng tiền cần thanh toán:', totalPayable.value);
+    try {
+        const payload = {
+            cart: cart.value.map(item => ({ id: item.id, quantity: item.quantity })),
+            customer_id: selectedCustomer.value?.id || null,
+            amount: totalPayable.value, // Sử dụng totalPayable thay vì cartTotal
+            orderNotes: form.orderNotes || '',
+            walletAmount: selectedCustomer.value ? Number(walletAmount.value) || 0 : 0, // Gửi walletAmount
+        };
+        console.log('[initiateVNPayPayment] Payload gửi lên:', payload);
+        const response = await axios.post('/cashier/pos/vnpay/create', payload);
+        console.log('[initiateVNPayPayment] API trả về:', response.data);
+
+        if (response.data && response.data.vnpayUrl) {
+            console.log('[initiateVNPayPayment] Chuyển hướng tới:', response.data.vnpayUrl);
+            if (confirm('Bạn có muốn chuyển hướng đến trang thanh toán VNPay?')) {
+                window.location.href = response.data.vnpayUrl;
+            }
+        } else {
+            errorMessage.value = 'Không lấy được link thanh toán VNPay.';
+            autoHideMessage();
+        }
+    } catch (error) {
+        console.log('[initiateVNPayPayment] Lỗi:', error);
+        errorMessage.value = error.response?.data?.errors?.server || 'Lỗi tạo thanh toán VNPay.';
+        autoHideMessage();
+    }
+};
 
 </script>
 
@@ -1268,7 +1309,7 @@ watch(cashAmountForCombined, (newValue) => {
                                 <select v-model="selectedCategory"
                                     class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option v-for="category in categories" :key="category" :value="category">{{ category
-                                        }}</option>
+                                    }}</option>
                                 </select>
                             </div>
                             <div class="mb-2">
@@ -1491,20 +1532,20 @@ watch(cashAmountForCombined, (newValue) => {
                     <div class="flex justify-between items-center mb-1">
                         <div class="flex items-center space-x-1">
                             <!-- Nút mở báo cáo -->
-<button @click="toggleReportSidebar"
-    class="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200"
-    title="Xem báo cáo ca làm việc">
-    <FileText class="w-4 h-4" />
-    <span>Ca làm</span>
-</button>
+                            <button @click="toggleReportSidebar"
+                                class="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200"
+                                title="Xem báo cáo ca làm việc">
+                                <FileText class="w-4 h-4" />
+                                <span>Ca làm</span>
+                            </button>
 
-<!-- Nút mở bộ lọc -->
-<button @click="toggleFilterSidebar"
-    class="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded text-xs hover:bg-green-200"
-    title="Bộ lọc dữ liệu báo cáo">
-    <MenuIcon class="w-4 h-4" />
-    <span>Bộ lọc</span>
-</button>
+                            <!-- Nút mở bộ lọc -->
+                            <button @click="toggleFilterSidebar"
+                                class="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded text-xs hover:bg-green-200"
+                                title="Bộ lọc dữ liệu báo cáo">
+                                <MenuIcon class="w-4 h-4" />
+                                <span>Bộ lọc</span>
+                            </button>
 
                             <div class="flex justify-between items-center mt-1 text-[11px] text-gray-600">
                                 <button v-if="
@@ -1523,7 +1564,7 @@ watch(cashAmountForCombined, (newValue) => {
                         </div>
                         <div v-if="activeShift" class="text-[11px] text-gray-600">
                             <p><strong>Ca làm việc:</strong> {{ activeShift.shift_name }} (Bắt đầu: {{ formattedOpenedAt
-                                }})</p>
+                            }})</p>
                         </div>
                     </div>
                     <div class="mb-1">
@@ -1581,7 +1622,8 @@ watch(cashAmountForCombined, (newValue) => {
                     </div>
                 </div>
                 <div class="p-2 border-b border-gray-200">
-                    <h3 class="text-xs font-semibold mb-1">Đơn hàng chờ:</h3>
+                    <h3 class="text-xs font-semibold mb-1">Đơn hàng chờ:
+                    </h3>
                     <div class="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
                         <div v-if="pendingOrders.length === 0"
                             class="relative bg-gray-100 p-1.5 rounded text-[10px] border border-gray-200">
@@ -1699,211 +1741,203 @@ watch(cashAmountForCombined, (newValue) => {
                 </div>
             </div>
             <div v-if="showPaymentModal"
-                class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg bg-black/50 transition-opacity duration-300">
-                <div
-                    class="relative bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl p-8 max-w-3xl w-[95%] text-gray-800 transform transition-all duration-300 modal-content">
-                    <button @click="showPaymentModal = false"
-                        class="absolute top-4 right-4 text-gray-600 hover:text-red-600 text-2xl font-bold transition-all duration-200">
-                        &times;
-                    </button>
-                    <div class="space-y-6 max-h-[80vh] overflow-y-auto">
-                        <!-- Header -->
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-2xl font-bold text-gray-900">Xác nhận thanh toán</h2>
-                            <span class="text-sm text-gray-600">Nhân viên: <strong>{{ props.auth?.user?.name || 'N/A'
-                                    }}</strong></span>
-                        </div>
-                        <!-- Bill Information in Rectangular Frame -->
-                        <div class="bg-gray-50 border border-gray-300 rounded-lg p-6 shadow-sm">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">Hóa đơn bán hàng</h3>
-                            <div class="space-y-3 text-sm">
-                                <div class="flex justify-between">
-                                    <span><strong>Mã hóa đơn:</strong></span>
-                                    <span>{{ billNumber || 'HD' + Date.now() }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span><strong>Ngày giờ:</strong></span>
-                                    <span>{{ formatDateTime(DateTime.now().toISO()) }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span><strong>Khách hàng:</strong></span>
-                                    <span>{{ selectedCustomer?.customer_name || 'Khách lẻ' }}</span>
-                                </div>
-                            </div>
-                            <!-- Product List -->
-                            <div class="mt-4">
-                                <h4 class="font-semibold text-sm mb-2">Danh sách sản phẩm:</h4>
-                                <div class="border-t border-b border-gray-200 py-2">
-                                    <table class="w-full text-sm">
-                                        <thead>
-                                            <tr class="bg-gray-100 text-left">
-                                                <th class="p-3 font-semibold">Tên hàng</th>
-                                                <th class="p-3 font-semibold text-center">Số lượng</th>
-                                                <th class="p-3 font-semibold text-right">Đơn giá</th>
-                                                <th class="p-3 font-semibold text-right">Thành tiền</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-if="cart.length === 0" class="border-t border-gray-200">
-                                                <td colspan="4" class="p-3 text-center">Không có sản phẩm</td>
-                                            </tr>
-                                            <tr v-for="item in cart" :key="item.id" class="border-t border-gray-200">
-                                                <td class="p-3">{{ item.name }}</td>
-                                                <td class="p-3 text-center">{{ item.quantity }}</td>
-                                                <td class="p-3 text-right">{{ formatCurrency(item.price) }}</td>
-                                                <td class="p-3 text-right">{{ formatCurrency(item.price * item.quantity)
-                                                    }}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <!-- Totals -->
-                            <div class="mt-4 text-right space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="font-semibold">Tổng tiền hàng:</span>
-                                    <span>{{ formatCurrency(cartSubtotal) }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="font-semibold">Giảm giá:</span>
-                                    <span>{{ formatCurrency(0) }}</span>
-                                </div>
-                                <div class="flex justify-between text-lg font-bold text-green-600">
-                                    <span>Tổng cần thanh toán:</span>
-                                    <span>{{ formatCurrency(cartTotal) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Payment Method -->
-                        <div class="space-y-3 text-sm">
-                            <label class="block font-semibold">Phương thức thanh toán:</label>
-                            <select v-model="form.paymentMethod"
-                                class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                                :class="{ 'border-red-500': form.errors.paymentMethod }">
-                                <option value="cash">Tiền mặt</option>
-                                <option value="credit_card">Thẻ ngân hàng</option>
-                                <option value="bank_transfer">Chuyển khoản ngân hàng</option>
-                                
-
-                                <option value="combined" :disabled="!selectedCustomer || selectedCustomer.wallet <= 0">
-                                    Kết hợp (Ví + Tiền mặt)
-                                </option>
-                            </select>
-                            <InputError class="mt-1 text-[10px]" :message="form.errors.paymentMethod" />
-                        </div>
-                        <!-- Cash Payment -->
-                        <div v-if="form.paymentMethod === 'cash'" class="space-y-3 text-sm">
-                            <label class="block font-semibold">Khách đưa:</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <button v-for="amount in quickAmounts" :key="amount" @click="setAmountReceived(amount)"
-                                    class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs hover:bg-blue-200 transition-all shadow-sm">
-                                    {{ formatCurrency(amount) }}
-                                </button>
-                                <button @click="setExactAmount"
-                                    class="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs hover:bg-green-200 transition-all shadow-sm">
-                                    Chính xác
-                                </button>
-                            </div>
-                            <input type="number" v-model.number="form.amountReceived"
-                                class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                                min="0" placeholder="Nhập số tiền khách đưa"
-                                :class="{ 'border-red-500': form.errors.amountReceived }" />
-                            <InputError class="mt-1 text-[10px]" :message="form.errors.amountReceived" />
-                            <div class="flex justify-between text-sm">
-                                <span class="font-semibold">Tiền thối lại:</span>
-                                <span class="font-bold text-blue-600">{{ formatCurrency(change) }}</span>
-                            </div>
-                        </div>
-                        <!-- Bank QR Code -->
-                        <div v-if="form.paymentMethod === 'bank_transfer'" class="space-y-3 text-sm">
-                            <div class="flex justify-between items-center">
-                                <label class="block font-semibold">Thanh toán ngân hàng:</label>
-                                <button @click="generateBankQR"
-                                    class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition-all shadow-sm"
-                                    :disabled="isLoadingBankQR">
-                                    <Loader2 v-if="isLoadingBankQR" class="animate-spin h-4 w-4 inline-block mr-1" />
-                                    {{ bankQRCode ? 'Tạo lại mã QR' : 'Tạo mã QR ngân hàng' }}
-                                </button>
-                            </div>
-                            <div v-if="isLoadingBankQR" class="text-center">
-                                <Loader2 class="animate-spin h-6 w-6 mx-auto text-blue-500" />
-                                <p class="mt-2">Đang tạo mã QR...</p>
-                            </div>
-                            <div v-else-if="bankQRCode" class="flex flex-col md:flex-row gap-4">
-                                <div class="text-center">
-                                    <img :src="bankQRCode" alt="Mã QR ngân hàng"
-                                        class="mx-auto w-48 h-48 rounded-lg shadow-md" />
-                                    <p class="mt-2">Quét mã QR để thanh toán {{ formatCurrency(cartTotal) }}</p>
-                                </div>
-                                <div v-if="bankTransactionInfo" class="space-y-2 text-sm">
-                                    <p><strong>Ngân hàng:</strong> {{ bankTransactionInfo.bankCode }}</p>
-                                    <p><strong>Số tài khoản:</strong> {{ bankTransactionInfo.accountNo }}</p>
-                                    <p><strong>Chủ tài khoản:</strong> {{ bankTransactionInfo.accountName }}</p>
-                                    <p><strong>Số tiền:</strong> {{ formatCurrency(bankTransactionInfo.amount) }}</p>
-                                    <p><strong>Nội dung:</strong> {{ bankTransactionInfo.description }}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="form.paymentMethod === 'combined'" class="space-y-3 text-sm">
-                            <div>
-                                <label class="block font-semibold">Số tiền từ ví (Tối đa: {{ formatCurrency(selectedCustomer?.wallet || 0) }}):</label>
-                                <input type="number" v-model.number="walletAmount" :max="selectedCustomer?.wallet || 0" min="0"
-                                    :placeholder="'Nhập số tiền từ ví (tối đa ' + formatCurrency(Math.min(selectedCustomer?.wallet || 0, cartTotal)) + ')'"
-                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" />
-                            </div>
-                            <div>
-                                <label class="block font-semibold">Số tiền mặt cần trả: {{ formatCurrency(cashAmountForCombined) }}</label>
-                                <div class="flex flex-wrap gap-2 mb-2">
-                                    <button v-for="amount in quickAmounts" :key="amount" @click="form.amountReceived = amount"
-                                        class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs hover:bg-blue-200 transition-all shadow-sm">
-                                        {{ formatCurrency(amount) }}
-                                    </button>
-                                    <button @click="form.amountReceived = cashAmountForCombined"
-                                        class="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs hover:bg-green-200 transition-all shadow-sm">
-                                        Chính xác
-                                    </button>
-                                </div>
-                                <input type="number" v-model.number="form.amountReceived"
-                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                                    min="0" placeholder="Nhập số tiền khách đưa" />
-                                <div class="flex justify-between text-sm mt-2">
-                                    <span class="font-semibold">Tiền thối lại:</span>
-                                    <span class="font-bold text-blue-600">{{ formatCurrency(combinedChange) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Notes -->
-                        <div class="space-y-3 text-sm">
-                            <label class="block font-semibold">Ghi chú:</label>
-                            <textarea v-model="form.orderNotes"
-                                class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                                rows="3" placeholder="Ví dụ: Giao tận nơi..."></textarea>
-                            <InputError class="mt-1 text-[10px]" :message="form.errors.orderNotes" />
-                        </div>
-                        <!-- Print Receipt Option -->
-                        <div class="space-y-3 text-sm">
-                            <label class="inline-flex items-center space-x-2">
-                                <input type="checkbox" v-model="form.printReceipt"
-                                    class="form-checkbox h-5 w-5 text-blue-600 rounded" />
-                                <span>In hóa đơn ngay</span>
-                            </label>
-                        </div>
-                        <!-- Footer -->
-                        <div class="mt-6 flex justify-end space-x-4">
-                            <button @click="showPaymentModal = false"
-                                class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition-all shadow-sm">
-                                Hủy
-                            </button>
-                            <button @click="confirmPayment"
-                                class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition-all shadow-sm"
-                                :disabled="form.processing || cart.length === 0">
-                                <Loader2 v-if="form.processing" class="animate-spin h-5 w-5 inline-block mr-2" />
-                                Xác nhận & In
-                            </button>
-                        </div>
+    class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg bg-black/50 transition-opacity duration-300">
+    <div
+        class="relative bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl p-8 max-w-3xl w-[95%] text-gray-800 transform transition-all duration-300 modal-content">
+        <button @click="showPaymentModal = false"
+            class="absolute top-4 right-4 text-gray-600 hover:text-red-600 text-2xl font-bold transition-all duration-200">
+            &times;
+        </button>
+        <div class="space-y-6 max-h-[80vh] overflow-y-auto">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">Xác nhận thanh toán</h2>
+                <span class="text-sm text-gray-600">Nhân viên: <strong>{{ props.auth?.user?.name || 'N/A' }}</strong></span>
+            </div>
+            <!-- Bill Information -->
+            <div class="bg-gray-50 border border-gray-300 rounded-lg p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">Hóa đơn bán hàng</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span><strong>Mã hóa đơn:</strong></span>
+                        <span>{{ billNumber || 'HD' + Date.now() }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span><strong>Ngày giờ:</strong></span>
+                        <span>{{ formatDateTime(DateTime.now().toISO()) }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span><strong>Khách hàng:</strong></span>
+                        <span>{{ selectedCustomer?.customer_name || 'Khách lẻ' }}</span>
+                    </div>
+                </div>
+                <!-- Product List -->
+                <div class="mt-4">
+                    <h4 class="font-semibold text-sm mb-2">Danh sách sản phẩm:</h4>
+                    <div class="border-t border-b border-gray-200 py-2">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-100 text-left">
+                                    <th class="p-3 font-semibold">Tên hàng</th>
+                                    <th class="p-3 font-semibold text-center">Số lượng</th>
+                                    <th class="p-3 font-semibold text-right">Đơn giá</th>
+                                    <th class="p-3 font-semibold text-right">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-if="cart.length === 0" class="border-t border-gray-200">
+                                    <td colspan="4" class="p-3 text-center">Không có sản phẩm</td>
+                                </tr>
+                                <tr v-for="item in cart" :key="item.id" class="border-t border-gray-200">
+                                    <td class="p-3">{{ item.name }}</td>
+                                    <td class="p-3 text-center">{{ item.quantity }}</td>
+                                    <td class="p-3 text-right">{{ formatCurrency(item.price) }}</td>
+                                    <td class="p-3 text-right">{{ formatCurrency(item.price * item.quantity) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Totals -->
+                <div class="mt-4 text-right space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-semibold">Tổng tiền hàng:</span>
+                        <span>{{ formatCurrency(cartSubtotal) }}</span>
+                    </div>
+                    <div v-if="selectedCustomer && walletAmount > 0" class="flex justify-between">
+                        <span class="font-semibold">Thanh toán bằng ví:</span>
+                        <span>{{ formatCurrency(walletAmount) }}</span>
+                    </div>
+                    <div class="flex justify-between text-lg font-bold text-green-600">
+                        <span>Tổng cần thanh toán:</span>
+                        <span>{{ formatCurrency(totalPayable) }}</span>
                     </div>
                 </div>
             </div>
+            <!-- Wallet Amount Input -->
+            <div v-if="selectedCustomer" class="space-y-3 text-sm">
+                <label class="block font-semibold">Số tiền từ ví (Tối đa: {{ formatCurrency(selectedCustomer?.wallet || 0) }}):</label>
+                <input type="number" v-model.number="walletAmount" :max="Math.min(selectedCustomer?.wallet || 0, cartTotal)"
+                    min="0"
+                    :placeholder="'Nhập số tiền từ ví (tối đa ' + formatCurrency(Math.min(selectedCustomer?.wallet || 0, cartTotal)) + ')'"
+                    class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" />
+            </div>
+            <!-- Payment Method -->
+            <div class="space-y-3 text-sm">
+                <label class="block font-semibold">Phương thức thanh toán:</label>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="form.paymentMethod = 'cash'"
+                        class="px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm"
+                        :class="{
+                            'bg-green-600 text-white hover:bg-green-700': form.paymentMethod === 'cash',
+                            'bg-gray-200 text-gray-700 hover:bg-gray-300': form.paymentMethod !== 'cash'
+                        }">
+                        Tiền mặt
+                    </button>
+                    <button type="button" @click="form.paymentMethod = 'bank_transfer'"
+                        class="px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm"
+                        :class="{
+                            'bg-green-600 text-white hover:bg-green-700': form.paymentMethod === 'bank_transfer',
+                            'bg-gray-200 text-gray-700 hover:bg-gray-300': form.paymentMethod !== 'bank_transfer'
+                        }">
+                        Chuyển khoản ngân hàng
+                    </button>
+                    <button type="button" name="redirect" @click="form.paymentMethod = 'vnpay'; initiateVNPayPayment()"
+                        class="px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm"
+                        :class="{
+                            'bg-teal-500 text-white hover:bg-teal-600': form.paymentMethod === 'vnpay',
+                            'bg-gray-200 text-gray-700 hover:bg-gray-300': form.paymentMethod !== 'vnpay'
+                        }">
+                        VNPay
+                    </button>
+                </div>
+                <InputError class="mt-1 text-[10px]" :message="form.errors.paymentMethod" />
+            </div>
+            <!-- Cash Payment -->
+            <div v-if="form.paymentMethod === 'cash'" class="space-y-3 text-sm">
+                <label class="block font-semibold">Khách đưa (Tối thiểu: {{ formatCurrency(totalPayable) }}):</label>
+                <div class="flex flex-wrap gap-2 mb-2">
+                    <button v-for="amount in quickAmounts" :key="amount" @click="setAmountReceived(amount)"
+                        class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs hover:bg-blue-200 transition-all shadow-sm">
+                        {{ formatCurrency(amount) }}
+                    </button>
+                    <button @click="setAmountReceived(totalPayable)"
+                        class="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs hover:bg-green-200 transition-all shadow-sm">
+                        Chính xác
+                    </button>
+                </div>
+                <input type="number" v-model.number="form.amountReceived" :min="totalPayable"
+                    class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                    placeholder="Nhập số tiền khách đưa"
+                    :class="{ 'border-red-500': form.errors.amountReceived }" />
+                <InputError class="mt-1 text-[10px]" :message="form.errors.amountReceived" />
+                <div class="flex justify-between text-sm">
+                    <span class="font-semibold">Tiền thối lại:</span>
+                    <span class="font-bold text-blue-600">{{ formatCurrency(form.amountReceived - totalPayable) }}</span>
+                </div>
+            </div>
+            <!-- Bank QR Code -->
+            <div v-if="form.paymentMethod === 'bank_transfer'" class="space-y-3 text-sm">
+                <div class="flex justify-between items-center">
+                    <label class="block font-semibold">Thanh toán ngân hàng:</label>
+                    <button @click="generateBankQR"
+                        class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs hover:bg-blue-700 transition-all shadow-sm"
+                        :disabled="isLoadingBankQR">
+                        <Loader2 v-if="isLoadingBankQR" class="animate-spin h-4 w-4 inline-block mr-1" />
+                        {{ bankQRCode ? 'Tạo lại mã QR' : 'Tạo mã QR ngân hàng' }}
+                    </button>
+                </div>
+                <div v-if="isLoadingBankQR" class="text-center">
+                    <Loader2 class="animate-spin h-6 w-6 mx-auto text-blue-500" />
+                    <p class="mt-2">Đang tạo mã QR...</p>
+                </div>
+                <div v-else-if="bankQRCode" class="flex flex-col md:flex-row gap-4">
+                    <div class="text-center">
+                        <img :src="bankQRCode" alt="Mã QR ngân hàng"
+                            class="mx-auto w-48 h-48 rounded-lg shadow-md" />
+                        <p class="mt-2">Quét mã QR để thanh toán {{ formatCurrency(totalPayable) }}</p>
+                    </div>
+                    <div v-if="bankTransactionInfo" class="space-y-2 text-sm">
+                        <p><strong>Ngân hàng:</strong> {{ bankTransactionInfo.bankCode }}</p>
+                        <p><strong>Số tài khoản:</strong> {{ bankTransactionInfo.accountNo }}</p>
+                        <p><strong>Chủ tài khoản:</strong> {{ bankTransactionInfo.accountName }}</p>
+                        <p><strong>Số tiền:</strong> {{ formatCurrency(bankTransactionInfo.amount) }}</p>
+                        <p><strong>Nội dung:</strong> {{ bankTransactionInfo.description }}</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Notes -->
+            <div class="space-y-3 text-sm">
+                <label class="block font-semibold">Ghi chú:</label>
+                <textarea v-model="form.orderNotes"
+                    class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                    rows="3" placeholder="Ví dụ: Giao tận nơi..."></textarea>
+                <InputError class="mt-1 text-[10px]" :message="form.errors.orderNotes" />
+            </div>
+            <!-- Print Receipt Option -->
+            <div class="space-y-3 text-sm">
+                <label class="inline-flex items-center space-x-2">
+                    <input type="checkbox" v-model="form.printReceipt"
+                        class="form-checkbox h-5 w-5 text-blue-600 rounded" />
+                    <span>In hóa đơn ngay</span>
+                </label>
+            </div>
+            <!-- Footer -->
+            <div class="mt-6 flex justify-end space-x-4">
+                <button @click="showPaymentModal = false"
+                    class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition-all shadow-sm">
+                    Hủy
+                </button>
+                <button @click="confirmPayment"
+                    class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition-all shadow-sm"
+                    :disabled="form.processing || cart.length === 0 || form.paymentMethod === 'vnpay'">
+                    <Loader2 v-if="form.processing" class="animate-spin h-5 w-5 inline-block mr-2" />
+                    Xác nhận & In
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
         </div>
     </CashierLayout>
 </template>

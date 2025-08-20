@@ -968,7 +968,7 @@ class POSController
                     $customer = Customer::lockForUpdate()->find($data['customer_id']);
                     $walletBonus = $totalAmount * 0.001;
                     $customer->wallet += $walletBonus;
-                    
+
                     $customer->save();
                 }
 
@@ -1103,20 +1103,20 @@ class POSController
         if (!$product) {
             return response()->json(['errors' => ['server' => 'Không tìm thấy sản phẩm với mã vạch này.']], 404);
         }
-        
- 
-    return response()->json([
-        'product' => [
-            'id' => $product->id,
-            'name' => $product->name,
-            'barcode' => $product->barcode,
-            'price' => $product->selling_price ?? 0, 
-            'stock_quantity' => $product->stock_quantity,
-            'image' => $product->image_url ?? '/storage/piclumen-1747750187180.png',
-            'sku' => $product->sku,
-        ]
-    ]);
-}
+
+
+        return response()->json([
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'barcode' => $product->barcode,
+                'price' => $product->selling_price ?? 0,
+                'stock_quantity' => $product->stock_quantity,
+                'image' => $product->image_url ?? '/storage/piclumen-1747750187180.png',
+                'sku' => $product->sku,
+            ]
+        ]);
+    }
 
 
     private function getProducts()
@@ -1224,5 +1224,6 @@ class POSController
         }
         return null;
     }
+
     
 }
