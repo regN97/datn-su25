@@ -42,7 +42,7 @@ Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::post('/bill-lookup/search', [BillLookupController::class, 'search'])->name('bill.lookup.search');
         Route::post('/bill-lookup/{bill}/upload-proof', [BillLookupController::class, 'uploadPaymentProof'])->name('bill.lookup.proof');
 
-        Route::post('/cashier/add-to-cart', [CashierDashboardController::class, 'addToCart'])->name('cashier.addToCart');
+
 
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications');
 
