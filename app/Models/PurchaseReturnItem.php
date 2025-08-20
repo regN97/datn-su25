@@ -30,5 +30,13 @@ class PurchaseReturnItem extends Model
     {
         return $this->belongsTo(Batch::class, 'batch_id');
     }
+    public function purchaseReturn()
+    {
+        return $this->belongsTo(PurchaseReturn::class);
+    }
+    public function purchaseOrderItem()
+    {
+        return $this->belongsTo(PurchaseOrderItem::class);
+    }
 
 }

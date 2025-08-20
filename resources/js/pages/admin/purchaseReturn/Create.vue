@@ -33,6 +33,8 @@ const props = defineProps<{
     } | null;
     currentLocationName: string;
     error?: string;
+    suppliers: { id: number; name: string }[];
+    products: { id: number; name: string; sku: string; image_url: string | null }[];
 }>();
 
 // Dữ liệu cho form trả hàng
@@ -47,6 +49,7 @@ const returnForm = ref({
     payment_status: 'unpaid',
     payment_amount: 0,
     paid_at: null as string | null,
+    supplier_id: props.purchaseOrder?.supplier_id || null,
 });
 
 const formatMoney = (amount: number) => {
@@ -58,6 +61,43 @@ const getImage = (url?: string | null) => {
     if (url.startsWith('http')) return url;
     if (url.startsWith('/storage')) return url;
     return `/storage/${url}`;
+};
+
+const searchTerm = ref('');
+const showSearchResults = ref(false);
+const filteredProducts = computed(() => {
+    if (!searchTerm.value) {
+        return [];
+    }
+    showSearchResults.value = true;
+    const lowerCaseSearchTerm = searchTerm.value.toLowerCase();
+    return props.products.filter(product =>
+        product.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+        product.sku.toLowerCase().includes(lowerCaseSearchTerm)
+    ).slice(0, 10);
+});
+
+const addProductToReturn = (product: any) => {
+    const existingItem = returnForm.value.return_items.find(item => item.product_id === product.id);
+    if (!existingItem) {
+        returnForm.value.return_items.push({
+            product_id: product.id,
+            product_name: product.name,
+            product_sku: product.sku,
+            product_image_url: product.image_url,
+            quantity_to_return: 1,
+            max_quantity_can_return: Infinity,
+            unit_cost: 0,
+            reason: null,
+            original_items: [],
+            batch_id: null,
+            purchase_order_item_id: null,
+        });
+    } else {
+        existingItem.quantity_to_return++;
+    }
+    searchTerm.value = '';
+    showSearchResults.value = false;
 };
 
 // Tính toán tổng giá trị sản phẩm trả lại
@@ -100,12 +140,16 @@ const cancelReturn = () => {
 };
 
 const createReturnOrder = () => {
-    const supplier_id = props.purchaseOrder?.supplier_id;
-    const purchase_order_id = props.purchaseOrder?.id;
+    const supplier_id = returnForm.value.supplier_id;
+    const purchase_order_id = returnForm.value.purchase_order_id;
     const return_date = new Date().toISOString().slice(0, 10);
 
-    if (!supplier_id || !purchase_order_id) {
-        alert('Không có thông tin đơn nhập hoặc nhà cung cấp!');
+    if (!supplier_id) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Cảnh báo!',
+            text: 'Vui lòng chọn một nhà cung cấp.',
+        });
         return;
     }
 
@@ -116,31 +160,47 @@ const createReturnOrder = () => {
         if (remainingQuantityToReturn > 0) {
             const originalItems = groupedItem.original_items;
 
-            originalItems?.forEach((originalItem: any) => {
-                if (remainingQuantityToReturn > 0) {
-                    const quantityFromOriginalItem = Math.min(
-                        remainingQuantityToReturn,
-                        originalItem.quantity_received
-                    );
+            if (originalItems && originalItems.length > 0) {
+                originalItems?.forEach((originalItem: any) => {
+                    if (remainingQuantityToReturn > 0) {
+                        const quantityFromOriginalItem = Math.min(
+                            remainingQuantityToReturn,
+                            originalItem.quantity_received
+                        );
 
-                    if (quantityFromOriginalItem > 0) {
-                        itemsToReturn.push({
-                            product_id: originalItem.product_id,
-                            product_name: originalItem.product_name,
-                            product_sku: originalItem.product_sku,
-                            quantity_returned: quantityFromOriginalItem,
-                            unit_cost: originalItem.unit_cost,
-                            reason: groupedItem.reason ?? null,
-                            purchase_order_item_id: originalItem.purchase_order_item_id,
-                            batch_id: originalItem.batch_id,
-                            batch_number: originalItem.batch_number,
-                            manufacturing_date: originalItem.manufacturing_date,
-                            expiry_date: originalItem.expiry_date,
-                        });
-                        remainingQuantityToReturn -= quantityFromOriginalItem;
+                        if (quantityFromOriginalItem > 0) {
+                            itemsToReturn.push({
+                                product_id: originalItem.product_id,
+                                product_name: originalItem.product_name,
+                                product_sku: originalItem.product_sku,
+                                quantity_returned: quantityFromOriginalItem,
+                                unit_cost: originalItem.unit_cost,
+                                reason: groupedItem.reason ?? null,
+                                purchase_order_item_id: originalItem.purchase_order_item_id,
+                                batch_id: originalItem.batch_id,
+                                batch_number: originalItem.batch_number,
+                                manufacturing_date: originalItem.manufacturing_date,
+                                expiry_date: originalItem.expiry_date,
+                            });
+                            remainingQuantityToReturn -= quantityFromOriginalItem;
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                itemsToReturn.push({
+                    product_id: groupedItem.product_id,
+                    product_name: groupedItem.product_name,
+                    product_sku: groupedItem.product_sku,
+                    quantity_returned: groupedItem.quantity_to_return,
+                    unit_cost: groupedItem.unit_cost,
+                    reason: groupedItem.reason,
+                    purchase_order_item_id: null,
+                    batch_id: null,
+                    batch_number: null,
+                    manufacturing_date: null,
+                    expiry_date: null,
+                });
+            }
         }
     });
 
@@ -233,6 +293,7 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
     if (newPurchaseOrder) {
         returnForm.value.purchase_order_id = newPurchaseOrder.id;
         returnForm.value.return_order_code = `TRA-${newPurchaseOrder.code}`;
+        returnForm.value.supplier_id = newPurchaseOrder.supplier_id;
 
         const aggregatedItems: any[] = [];
         const itemMap = new Map();
@@ -321,84 +382,107 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                                 {{ props.currentLocationName }}
                             </span>
                         </div>
-                        <div v-if="!props.purchaseOrder" class="text-center py-4 text-gray-600">
-                            Vui lòng chọn một đơn nhập để tạo đơn trả hàng.
-                        </div>
-                        <table v-else class="w-full text-sm border-t border-gray-200">
-                            <thead>
-                                <tr class="text-left text-gray-500 bg-gray-50">
-                                    <th class="py-2 px-2">Sản phẩm</th>
-                                    <th class="py-2 px-2 text-center">Số lượng</th>
-                                    <th class="py-2 px-2 text-center">Đơn giá</th>
-                                    <th class="py-2 px-2 text-right">Thành tiền</th>
-                                    <th class="py-2 px-2 text-center">Lý do trả</th>
-                                    <th class="py-2 px-2 w-10"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(item, index) in returnForm.return_items" :key="index"
-                                    class="border-b border-gray-100 last:border-b-0">
-                                    <td class="py-3 px-2 flex items-center">
-                                        <img :src="getImage(item.product_image_url)" :alt="item.product_name"
-                                            class="w-10 h-10 rounded mr-2 object-cover"
-                                            @error="(e) => (e.target as HTMLImageElement).src = '/apple-touch-icon.png'" />
+                        <div v-if="!props.purchaseOrder" class="mb-4">
+                            <div class="relative">
+                                <input type="text" v-model="searchTerm" placeholder="Tìm kiếm sản phẩm theo tên hoặc SKU"
+                                    class="w-full p-2 border border-gray-300 rounded-md text-sm text-gray-800 focus:outline-none focus:border-blue-400"
+                                    @focus="showSearchResults = true" @blur="() => setTimeout(() => showSearchResults = false, 200)" />
+                                <ul v-if="showSearchResults && filteredProducts.length"
+                                    class="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+                                    <li v-for="product in filteredProducts" :key="product.id"
+                                        @mousedown.prevent="addProductToReturn(product)"
+                                        class="p-2 hover:bg-gray-100 cursor-pointer flex items-center">
+                                        <img :src="getImage(product.image_url)" alt="product" class="w-8 h-8 rounded-sm mr-2 object-cover">
                                         <div>
-                                            <div class="text-gray-800 font-medium">{{ item.product_name }}</div>
-                                            <div class="text-xs text-gray-500">SKU: {{ item.product_sku }}</div>
+                                            <div class="font-medium">{{ product.name }}</div>
+                                            <div class="text-xs text-gray-500">SKU: {{ product.sku }}</div>
                                         </div>
-                                    </td>
-                                    <td class="px-2 text-center">
-                                        <div class="flex items-center justify-center border border-gray-300 rounded-md overflow-hidden mx-auto"
-                                            style="width: 100px;">
-                                            <button @click="decreaseQuantity(item.product_id)"
-                                                :disabled="item.quantity_to_return <= 0"
-                                                class="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                -
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div v-if="returnForm.return_items.length > 0">
+                            <table class="w-full text-sm border-t border-gray-200">
+                                <thead>
+                                    <tr class="text-left text-gray-500 bg-gray-50">
+                                        <th class="py-2 px-2">Sản phẩm</th>
+                                        <th class="py-2 px-2 text-center">Số lượng</th>
+                                        <th class="py-2 px-2 text-center">Đơn giá</th>
+                                        <th class="py-2 px-2 text-right">Thành tiền</th>
+                                        <th class="py-2 px-2 text-center">Lý do trả</th>
+                                        <th class="py-2 px-2 w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(item, index) in returnForm.return_items" :key="index"
+                                        class="border-b border-gray-100 last:border-b-0">
+                                        <td class="py-3 px-2 flex items-center">
+                                            <img :src="getImage(item.product_image_url)" :alt="item.product_name"
+                                                class="w-10 h-10 rounded mr-2 object-cover"
+                                                @error="(e) => (e.target as HTMLImageElement).src = '/apple-touch-icon.png'" />
+                                            <div>
+                                                <div class="text-gray-800 font-medium">{{ item.product_name }}</div>
+                                                <div class="text-xs text-gray-500">SKU: {{ item.product_sku }}</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-2 text-center">
+                                            <div class="flex items-center justify-center border border-gray-300 rounded-md overflow-hidden mx-auto mt-4"
+                                                style="width: 100px;">
+                                                <button @click="decreaseQuantity(item.product_id)"
+                                                    :disabled="item.quantity_to_return <= 0"
+                                                    class="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    -
+                                                </button>
+                                                <input type="number" v-model="item.quantity_to_return"
+                                                    @input="updateQuantity(item.product_id, ($event.target as HTMLInputElement).value)"
+                                                    @blur="updateQuantity(item.product_id, ($event.target as HTMLInputElement).value)"
+                                                    min="0" :max="item.max_quantity_can_return"
+                                                    class="w-10 text-center border-x border-gray-300 text-gray-800 focus:outline-none transition duration-150 ease-in-out" />
+                                                <button @click="increaseQuantity(item.product_id)"
+                                                    :disabled="item.quantity_to_return >= item.max_quantity_can_return"
+                                                    class="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    +
+                                                </button>
+                                            </div>
+                                            <div class="text-xs text-gray-500 mt-1">
+                                                {{ item.quantity_to_return }}/{{ item.max_quantity_can_return }}
+                                            </div>
+                                        </td>
+                                        <td class="px-2 text-center">
+                                            <input type="number" v-model="item.unit_cost"
+                                                class="w-24 p-1 text-center border border-gray-300 rounded-md text-gray-800"
+                                                :class="{
+                                                    'bg-gray-100 cursor-not-allowed': props.purchaseOrder !== null
+                                                }"
+                                                :readonly="props.purchaseOrder !== null"
+                                            />
+                                        </td>
+                                        <td class="px-2 text-right font-medium text-gray-800">
+                                            {{ formatMoney(item.quantity_to_return * item.unit_cost) }}
+                                        </td>
+                                        <td class="px-2 text-center">
+                                            <input v-model="item.reason" type="text" placeholder="Nhập lý do trả"
+                                                class="w-32 p-1 border border-gray-300 rounded-md text-sm" />
+                                        </td>
+                                        <td class="px-2">
+                                            <button v-if="returnForm.return_items.length > 1"
+                                                @click="removeProduct(item.product_id)"
+                                                class="text-gray-400 hover:text-red-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                    stroke-width="1.5" stroke="currentColor" class="size-5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M6 18 18 6M6 6l12 12" />
+                                                </svg>
                                             </button>
-                                            <input type="number" v-model="item.quantity_to_return"
-                                                @input="updateQuantity(item.product_id, ($event.target as HTMLInputElement).value)"
-                                                @blur="updateQuantity(item.product_id, ($event.target as HTMLInputElement).value)"
-                                                min="0" :max="item.max_quantity_can_return"
-                                                class="w-10 text-center border-x border-gray-300 text-gray-800 focus:outline-none transition duration-150 ease-in-out" />
-                                            <button @click="increaseQuantity(item.product_id)"
-                                                :disabled="item.quantity_to_return >= item.max_quantity_can_return"
-                                                class="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                +
-                                            </button>
-                                        </div>
-                                        <div class="text-xs text-gray-500 mt-1">
-                                            {{ item.quantity_to_return }}/{{ item.max_quantity_can_return }}
-                                        </div>
-                                    </td>
-                                    <td class="px-2 text-center">
-                                        <input type="number" :value="item.unit_cost" readonly
-                                            class="w-24 p-1 text-center border border-gray-300 rounded-md text-gray-800 bg-gray-100 cursor-not-allowed" />
-                                    </td>
-                                    <td class="px-2 text-right font-medium text-gray-800">
-                                        {{ formatMoney(item.quantity_to_return * item.unit_cost) }}
-                                    </td>
-                                    <td class="px-2 text-center">
-                                        <input v-model="item.reason" type="text" placeholder="Nhập lý do trả"
-                                            class="w-32 p-1 border border-gray-300 rounded-md text-sm" />
-                                    </td>
-                                    <td class="px-2">
-                                        <button v-if="returnForm.return_items.length > 1"
-                                            @click="removeProduct(item.product_id)"
-                                            class="text-gray-400 hover:text-red-600">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                stroke-width="1.5" stroke="currentColor" class="size-5">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                    d="M6 18 18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr v-if="returnForm.return_items.length === 0 && props.purchaseOrder">
-                                    <td colspan="5" class="text-center py-4 text-gray-500">Đơn nhập này không có sản
-                                        phẩm nào để hoàn trả.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div v-else class="text-center py-4 text-gray-600">
+                            {{ props.purchaseOrder ? 'Đơn nhập này không có sản phẩm nào để hoàn trả.' : 'Chưa có sản phẩm nào được thêm vào.' }}
+                        </div>
                     </div>
 
                     <div class="bg-white rounded-xl shadow p-4 space-y-3">
@@ -452,7 +536,16 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                                 Địa chỉ: {{ props.purchaseOrder.supplier_address }}</p>
                         </div>
                         <div v-else class="text-sm text-gray-500">
-                            Không có thông tin nhà cung cấp (chưa chọn đơn nhập).
+                            <div class="form-group">
+                                <label for="supplier" class="block text-sm font-medium text-gray-700 mb-1">Chọn nhà cung cấp</label>
+                                <select id="supplier" v-model="returnForm.supplier_id"
+                                    class="w-full p-2 border border-gray-300 rounded-md text-sm text-gray-800 focus:outline-none focus:border-blue-400 transition duration-150 ease-in-out">
+                                    <option :value="null" disabled>Chọn nhà cung cấp</option>
+                                    <option v-for="supplier in props.suppliers" :key="supplier.id" :value="supplier.id">
+                                        {{ supplier.name }}
+                                    </option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
