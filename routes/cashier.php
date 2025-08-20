@@ -70,7 +70,6 @@ Route::prefix('cashier')->name('cashier.')->group(function () {
             Route::get('/', [CustomerLookupController::class, 'index'])->name('lookup');
             Route::post('/search', [CustomerLookupController::class, 'search'])->name('lookup.search');
             Route::get('/{customer}', [CustomerLookupController::class, 'show'])->name('show');
-
         });
-    
+    });
 });
