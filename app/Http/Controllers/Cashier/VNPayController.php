@@ -244,7 +244,7 @@ class VNPayController
 
                 // Tạo hóa đơn
                 $billNumber = 'BILL-' . Carbon::now('Asia/Ho_Chi_Minh')->format('YmdHis') . '-' . rand(1000, 9999);
-                $txnRef = substr(preg_replace('/[^A-Za-z0-9]/', '', $billNumber), 0, 20);
+                $txnRef =  $billNumber;
 
                 $bill = Bill::create([
                     'bill_number' => $billNumber,
