@@ -54,12 +54,18 @@ class NotificationController extends Controller
             ->get()
             ->map(function ($session) {
                 return [
-                    'description' => $session->closed_at ? 'Đăng xuất hệ thống: Đã đăng xuất.' : 'Đăng nhập hệ thống: Đăng nhập thành công.',
+                    'description' => $session->closed_at
+                        ? 'Đăng xuất hệ thống: Đã đăng xuất.'
+                        : 'Đăng nhập hệ thống: Đăng nhập thành công.',
                     'time' => ($session->closed_at ?? $session->opened_at)->format('d/m/Y h:i A'),
                 ];
             });
 
-        return $bills->concat($sessions)->sortByDesc('time')->take(5)->values();
+        // sort lại chính xác bằng timestamp
+        return $bills->concat($sessions)
+            ->sortByDesc(fn($item) => strtotime($item['time']))
+            ->take(5)
+            ->values();
     }
 
     private function getQuickStats()
@@ -108,27 +114,17 @@ class NotificationController extends Controller
                 'isNew' => false,
                 'details' => 'Bảo trì dự kiến kéo dài 2 giờ. Hệ thống sẽ tạm ngưng xử lý giao dịch.',
             ],
-            // [
-            //     'message' => 'Cập nhật phần mềm POS phiên bản 2.1.3 đã hoàn tất.',
-            //     'time' => now()->subHours(6)->format('d/m/Y h:i A'),
-            //     'isNew' => true,
-            //     'details' => 'Phiên bản mới cải thiện hiệu suất in hóa đơn và xử lý trả hàng.',
-            // ],
             [
                 'message' => 'Nhắc nhở: Kiểm tra tồn kho trước khi đóng ca.',
                 'time' => now()->subHours(3)->format('d/m/Y h:i A'),
                 'isNew' => false,
                 'details' => 'Vui lòng đối chiếu số lượng sản phẩm thực tế với dữ liệu hệ thống.',
             ],
-            // [
-            //     'message' => 'Cảnh báo: Sản phẩm "Sữa tươi Vinamilk" sắp hết hàng.',
-            //     'time' => now()->subHours(1)->format('d/m/Y h:i A'),
-            //     'isNew' => true,
-            //     'details' => 'Tồn kho hiện tại: 5 sản phẩm. Vui lòng liên hệ bộ phận nhập hàng.',
-            // ],
         ]);
 
-        return $promotions->concat($systemNotifications)->sortByDesc('time')->take(10)->values();
+        return $promotions->concat($systemNotifications)
+            ->sortByDesc(fn($item) => strtotime($item['time']))
+            ->take(10)
+            ->values();
     }
 }
-?>
