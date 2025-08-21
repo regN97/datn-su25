@@ -1,12 +1,13 @@
 <script setup>
 import CashierLayout from '@/layouts/CashierLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 
 defineProps({
   recentActivities: Array,
   quickStats: Object,
   importantNotifications: Array,
   user: Object,
+  recentReturns: Array, // Prop để nhận danh sách trả hàng
 });
 </script>
 
@@ -25,12 +26,10 @@ defineProps({
                   Hoạt động gần đây
                 </div>
                 <div class="p-6">
-                  <div id="activity-list" class="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                    <div
-                      v-for="(activity, index) in recentActivities"
-                      :key="activity.time + '-' + index"
-                      class="pb-4 border-b border-gray-100 last:border-b-0"
-                    >
+                  <div id="activity-list"
+                    class="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    <div v-for="(activity, index) in recentActivities" :key="activity.time + '-' + index"
+                      class="pb-4 border-b border-gray-100 last:border-b-0">
                       <div class="text-gray-600 text-sm font-medium" v-html="activity.description"></div>
                       <div class="text-xs text-gray-400 text-right">{{ activity.time }}</div>
                     </div>
@@ -78,18 +77,14 @@ defineProps({
                   Thông báo quan trọng
                 </div>
                 <div class="p-6">
-                  <div :class="{'max-h-[28rem] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100': importantNotifications.length >= 10}">
+                  <div
+                    :class="{ 'max-h-[28rem] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100': importantNotifications.length >= 10 }">
                     <ul class="space-y-4">
-                      <li
-                        v-for="(notification, index) in importantNotifications"
-                        :key="notification.time + '-' + index"
-                        class="pb-4 border-b border-gray-100 last:border-b-0"
-                      >
+                      <li v-for="(notification, index) in importantNotifications" :key="notification.time + '-' + index"
+                        class="pb-4 border-b border-gray-100 last:border-b-0">
                         <div class="flex items-center">
-                          <span
-                            v-if="notification.isNew"
-                            class="bg-red-100 text-red-600 text-xs font-medium px-1.5 py-0.5 rounded mr-2"
-                          >
+                          <span v-if="notification.isNew"
+                            class="bg-red-100 text-red-600 text-xs font-medium px-1.5 py-0.5 rounded mr-2">
                             Mới
                           </span>
                           <span class="text-gray-600 text-sm font-medium">{{ notification.message }}</span>
@@ -113,19 +108,29 @@ defineProps({
 button {
   transition: all 0.2s ease-in-out;
 }
+
 .shadow-md:hover {
   transform: translateY(-1px);
 }
-h1, h2, h3, h4, h5, h6 {
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: 'Inter', sans-serif;
 }
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 8px;
 }
+
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: #d1d5db;
   border-radius: 4px;
 }
+
 .scrollbar-thin::-webkit-scrollbar-track {
   background-color: #f3f4f6;
 }
