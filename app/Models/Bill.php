@@ -41,4 +41,12 @@ class Bill extends Model
     {
         return $this->belongsTo(User::class, 'cashier_id');
     }
+    public function bills()
+    {
+        return $this->hasMany(Bill::class);
+    }
+    public function returnBills()
+    {
+        return $this->hasMany(ReturnBill::class);
+    }
 }

@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/vue3';
 import { Printer } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 type BillDetail = {
     id: number;
@@ -47,6 +48,27 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+// --- Computed property mới để gộp các sản phẩm giống nhau ---
+const groupedBillDetails = computed(() => {
+    const groups: { [key: string]: { p_name: string; quantity: number; unit_price: number; subtotal: number } } = {};
+
+    bill.details.forEach(detail => {
+        const key = detail.p_name;
+        if (!groups[key]) {
+            groups[key] = {
+                p_name: detail.p_name,
+                quantity: 0,
+                unit_price: detail.unit_price,
+                subtotal: 0,
+            };
+        }
+        groups[key].quantity += detail.quantity;
+        groups[key].subtotal += detail.subtotal;
+    });
+
+    return Object.values(groups);
+});
+
 function getPaymentMethodName(method: string) {
     switch (method) {
         case 'cash':
@@ -67,13 +89,12 @@ function formatCurrency(amount: number) {
     return formatted;
 }
 
-const subtotal_amount = bill.details.reduce((sum, item) => sum + item.subtotal, 0);
+const subtotal_amount = computed(() => groupedBillDetails.value.reduce((sum, item) => sum + item.subtotal, 0));
 
 function printInvoice() {
     window.print();
 }
 </script>
-
 <template>
     <Head :title="`Chi tiết Hóa đơn #${bill.bill_number}`" />
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -115,7 +136,7 @@ function printInvoice() {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(item, index) in bill.details" :key="index">
+                            <tr v-for="(item, index) in groupedBillDetails" :key="index">
                                 <td class="py-1">{{ item.p_name }}</td>
                                 <td class="py-1 text-center">{{ item.quantity }}</td>
                                 <td class="py-1 text-right">{{ formatCurrency(item.unit_price) }}</td>
