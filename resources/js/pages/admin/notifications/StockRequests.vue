@@ -48,18 +48,18 @@ const changePerPage = (event) => {
     currentPage.value = 1;
 };
 
+
 const markAsRead = async (notificationId) => {
     try {
-        await axios.post(route('admin.stock.requests.read', notificationId));
-        // Cập nhật lại trạng thái read_at trong mảng hiện có
-        const updatedRequests = props.stockRequests.map(req =>
-            req.id === notificationId ? { ...req, read_at: new Date().toISOString() } : req
-        );
-        router.reload({
-            only: ['stockRequests'],
+        // Sử dụng router.post thay vì axios.post
+        router.post(route('admin.stock.requests.read', notificationId), {}, {
             preserveState: true,
             onSuccess: () => {
-                // Xử lý thành công
+                console.log('Đánh dấu đã đọc thành công');
+            },
+            onError: (errors) => {
+                console.error('Lỗi khi đánh dấu đã đọc:', errors);
+                alert('Có lỗi xảy ra khi đánh dấu đã đọc.');
             }
         });
     } catch (error) {
@@ -71,13 +71,15 @@ const markAsRead = async (notificationId) => {
 const deleteRequest = async (notificationId) => {
     if (confirm('Bạn có chắc chắn muốn xóa yêu cầu này?')) {
         try {
-            await axios.delete(route('admin.stock.requests.delete', notificationId));
-            // Tải lại trang để cập nhật danh sách
-            router.reload({
-                only: ['stockRequests'],
+            // Sử dụng router.delete thay vì axios.delete để tương thích với Inertia
+            router.delete(route('admin.stock.requests.delete', notificationId), {
                 preserveState: true,
                 onSuccess: () => {
-                    // Xử lý thành công
+                    // Không cần reload vì Inertia sẽ tự động cập nhật
+                },
+                onError: (errors) => {
+                    console.error('Lỗi khi xóa yêu cầu:', errors);
+                    alert('Có lỗi xảy ra khi xóa yêu cầu.');
                 }
             });
         } catch (error) {
@@ -124,7 +126,7 @@ const deleteRequest = async (notificationId) => {
                                         {{ new Date(request.created_at).toLocaleString() }}
                                     </td>
                                     <td class="flex items-center justify-start space-x-2 p-3">
-                                        <button 
+                                        <button
                                             @click="markAsRead(request.id)"
                                             class="rounded-md bg-blue-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
                                             :disabled="!!request.read_at"
@@ -133,8 +135,8 @@ const deleteRequest = async (notificationId) => {
                                         >
                                             <Check class="h-4 w-4" />
                                         </button>
-                                        <button 
-                                            @click="deleteRequest(request.id)" 
+                                        <button
+                                            @click="deleteRequest(request.id)"
                                             class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
                                             title="Xóa yêu cầu"
                                         >
