@@ -285,12 +285,7 @@ class BatchController extends Controller
                 }
 
                 // Xác định trạng thái nhận hàng
-                $receipt_status = 'partially_received';
-                if (!$hasRejected && $totalReceived === $totalOrdered) { // Thay đổi điều kiện từ >= thành ===
-                    $receipt_status = 'completed';
-                } elseif ($totalOrdered > 0 && $totalReceived == 0 && $hasRejected) {
-                    $receipt_status = 'cancelled';
-                }
+                $received_status = 'completed';
 
                 // Tính trạng thái thanh toán
                 $paymentStatus = '';
@@ -322,7 +317,7 @@ class BatchController extends Controller
                     'paid_amount' => $request->paid_amount,
                     'remaining_amount' => $remainingAmount,
                     'payment_reference' => $request->payment_reference,
-                    'receipt_status' => $receipt_status,
+                    'receipt_status' => $received_status,
                     'status' => 'completed',
                     'created_by' => $user_id,
                     'notes' => $request->notes,
@@ -441,7 +436,6 @@ class BatchController extends Controller
             ])->withInput();
         }
     }
-
     public function pay(Request $request, $id)
     {
         $request->validate([

@@ -585,7 +585,6 @@ onMounted(() => {
                 ...item.product,
                 ordered_quantity: item.ordered_quantity,
                 available_quantity: availableQty,
-                // Nếu status_id === 3 (partially received), quantity = available_quantity
                 quantity: props.purchaseOrder.status_id === 3 ? availableQty : item.ordered_quantity,
                 recievedQuantity: item.received_quantity || 0,
                 remainingQuantity: availableQty,

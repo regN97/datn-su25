@@ -29,6 +29,8 @@ class BatchRequest extends FormRequest
             'batch_items.*.rejected_quantity' => 'nullable|integer|min:0',
             'batch_items.*.purchase_price' => 'required|numeric|min:0',
             'batch_items.*.total_amount' => 'required|numeric|min:0',
+            'batch_items.*.manufacturing_date' => 'required|date',
+            'batch_items.*.expiry_date' => 'required|date|after:batch_items.*.manufacturing_date',
             'purchase_order_id' => 'nullable|integer|exists:purchase_orders,id',
             'supplier_id' => 'required|integer|exists:suppliers,id',
             'total_amount' => 'required|numeric|min:0',
@@ -69,6 +71,9 @@ class BatchRequest extends FormRequest
             'batch_items.*.purchase_price.required' => 'Giá nhập là bắt buộc.',
             'batch_items.*.purchase_price.numeric' => 'Giá nhập phải là số.',
             'batch_items.*.purchase_price.min' => 'Giá nhập phải lớn hơn hoặc bằng 0.',
+
+            'batch_items.*.manufacturing_date' => 'NSX không được để trống',
+            'batch_items.*.expiry_date' => 'HSD không được để trống',
             
             'batch_items.*.total_amount.required' => 'Thành tiền là bắt buộc.',
             'batch_items.*.total_amount.numeric' => 'Thành tiền phải là số.',

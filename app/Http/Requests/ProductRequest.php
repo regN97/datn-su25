@@ -29,7 +29,9 @@ class ProductRequest extends FormRequest
                 'string',
                 'min:5',
                 'max:255',
-                Rule::unique('products', 'barcode')->whereNotNull('barcode'),
+                Rule::unique('products', 'barcode')
+                    ->ignore($this->route('product'), 'id')
+                    ->whereNotNull('barcode'),
             ],
             'description' => 'nullable|string|max:5000',
             'category_id' => 'required|exists:categories,id',
@@ -47,21 +49,58 @@ class ProductRequest extends FormRequest
             'purchase_prices.*' => 'required|numeric|min:0',
         ];
     }
+
     public function messages(): array
     {
         return [
-            'required' => 'Trường :attribute là bắt buộc.',
-            'string' => 'Trường :attribute phải là chuỗi.',
-            'min' => 'Trường :attribute phải có ít nhất :min ký tự.',
-            'max' => 'Trường :attribute không được vượt quá :max ký tự.',
-            'numeric' => 'Trường :attribute phải là số.',
-            'integer' => 'Trường :attribute phải là số nguyên.',
-            'boolean' => 'Trường :attribute phải là true hoặc false.',
-            'url' => 'Đường dẫn ảnh không hợp lệ.',
-            'image' => 'Tệp phải là hình ảnh.',
-            'array' => 'Trường :attribute phải là danh sách.',
-            'exists' => 'Giá trị được chọn không hợp lệ.',
-            'gte' => 'Tồn kho tối đa phải lớn hơn hoặc bằng tồn kho tối thiểu.',
+            'name.required' => 'Vui lòng nhập tên sản phẩm.',
+            'name.min' => 'Tên sản phẩm phải có ít nhất :min ký tự.',
+            'name.max' => 'Tên sản phẩm không được vượt quá :max ký tự.',
+
+            'barcode.unique' => 'Mã vạch đã tồn tại trong hệ thống.',
+            'barcode.min' => 'Mã vạch phải có ít nhất :min ký tự.',
+            'barcode.max' => 'Mã vạch không được vượt quá :max ký tự.',
+
+            'category_id.required' => 'Vui lòng chọn danh mục.',
+            'category_id.exists' => 'Danh mục được chọn không hợp lệ.',
+
+            'unit_id.required' => 'Vui lòng chọn đơn vị tính.',
+            'unit_id.exists' => 'Đơn vị tính không hợp lệ.',
+
+            'selling_price.required' => 'Vui lòng nhập giá bán.',
+            'selling_price.numeric' => 'Giá bán phải là số.',
+            'selling_price.min' => 'Giá bán không được nhỏ hơn :min.',
+
+            'is_active.required' => 'Vui lòng chọn trạng thái sản phẩm.',
+            'is_active.boolean' => 'Trạng thái không hợp lệ.',
+
+            'min_stock_level.integer' => 'Tồn kho tối thiểu phải là số nguyên.',
+            'min_stock_level.min' => 'Tồn kho tối thiểu không được nhỏ hơn :min.',
+
+            'max_stock_level.integer' => 'Tồn kho tối đa phải là số nguyên.',
+            'max_stock_level.min' => 'Tồn kho tối đa không được nhỏ hơn :min.',
+            'max_stock_level.gte' => 'Tồn kho tối đa phải lớn hơn hoặc bằng tồn kho tối thiểu.',
+
+            'image_input_type.required' => 'Vui lòng chọn kiểu nhập ảnh.',
+            'image_input_type.in' => 'Kiểu nhập ảnh không hợp lệ.',
+
+            'image_url.required' => 'Vui lòng nhập đường dẫn ảnh.',
+            'image_url.url' => 'Đường dẫn ảnh không hợp lệ.',
+            'image_url.max' => 'Đường dẫn ảnh không được vượt quá :max ký tự.',
+
+            'image_file.required' => 'Vui lòng tải lên ảnh sản phẩm.',
+            'image_file.image' => 'Tệp tải lên phải là hình ảnh.',
+            'image_file.max' => 'Ảnh tải lên không được vượt quá :max KB.',
+
+            'selected_supplier_ids.required' => 'Vui lòng chọn ít nhất một nhà cung cấp.',
+            'selected_supplier_ids.array' => 'Danh sách nhà cung cấp không hợp lệ.',
+            'selected_supplier_ids.min' => 'Phải chọn ít nhất một nhà cung cấp.',
+            'selected_supplier_ids.*.exists' => 'Nhà cung cấp được chọn không hợp lệ.',
+
+            'purchase_prices.required' => 'Vui lòng nhập giá nhập cho các nhà cung cấp.',
+            'purchase_prices.array' => 'Danh sách giá nhập không hợp lệ.',
+            'purchase_prices.*.numeric' => 'Giá nhập phải là số.',
+            'purchase_prices.*.min' => 'Giá nhập không được nhỏ hơn :min.',
         ];
     }
 

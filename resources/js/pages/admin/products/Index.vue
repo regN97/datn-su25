@@ -5,6 +5,7 @@ import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { Eye, EyeOff, Filter, PackagePlus, Pencil, Trash2, Trash } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import axios from "axios";
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -170,17 +171,19 @@ function confirmDelete(id: number) {
 }
 
 function handleDeleteProduct() {
-    if (!productToDelete.value) return;
+  if (!productToDelete.value) return;
 
-    router.delete(`/admin/products/${productToDelete.value}`, {
-        onSuccess: () => {
-            const idx = products.findIndex((p) => p.id === productToDelete.value);
-            if (idx !== -1) products.splice(idx, 1);
-            showDeleteModal.value = false;
-            productToDelete.value = null;
-        },
-        preserveState: true,
-    });
+  router.delete(`/admin/products/${productToDelete.value}`, {
+    preserveScroll: true,
+    preserveState: false,
+    onSuccess: () => {
+      const idx = products.findIndex((p) => p.id === productToDelete.value);
+      if (idx !== -1) products.splice(idx, 1);
+
+      showDeleteModal.value = false;
+      productToDelete.value = null;
+    },
+  });
 }
 
 

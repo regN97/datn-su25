@@ -336,17 +336,8 @@ function getPaymentStatusDisplayName(status: "unpaid" | "partially_paid" | "paid
     }
 }
 
-function getReceiptStatusDisplayName(status: "partially_received" | "completed" | "cancelled") {
-    switch (status) {
-        case "partially_received":
-            return "Đã nhận một phần";
-        case "completed":
-            return "Đã nhận đủ";
-        case "cancelled":
-            return "Đã hủy";
-        default:
-            return "N/A";
-    }
+function getReceiptStatusDisplayName(status: string) {
+    return status === "completed" ? "Hoàn thành" : "N/A";
 }
 
 function getInventoryStatusDisplayName(status: "active" | "low_stock" | "out_of_stock" | "expired" | "damaged") {
@@ -608,9 +599,7 @@ async function importBatchesFromExcel(event: Event) {
                             <select v-model="filterReceiptStatus"
                                 class="mt-1 w-full rounded-md border-gray-300 py-2 text-sm" @change="resetPagination">
                                 <option value="">Tất cả</option>
-                                <option value="partially_received">Đã nhận một phần</option>
-                                <option value="completed">Đã nhận đủ</option>
-                                <option value="cancelled">Đã hủy</option>
+                                <option value="completed">Hoàn thành</option>
                             </select>
                         </div>
                         <div>

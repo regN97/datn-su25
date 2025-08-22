@@ -37,7 +37,7 @@ interface Batch {
     total_amount: number;
     payment_status: "unpaid" | "partially_paid" | "paid";
     paid_amount: number;
-    receipt_status: "partially_received" | "completed"; // Receipt status từ migration
+    received_status: "completed"; // Receipt status từ migration
     status: "draft" | "pending" | "completed"; // Status chính để quản lý workflow
     notes: string | null;
     created_by: number;
@@ -256,10 +256,9 @@ function formatPrice(price: number): string {
 }
 
 // Updated receipt status label để bao gồm draft
-const receiptStatusLabel = computed(() => {
-    const receiptStatus = currentBatch.value?.receipt_status;
-    if (receiptStatus === 'completed') return 'Hoàn thành';
-    if (receiptStatus === 'partially_received') return 'Nhận một phần';
+const receivedStatusLabel = computed(() => {
+    const receivedStatus = currentBatch.value?.received_status;
+    if (receivedStatus === 'completed') return 'Hoàn thành';
     return 'Không rõ';
 });
 
@@ -606,7 +605,6 @@ function goBack() {
                             class="ml-2 rounded-full px-3 py-1 text-sm font-medium"
                             :class="{
                                 'bg-gray-100 text-gray-700': currentBatch?.status === 'draft',
-                                'bg-blue-100 text-blue-700': currentBatch?.status === 'pending',
                                 'bg-green-100 text-green-700': currentBatch?.status === 'completed',
                             }"
                         >
@@ -661,6 +659,7 @@ function goBack() {
                         </template>
 
                         <!-- Print button - always show -->
+                         <template v-if="isCompleted">
                         <button
                             @click="printOrder"
                             class="flex items-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-300 hover:bg-gray-100"
@@ -682,6 +681,7 @@ function goBack() {
                             </svg>
                             <span>In đơn</span>
                         </button>
+                        </template>
                     </div>
                 </div>
 

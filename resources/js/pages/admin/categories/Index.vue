@@ -90,7 +90,8 @@ function handleDeleteCategory() {
             showDeleteModal.value = false;
             categoryToDelete.value = null;
         },
-        preserveState: true,
+        preserveScroll: true,
+        preserveState: false,
     });
 }
 

@@ -29,7 +29,7 @@ return new class extends Migration
             $table->unsignedInteger('paid_amount')->default(0);
             $table->unsignedInteger('remaining_amount')->default(0);
 
-            $table->enum('receipt_status', ['partially_received', 'completed'])->default('completed');
+            $table->enum('receipt_status', ['completed'])->default('completed');
 
             $table->enum('status', ['draft', 'pending', 'completed'])->default('draft');
             $table->text('notes')->nullable();
