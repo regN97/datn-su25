@@ -84,9 +84,14 @@ function handleDeleteCategory() {
     if (!categoryToDelete.value) return;
 
     router.delete(`/admin/categories/${categoryToDelete.value}`, {
-        onSuccess: () => {
-            const idx = categories.findIndex((cat) => cat.id === categoryToDelete.value);
-            if (idx !== -1) categories.splice(idx, 1);
+        onSuccess: (page) => {
+            const flash = page?.props?.flash || {};
+
+            if(flash.success){
+                const idx = categories.findIndex((cat) => cat.id === categoryToDelete.value);
+                if (idx !== -1) categories.splice(idx, 1);
+            }
+
             showDeleteModal.value = false;
             categoryToDelete.value = null;
         },

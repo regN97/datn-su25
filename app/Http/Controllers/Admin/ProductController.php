@@ -18,6 +18,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ProductRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -272,14 +273,21 @@ class ProductController extends Controller
     public function destroy(Product $product): RedirectResponse
     {
         if ($product->batchItems()->exists()) {
-            return redirect()->route('admin.products.index')
-                ->with('error', 'Không thể xóa sản phẩm vì đã có trong phiếu nhập.');
+            return redirect()
+                ->route('admin.products.index')
+                ->with('error', 'Không thể xóa sản phẩm vì đã có trong phiếu nhập.')
+                ->with('info', true); // 👈 flag báo lỗi
         }
 
+        $productId = $product->id;
         $product->delete();
 
-        return redirect()->route('admin.products.index')->with('success', 'Sản phẩm đã được xóa mềm thành công.');
+        return redirect()
+            ->route('admin.products.index')
+            ->with('success', 'Sản phẩm đã được xóa mềm thành công.')
+            ->with('info', $productId); // 👈 flag báo xóa thành công
     }
+
 
     /**
      * Display a listing of trashed products.

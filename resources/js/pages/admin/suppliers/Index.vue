@@ -79,9 +79,12 @@ function handleDeleteSupplier() {
     if (!supplierToDelete.value) return;
 
     router.delete(`/admin/suppliers/${supplierToDelete.value}`, {
-        onSuccess: () => {
-            const idx = suppliers.value.findIndex((cat) => cat.id === supplierToDelete.value);
-            if (idx !== -1) suppliers.value.splice(idx, 1);
+        onSuccess: (page) => {
+            const flash = page?.props?.flash || {};
+            if (flash.success) {
+                const idx = suppliers.value.findIndex((cat) => cat.id === supplierToDelete.value);
+                if (idx !== -1) suppliers.value.splice(idx, 1);
+            }
             showDeleteModal.value = false;
             supplierToDelete.value = null;
         },
