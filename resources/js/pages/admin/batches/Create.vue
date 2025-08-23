@@ -429,6 +429,23 @@ function validateProductDates(product: SelectedProduct) {
     return errors;
 }
 
+// Hàm lấy ngày hiện tại theo format datetime-local
+const now = () => {
+  const d = new Date();
+const pad = (n: number) => n.toString().padStart(2, "0");
+  return (
+    d.getFullYear() +
+    "-" +
+    pad(d.getMonth() + 1) +
+    "-" +
+    pad(d.getDate()) +
+    "T" +
+    pad(d.getHours()) +
+    ":" +
+    pad(d.getMinutes())
+  );
+};
+
 function submitBatch() {
     for (const product of selectedProducts.value) {
         const errors = validateProductDates(product);
@@ -866,7 +883,7 @@ onUnmounted(() => {
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập hàng</label>
-                                    <input type="datetime-local" v-model="importDate"
+                                    <input type="datetime-local" v-model="importDate" :min="now()"
                                         class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                                 </div>
                                 <div>

@@ -226,14 +226,7 @@ class BatchController extends Controller
             return DB::transaction(function () use ($request, $user_id) {
                 // Tạo batch_number tự động
                 $today = Carbon::now()->format('Ymd');
-                $prefixBatch = "REC-{$today}-";
-                $lastBatch = Batch::where('batch_number', 'like', "{$prefixBatch}%")
-                    ->orderByDesc('batch_number')
-                    ->first();
-                $nextNumber = $lastBatch
-                    ? str_pad((int) substr($lastBatch->batch_number, -3) + 1, 3, '0', STR_PAD_LEFT)
-                    : '001';
-                $batch_number = "{$prefixBatch}{$nextNumber}";
+                $batch_number = $this->generateBatchNumber();
 
                 // Tạo invoice_number tự động
                 $prefixInvoice = "INV-{$today}-";
@@ -403,7 +396,7 @@ class BatchController extends Controller
                         InventoryTransaction::create([
                             'transaction_type_id' => 1,
                             'product_id' => $product->id,
-                            'quantity_change' => $receivedQty,
+                            'quantity_change' => +$receivedQty,
                             'unit_price' => $item['purchase_price'],
                             'total_value' => $item['purchase_price'] * $receivedQty,
                             'transaction_date' => now(),
@@ -535,14 +528,8 @@ class BatchController extends Controller
         try {
             // Tạo batch_number tự động
             $today = Carbon::now()->format('Ymd');
-            $prefixBatch = "REC-{$today}-";
-            $lastBatch = Batch::where('batch_number', 'like', "{$prefixBatch}%")
-                ->orderByDesc('batch_number')
-                ->first();
-            $nextNumber = $lastBatch
-                ? str_pad((int) substr($lastBatch->batch_number, -3) + 1, 3, '0', STR_PAD_LEFT)
-                : '001';
-            $batch_number = "{$prefixBatch}{$nextNumber}";
+
+            $batch_number = $this->generateBatchNumber();
 
             // Tạo invoice_number tự động
             $prefixInvoice = "INV-{$today}-";
@@ -590,11 +577,11 @@ class BatchController extends Controller
                     'batch_id' => $batch->id,
                     'product_id' => $item['product_id'],
                     'received_quantity' => $item['received_quantity'],
-                    'remaining_quantity' => 0, // nhập trực tiếp thì không có remaining
+                    'remaining_quantity' => 0,
                     'purchase_price' => $item['purchase_price'],
                     'total_amount' => $item['total_amount'],
-                    'manufacturing_date' => $item['manufacturing_date'] ?? null,
-                    'expiry_date' => $item['expiry_date'] ?? null,
+                    'manufacturing_date' => $item['manufacturing_date'],
+                    'expiry_date' => $item['expiry_date'],
                     'created_by' => Auth::id(),
                 ]);
             }
@@ -653,6 +640,8 @@ class BatchController extends Controller
             // Cập nhật thông tin batch
             $batch->update([
                 'batch_number' => $request->batch_code ?? $batch->batch_number,
+                'manufacturing_date' => $batch->manufacturing_date,
+                'expiry_date' => $batch->expiry_date,
                 'supplier_id' => $request->supplier_id,
                 'import_date' => $request->import_date,
                 'discount_type' => $request->discount_type,
@@ -752,7 +741,7 @@ class BatchController extends Controller
                     InventoryTransaction::create([
                         'transaction_type_id' => 1, // ID cho loại giao dịch nhập kho
                         'product_id' => $product->id,
-                        'quantity_change' => $changeQty,
+                        'quantity_change' => +$changeQty,
                         'unit_price' => $batchItem->purchase_price,
                         'total_value' => $batchItem->purchase_price * $changeQty,
                         'transaction_date' => now(),
@@ -999,6 +988,30 @@ class BatchController extends Controller
                 'importStatus' => 'error'
             ]);
         }
+    }
+
+    private function generateBatchNumber(): string 
+    {
+        return DB::transaction(function() {
+            $today = Carbon::now();
+            $prefix = "REC-" . $today->format('Ymd');
+            
+            // Lấy số batch cuối cùng trong ngày hiện tại
+            $lastBatch = Batch::where('batch_number', 'like', $prefix . '%')
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->first();
+                
+            if (!$lastBatch) {
+                return $prefix . '-001';
+            }
+            
+            // Lấy số sequence hiện tại và tăng lên 1
+            $currentSequence = (int) substr($lastBatch->batch_number, -3);
+            $nextSequence = str_pad($currentSequence + 1, 3, '0', STR_PAD_LEFT);
+            
+            return $prefix . '-' . $nextSequence;
+        }, 3); // Retry tối đa 3 lần nếu có conflict
     }
 
 }
