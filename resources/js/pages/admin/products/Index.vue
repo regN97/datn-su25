@@ -173,15 +173,21 @@ function handleDeleteProduct() {
     if (!productToDelete.value) return;
 
     router.delete(`/admin/products/${productToDelete.value}`, {
-        onSuccess: () => {
-            const idx = products.findIndex((p) => p.id === productToDelete.value);
-            if (idx !== -1) products.splice(idx, 1);
+        onSuccess: (page) => {
+            const flash = page?.props?.flash || {};
+            // Nếu backend báo thành công -> mới splice
+            if (flash.success && flash.info === productToDelete.value) {
+                const idx = products.findIndex((p) => p.id === productToDelete.value);
+                if (idx !== -1) products.splice(idx, 1);
+            }
+
             showDeleteModal.value = false;
             productToDelete.value = null;
         },
         preserveState: true,
     });
 }
+
 
 
 function cancelDelete() {
