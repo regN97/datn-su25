@@ -10,8 +10,8 @@ const searchQuery = ref('');
 const bill = ref(null);
 const loading = ref(false);
 const error = ref('');
-const selectedItems = ref({});
 const successMessage = ref('');
+const selectedItems = ref({});
 
 const searchBill = async () => {
     if (!searchQuery.value) {
@@ -31,7 +31,6 @@ const searchBill = async () => {
         bill.value = response.data;
         if (bill.value) {
             selectedItems.value = {};
-            // Khởi tạo selectedItems dựa trên product_id
             bill.value.details.forEach(detail => {
                 if (!selectedItems.value[detail.product_id]) {
                     selectedItems.value[detail.product_id] = {
@@ -65,6 +64,21 @@ const returnForm = useForm({
     reason: ''
 });
 
+const restrictQuantity = (productId, maxQuantity) => {
+    if (selectedItems.value[productId].quantity > maxQuantity) {
+        selectedItems.value[productId].quantity = maxQuantity;
+    }
+    if (selectedItems.value[productId].quantity < 0) {
+        selectedItems.value[productId].quantity = 0;
+    }
+};
+
+const confirmReturn = () => {
+    if (confirm('Bạn có chắc chắn muốn xử lý đơn trả hàng này?')) {
+        returnBill();
+    }
+};
+
 const returnBill = async () => {
     if (!bill.value) {
         error.value = 'Không có hóa đơn để xử lý.';
@@ -72,7 +86,6 @@ const returnBill = async () => {
         return;
     }
 
-    // Lọc ra các sản phẩm đã chọn và gửi tổng số lượng trả
     const itemsToReturn = Object.values(selectedItems.value)
         .filter(item => item.quantity > 0)
         .map(item => ({
@@ -93,7 +106,7 @@ const returnBill = async () => {
         await axios.post(route('cashier.returns.process'), returnForm);
         
         error.value = '';
-        successMessage.value = 'Xử lý trả hàng thành công!';
+        successMessage.value = 'Xử lý trả hàng thành công! Lý do: ' + (returnForm.reason || 'Không có lý do');
         
         bill.value = null;
         searchQuery.value = '';
@@ -150,7 +163,6 @@ const groupedBillDetails = computed(() => {
                 product: detail.product,
                 quantity: 0,
                 unit_price: detail.unit_price,
-                // Không cần batches ở đây nếu không dùng để sắp xếp
             };
         }
         groups[detail.product_id].quantity += detail.quantity;
@@ -159,6 +171,7 @@ const groupedBillDetails = computed(() => {
     return Object.values(groups);
 });
 </script>
+
 <template>
     <Head title="Tạo đơn trả hàng" />
     <CashierLayout>
@@ -195,10 +208,8 @@ const groupedBillDetails = computed(() => {
                     <div>
                         <p><strong>Tổng tiền:</strong> {{ formatCurrency(bill.total_amount) }}</p>
                         <p><strong>Trạng thái trả hàng:</strong>
-                            <span v-if="bill.return_status.has_been_returned" class="text-red-500 font-semibold">Đã được
-                                trả lại</span>
-                            <span v-else-if="bill.return_status.is_expired" class="text-red-500 font-semibold">Đã quá 24
-                                giờ</span>
+                            <span v-if="bill.return_status.has_been_returned" class="text-red-500 font-semibold">Đã được trả lại</span>
+                            <span v-else-if="bill.return_status.is_expired" class="text-red-500 font-semibold">Đã quá 24 giờ</span>
                             <span v-else class="text-green-500 font-semibold">Có thể trả lại</span>
                         </p>
                     </div>
@@ -226,6 +237,7 @@ const groupedBillDetails = computed(() => {
                                         v-model.number="selectedItems[item.product.id].quantity"
                                         :max="item.quantity"
                                         min="0"
+                                        @input="restrictQuantity(item.product.id, item.quantity)"
                                         class="w-20 p-1 border rounded"
                                     />
                                 </td>
@@ -245,8 +257,8 @@ const groupedBillDetails = computed(() => {
                     <div class="text-lg font-bold">
                         Tổng tiền hoàn trả: <span class="text-blue-600">{{ formatCurrency(totalAmountReturned) }}</span>
                     </div>
-                    <button @click="returnBill" :disabled="!bill.can_be_returned || totalAmountReturned === 0" :class="{
-                        'bg-green-600 hover:bg-green-700': bill.can_be_returned,
+                    <button @click="confirmReturn" :disabled="!bill.can_be_returned || totalAmountReturned === 0" :class="{
+                        'bg-green-600 hover:bg-green-700': bill.can_be_returned && totalAmountReturned > 0,
                         'bg-gray-400 cursor-not-allowed': !bill.can_be_returned || totalAmountReturned === 0
                     }" class="px-6 py-3 text-white rounded-lg font-semibold transition-colors mt-4 sm:mt-0">
                         Xử lý trả hàng
