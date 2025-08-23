@@ -22,7 +22,8 @@ import {
   Mail,
   Info,
   Calendar,
-  Package
+  Package,
+  AlertCircle
 } from 'lucide-vue-next';
 
 const props = usePage().props;
@@ -31,8 +32,10 @@ const showCloseShiftModal = ref(false);
 const closingAmount = ref(0);
 const closeShiftNotes = ref('');
 
-const formatCurrency = (value) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.abs(value));
+const formatCurrency = (value) => {
+  const absValue = Math.abs(value);
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(absValue);
+};
 
 const formatDateTime = (date) => {
   if (!date || date === 'N/A') return 'N/A';
@@ -122,39 +125,16 @@ const expandedRows = ref([]);
             <h2 class="text-lg font-semibold">Thông tin ca làm việc</h2>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <p>
-              <FileText class="inline w-4 h-4 mr-1" /> <strong>Mã ca:</strong> {{ shiftData.shift.id }}
-            </p>
-            <p>
-              <User class="inline w-4 h-4 mr-1" /> <strong>Nhân viên:</strong> {{ shiftData.shift.user_name }}
-            </p>
-            <p>
-              <Mail class="inline w-4 h-4 mr-1" /> <strong>Email:</strong> {{ shiftData.shift.user_email }}
-            </p>
-            <p>
-              <Info class="inline w-4 h-4 mr-1" /> <strong>Tên ca:</strong> {{ shiftData.shift.shift_name }}
-            </p>
-            <p>
-              <Info class="inline w-4 h-4 mr-1" /> <strong>Mô tả:</strong> {{ shiftData.shift.shift_description ||
-              'Không có mô tả' }}
-            </p>
-            <p>
-              <Calendar class="inline w-4 h-4 mr-1" /> <strong>Ngày:</strong> {{ shiftData.shift.date }}
-            </p>
-            <p>
-              <CalendarClock class="inline w-4 h-4 mr-1" /> <strong>Bắt đầu:</strong> {{
-                formatFullDateTime(shiftData.shift.start_time) }}
-            </p>
-            <p>
-              <CalendarX class="inline w-4 h-4 mr-1" /> <strong>Kết thúc:</strong> {{
-                formatFullDateTime(shiftData.shift.end_time) }}
-            </p>
-            <p>
-              <TimerReset class="inline w-4 h-4 mr-1" /> <strong>Thời lượng:</strong> {{ shiftData.shift.duration }}
-            </p>
-            <p>
-              <Info class="inline w-4 h-4 mr-1" /> <strong>Trạng thái:</strong> {{ shiftData.shift.status }}
-            </p>
+            <p><FileText class="inline w-4 h-4 mr-1" /> <strong>Mã ca:</strong> {{ shiftData.shift.id }}</p>
+            <p><User class="inline w-4 h-4 mr-1" /> <strong>Nhân viên:</strong> {{ shiftData.shift.user_name }}</p>
+            <p><Mail class="inline w-4 h-4 mr-1" /> <strong>Email:</strong> {{ shiftData.shift.user_email }}</p>
+            <p><Info class="inline w-4 h-4 mr-1" /> <strong>Tên ca:</strong> {{ shiftData.shift.shift_name }}</p>
+            <p><Info class="inline w-4 h-4 mr-1" /> <strong>Mô tả:</strong> {{ shiftData.shift.shift_description || 'Không có mô tả' }}</p>
+            <p><Calendar class="inline w-4 h-4 mr-1" /> <strong>Ngày:</strong> {{ shiftData.shift.date }}</p>
+            <p><CalendarClock class="inline w-4 h-4 mr-1" /> <strong>Bắt đầu:</strong> {{ formatFullDateTime(shiftData.shift.start_time) }}</p>
+            <p><CalendarX class="inline w-4 h-4 mr-1" /> <strong>Kết thúc:</strong> {{ formatFullDateTime(shiftData.shift.end_time) }}</p>
+            <p><TimerReset class="inline w-4 h-4 mr-1" /> <strong>Thời lượng:</strong> {{ shiftData.shift.duration }}</p>
+            <p><Info class="inline w-4 h-4 mr-1" /> <strong>Trạng thái:</strong> {{ shiftData.shift.status }}</p>
           </div>
           <div class="mt-4">
             <label for="notes" class="font-medium text-gray-700 flex items-center gap-1">
@@ -192,7 +172,7 @@ const expandedRows = ref([]);
             </div>
             <div class="p-4 bg-cyan-50 rounded shadow-sm">
               <p class="text-gray-600 flex items-center gap-1">
-                <CreditCard class="w-4 h-4" /> Doanh thu chuyển khoản (Thẻ, Chuyển khoản, VNPay)
+                <CreditCard class="w-4 h-4" /> Doanh thu chuyển khoản
               </p>
               <p class="text-lg font-bold text-cyan-600">{{ formatCurrency(shiftData.summary.bank_revenue) }}</p>
             </div>
@@ -200,16 +180,14 @@ const expandedRows = ref([]);
               <p class="text-gray-600 flex items-center gap-1">
                 <ArrowDownLeft class="w-4 h-4" /> Giá trị trả hàng
               </p>
-              <p class="text-lg font-bold text-red-600">{{ formatCurrency(shiftData.summary.return_value) }}</p>
+              <p class="text-lg font-bold text-red-600">−{{ formatCurrency(shiftData.summary.return_value) }}</p>
             </div>
-
             <div class="p-4 bg-emerald-50 rounded shadow-sm">
               <p class="text-gray-600 flex items-center gap-1">
                 <ReceiptText class="w-4 h-4" /> Doanh thu ròng
               </p>
               <p class="text-lg font-bold text-emerald-600">{{ formatCurrency(shiftData.summary.net_revenue) }}</p>
             </div>
-
             <div class="p-4 bg-blue-50 rounded shadow-sm">
               <p class="text-gray-600 flex items-center gap-1">
                 <ReceiptText class="w-4 h-4" /> Giao dịch hoàn tất
@@ -218,13 +196,18 @@ const expandedRows = ref([]);
             </div>
             <div class="p-4 bg-red-50 rounded shadow-sm">
               <p class="text-gray-600 flex items-center gap-1">
-                <ReceiptText class="w-4 h-4" /> Giao dịch trả hàng
+                <ArrowDownLeft class="w-4 h-4" /> Giao dịch trả hàng
               </p>
               <p class="text-lg font-bold text-red-600">{{ shiftData.summary.refunded_transactions }}</p>
             </div>
+            <!-- <div class="p-4 bg-orange-50 rounded shadow-sm">
+              <p class="text-gray-600 flex items-center gap-1">
+                <Package class="w-4 h-4" /> Số lượng sản phẩm trả hàng
+              </p>
+              <p class="text-lg font-bold text-orange-600">{{ shiftData.summary.total_returned_quantity || 0 }}</p>
+            </div> -->
           </div>
         </div>
-
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="bg-white rounded-xl shadow p-6">
@@ -268,8 +251,7 @@ const expandedRows = ref([]);
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(customer, index) in shiftData.summary.top_customers" :key="index"
-                    class="hover:bg-gray-50">
+                  <tr v-for="(customer, index) in shiftData.summary.top_customers" :key="index" class="hover:bg-gray-50">
                     <td class="p-3 border">{{ customer.customer_name }}</td>
                     <td class="p-3 border text-right">{{ formatCurrency(customer.total_amount) }}</td>
                     <td class="p-3 border text-right">{{ customer.bill_count }}</td>
@@ -283,6 +265,64 @@ const expandedRows = ref([]);
           </div>
         </div>
 
+        <div class="bg-white rounded-xl shadow p-6 mt-6">
+          <div class="flex items-center gap-2 mb-4">
+            <ArrowDownLeft class="w-5 h-5 text-red-600" />
+            <h2 class="text-lg font-semibold">Chi tiết giao dịch trả hàng</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full table-auto text-sm border">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="p-3 border text-left">Mã phiếu trả</th>
+                  <th class="p-3 border text-left">Mã hóa đơn gốc</th>
+                  <th class="p-3 border text-left">Thời gian</th>
+                  <th class="p-3 border text-right">Số tiền</th>
+                  <th class="p-3 border text-left">Lý do</th>
+                  <th class="p-3 border text-left">Chi tiết</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(transaction, index) in shiftData.transactions.filter(t => t.type === 'Trả hàng')" :key="index" class="hover:bg-gray-50">
+                  <td class="p-3 border">{{ transaction.return_bill_number }}</td>
+                  <td class="p-3 border">{{ transaction.bill_id }}</td>
+                  <td class="p-3 border">{{ transaction.time }}</td>
+                  <td class="p-3 border text-right text-red-600">−{{ formatCurrency(transaction.amount) }}</td>
+                  <td class="p-3 border">{{ transaction.return_reason }}</td>
+                  <td class="p-3 border">
+                    <button @click="toggleDetails(index)" class="text-blue-600 hover:underline">
+                      {{ expandedRows.includes(index) ? 'Ẩn' : 'Xem' }}
+                    </button>
+                    <div v-if="expandedRows.includes(index)" class="mt-2">
+                      <table class="w-full text-sm border">
+                        <thead>
+                          <tr class="bg-gray-50">
+                            <th class="p-2 border text-left">Sản phẩm</th>
+                            <th class="p-2 border text-right">Số lượng trả</th>
+                            <th class="p-2 border text-right">Đơn giá</th>
+                            <th class="p-2 border text-right">Tổng</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="(detail, i) in transaction.details" :key="i">
+                            <td class="p-2 border">{{ detail.product_name }}</td>
+                            <td class="p-2 border text-right">{{ detail.quantity }}</td>
+                            <td class="p-2 border text-right">{{ formatCurrency(detail.unit_price) }}</td>
+                            <td class="p-2 border text-right">{{ formatCurrency(detail.total) }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="!shiftData.transactions.filter(t => t.type === 'Trả hàng').length" class="text-gray-500">
+                  <td colspan="6" class="p-3 text-center">Không có giao dịch trả hàng.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="flex justify-end gap-3 mt-6 print:hidden">
           <button @click="printReport" class="btn btn-secondary shadow inline-flex items-center gap-1">
             <Printer class="w-4 h-4" /> In báo cáo
@@ -292,8 +332,7 @@ const expandedRows = ref([]);
           </button>
         </div>
 
-        <div v-if="showCloseShiftModal"
-          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div v-if="showCloseShiftModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div class="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 class="text-lg font-semibold mb-4">Đóng ca làm việc</h2>
             <div class="mb-4">
@@ -318,4 +357,3 @@ const expandedRows = ref([]);
     </div>
   </CashierLayout>
 </template>
-

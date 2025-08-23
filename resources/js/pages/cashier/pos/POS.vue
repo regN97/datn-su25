@@ -56,6 +56,7 @@ const bankQRCode = ref(null);
 const isLoadingBankQR = ref(false);
 const bankTransactionInfo = ref(null);
 const walletAmount = ref(0);
+const isConfirmingPayment = ref(false);
 
 
 // Forms
@@ -190,7 +191,7 @@ const autoHideMessage = () => {
             successMessage.value = '';
             errorMessage.value = '';
             showSuccessModal.value = false;
-        }, 5000);
+        }, 3000);
     }
 };
 
@@ -461,14 +462,12 @@ const addToCart = async (product) => {
             const newQuantity = existingItem.quantity + 1;
             const stockResponse = await axios.get(`/cashier/pos/check-batch/${product.id}`, { params: { quantity: newQuantity } });
             if (stockResponse.data.hasValidBatch) {
-                console.log(`Tăng số lượng sản phẩm ${product.name}, số lượng mới: ${newQuantity}`);
                 existingItem.quantity = newQuantity;
             } else {
                 errorMessage.value = stockResponse.data.message || `Số lượng tối đa cho ${product.name} là ${product.stock_quantity}.`;
                 autoHideMessage();
             }
         } else {
-            console.log(`Thêm mới sản phẩm ${product.name} vào giỏ hàng`);
             cart.value.push({
                 id: product.id,
                 name: product.name,
@@ -527,14 +526,10 @@ const setAmountReceived = (amount) => {
     form.amountReceived = amount;
 };
 const setExactAmount = () => {
-    console.log('Nội dung giỏ hàng:', cart.value);
-    console.log('Tổng giỏ hàng:', cartTotal.value);
     form.amountReceived = cartTotal.value;
 };
 
 const showPayment = () => {
-    console.log('[showPayment] Cart:', cart.value);
-    console.log('[showPayment] Tổng tiền:', cartTotal.value);
     for (const item of cart.value) {
         const product = products.value.find(p => p.id === item.id);
 
@@ -591,10 +586,6 @@ const combinedChange = computed(() => {
     return 0;
 });
 const submitSale = async () => {
-    console.log('[submitSale] Bắt đầu submitSale với phương thức:', form.paymentMethod);
-    console.log('[submitSale] Cart:', cart.value);
-    console.log('[submitSale] Tổng tiền:', cartTotal.value);
-    console.log('[submitSale] Tổng cần thanh toán:', totalPayable.value);
 
     if (!hasActiveSession.value) {
         errorMessage.value = 'Vui lòng mở ca trước khi thanh toán.';
@@ -644,9 +635,7 @@ const submitSale = async () => {
             payload.orderId = billNumber.value || (billNumber.value = 'BILL-' + formattedDate + '-' + Math.floor(1000 + Math.random() * 9000));
             ;
         }
-        console.log('[submitSale] Payload gửi lên:', payload);
         const response = await axios.post('/cashier/pos/sale', payload);
-        console.log('[submitSale] API trả về:', response.data);
 
         // Tải lại danh sách sản phẩm
         const productResponse = await axios.get('/cashier/pos/products');
@@ -671,7 +660,6 @@ const submitSale = async () => {
         showSuccessModal.value = true;
         autoHideMessage();
     } catch (error) {
-        console.log('[submitSale] Lỗi:', error);
         errorMessage.value = error.response?.data?.errors?.server || 'Lỗi xử lý thanh toán.';
         if (error.response?.data?.errors) {
             Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
@@ -725,9 +713,7 @@ const generateBankQR = async () => {
 };
 
 const confirmPayment = async () => {
-    console.log('[confirmPayment] Phương thức:', form.paymentMethod);
-    console.log('[confirmPayment] Tổng cần thanh toán:', totalPayable.value);
-
+    if (isConfirmingPayment.value) return; // Prevent multiple clicks
     if (form.paymentMethod === 'cash' && Number(form.amountReceived) < totalPayable.value) {
         errorMessage.value = 'Số tiền khách đưa không đủ.';
         autoHideMessage();
@@ -744,35 +730,39 @@ const confirmPayment = async () => {
         return;
     }
 
+    isConfirmingPayment.value = true; // Set flag to true to disable further clicks
     try {
         const cartSnapshot = [...cart.value];
         const paymentMethodSnapshot = form.paymentMethod;
         const amountReceivedSnapshot = form.paymentMethod === 'cash' ? form.amountReceived : totalPayable.value;
         const customerSnapshot = selectedCustomer.value ? { ...selectedCustomer.value } : null;
+        const walletAmountSnapshot = Number(walletAmount.value) || 0;
+
         await submitSale();
-        console.log('[confirmPayment] submitSale đã gọi xong');
 
         if (form.printReceipt) {
-            printReceipt(cartSnapshot, paymentMethodSnapshot, amountReceivedSnapshot, customerSnapshot);
+            printReceipt(cartSnapshot, paymentMethodSnapshot, amountReceivedSnapshot, customerSnapshot, walletAmountSnapshot);
         }
         showPaymentModal.value = false;
         successMessage.value = 'Thanh toán thành công!';
         showSuccessModal.value = true;
         bankQRCode.value = null;
         bankTransactionInfo.value = null;
-        walletAmount.value = 0; // Reset wallet amount
+        walletAmount.value = 0;
         autoHideMessage();
     } catch (error) {
-        console.log('[confirmPayment] Lỗi:', error);
         errorMessage.value = error.response?.data?.message || error.response?.data?.errors?.server || 'Lỗi thanh toán.';
         if (error.response?.data?.errors) {
             Object.values(error.response.data.errors).forEach(err => errorMessage.value += ` ${err}`);
         }
         autoHideMessage();
+    } finally {
+        isConfirmingPayment.value = false; // Reset flag after completion
     }
 };
 
-const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod, amountReceived = form.amountReceived, customer = selectedCustomer.value) => {
+const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod, amountReceived = form.amountReceived, customer = selectedCustomer.value, walletAmountSnapshot = 0) => {
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
         errorMessage.value = 'Không thể mở cửa sổ in. Vui lòng kiểm tra trình chặn popup.';
@@ -782,7 +772,8 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
     const subtotal = cartData.reduce((total, item) => total + (item.price * item.quantity), 0);
     const tax = 0;
     const total = subtotal + tax;
-    const totalPayableReceipt = customer && walletAmount.value ? Math.max(total - Number(walletAmount.value), 0) : total;
+    const totalPayableReceipt = customer && walletAmountSnapshot > 0 ? Math.max(total - Number(walletAmountSnapshot), 0) : total;
+
     try {
         printWindow.document.write(`
             <html>
@@ -924,8 +915,8 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
                     </table>
                     <div class="total-section">
                         <p class="text-right"><strong>Tổng tiền hàng:</strong> ${sanitizeHTML(formatCurrency(subtotal))}</p>
-                        ${customer && walletAmount.value > 0 ? `
-                            <p class="text-right"><strong>Thanh toán bằng ví:</strong> ${sanitizeHTML(formatCurrency(Number(walletAmount.value) || 0))}</p>
+                        ${customer && walletAmountSnapshot > 0 ? `
+                            <p class="text-right"><strong>Điểm khách hàng sử dụng:</strong> ${sanitizeHTML(formatCurrency(Number(walletAmountSnapshot) || 0))}</p>
                         ` : ''}
                         <p class="text-right total"><strong>Tổng cần thanh toán:</strong> ${sanitizeHTML(formatCurrency(totalPayableReceipt))}</p>
                         <p class="text-right"><strong>Phương thức:</strong> ${sanitizeHTML(
@@ -955,6 +946,7 @@ const printReceipt = (cartData = cart.value, paymentMethod = form.paymentMethod,
             printWindow.print();
         };
     } catch (error) {
+        console.error('[printReceipt] Lỗi:', error);
         errorMessage.value = 'Lỗi khi tạo hóa đơn in. Vui lòng thử lại.';
         autoHideMessage();
         printWindow.close();
@@ -1128,7 +1120,6 @@ const removeLastCartItem = () => {
     if (cart.value.length > 0) cart.value.pop();
 };
 onMounted(async () => {
-    console.log('Danh sách sản phẩm:', products.value);
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('click', handleClickOutside);
     if (hasActiveSession.value) {
@@ -1150,7 +1141,6 @@ const refreshProducts = async () => {
     try {
         const response = await axios.get('/cashier/pos/products');
         products.value = response.data.products || [];
-        console.log('Refreshed products:', products.value);
     } catch (error) {
         console.error('Error refreshing products:', error);
         errorMessage.value = 'Lỗi tải danh sách sản phẩm.';
@@ -1245,8 +1235,6 @@ const initiateVNPayPayment = async () => {
         autoHideMessage();
         return;
     }
-    console.log('[initiateVNPayPayment] Bắt đầu với cart:', cart.value);
-    console.log('[initiateVNPayPayment] Tổng tiền cần thanh toán:', totalPayable.value);
     try {
         const payload = {
             cart: cart.value.map(item => ({ id: item.id, quantity: item.quantity })),
@@ -1255,12 +1243,9 @@ const initiateVNPayPayment = async () => {
             orderNotes: form.orderNotes || '',
             walletAmount: selectedCustomer.value ? Number(walletAmount.value) || 0 : 0, // Gửi walletAmount
         };
-        console.log('[initiateVNPayPayment] Payload gửi lên:', payload);
         const response = await axios.post('/cashier/pos/vnpay/create', payload);
-        console.log('[initiateVNPayPayment] API trả về:', response.data);
 
         if (response.data && response.data.vnpayUrl) {
-            console.log('[initiateVNPayPayment] Chuyển hướng tới:', response.data.vnpayUrl);
 
             window.location.href = response.data.vnpayUrl;
 
@@ -1269,7 +1254,6 @@ const initiateVNPayPayment = async () => {
             autoHideMessage();
         }
     } catch (error) {
-        console.log('[initiateVNPayPayment] Lỗi:', error);
         errorMessage.value = error.response?.data?.errors?.server || 'Lỗi tạo thanh toán VNPay.';
         autoHideMessage();
     }
@@ -1826,8 +1810,8 @@ const initiateVNPayPayment = async () => {
                         </div>
                         <!-- Wallet Amount Input -->
                         <div v-if="selectedCustomer" class="mb-2">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Số tiền từ ví (VND)</label>
-                            <input type="number" v-model.number="walletAmount" min="0"
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Điểm khách hàng sử dụng
+                                (VND)</label> <input type="number" v-model.number="walletAmount" min="0"
                                 :max="Math.min(selectedCustomer.wallet, cartTotal)"
                                 class="w-full p-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 @input="walletAmount = Math.min($event.target.value, Math.min(selectedCustomer.wallet, cartTotal))" />
@@ -1940,8 +1924,9 @@ const initiateVNPayPayment = async () => {
                             </button>
                             <button @click="confirmPayment"
                                 class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition-all shadow-sm"
-                                :disabled="form.processing || cart.length === 0 || form.paymentMethod === 'vnpay'">
-                                <Loader2 v-if="form.processing" class="animate-spin h-5 w-5 inline-block mr-2" />
+                                :disabled="form.processing || cart.length === 0 || form.paymentMethod === 'vnpay' || isConfirmingPayment">
+                                <Loader2 v-if="form.processing || isConfirmingPayment"
+                                    class="animate-spin h-5 w-5 inline-block mr-2" />
                                 Xác nhận & In
                             </button>
                         </div>
