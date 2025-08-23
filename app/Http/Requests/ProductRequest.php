@@ -23,7 +23,7 @@ class ProductRequest extends FormRequest
     public function rules(): array
     {
         $productId = $this->route('product'); // Lấy ID sản phẩm nếu đang edit
-        
+
         return [
             'name' => [
                 'required',
@@ -31,7 +31,7 @@ class ProductRequest extends FormRequest
                 'min:2',
                 'max:100',
                 Rule::unique('products', 'name')->ignore($productId),
-         ],
+            ],
             'barcode' => [
                 'nullable',
                 'string',
@@ -61,7 +61,7 @@ class ProductRequest extends FormRequest
                 Rule::requiredIf($this->input('image_input_type') === 'url'),
                 'nullable',
                 'string',
-                'url',
+                'regex:/^(\/storage\/.+|https?:\/\/.+)$/',
                 'max:512'
             ],
             'image_file' => [
@@ -87,51 +87,51 @@ class ProductRequest extends FormRequest
             'name.max' => 'Tên sản phẩm không được vượt quá :max ký tự.',
             'name.unique' => 'Tên sản phẩm này đã tồn tại.',
 
-            
+
             'barcode.string' => 'Mã vạch phải là chuỗi ký tự.',
             'barcode.min' => 'Mã vạch phải có ít nhất :min ký tự.',
             'barcode.max' => 'Mã vạch không được vượt quá :max ký tự.',
             'barcode.unique' => 'Mã vạch này đã tồn tại.',
-            
+
             'description.string' => 'Mô tả phải là chuỗi ký tự.',
             'description.max' => 'Mô tả không được vượt quá :max ký tự.',
-            
+
             'category_id.required' => 'Danh mục là bắt buộc.',
             'category_id.exists' => 'Danh mục được chọn không tồn tại.',
-            
+
             'unit_id.required' => 'Đơn vị tính là bắt buộc.',
             'unit_id.exists' => 'Đơn vị tính được chọn không tồn tại.',
-            
+
             'selling_price.required' => 'Giá bán là bắt buộc.',
             'selling_price.numeric' => 'Giá bán phải là số.',
             'selling_price.min' => 'Giá bán phải lớn hơn hoặc bằng 0.',
-            
+
             'is_active.boolean' => 'Trạng thái phải là true hoặc false.',
-            
+
             'min_stock_level.integer' => 'Tồn kho tối thiểu phải là số nguyên.',
             'min_stock_level.min' => 'Tồn kho tối thiểu phải lớn hơn hoặc bằng 0.',
-            
+
             'max_stock_level.integer' => 'Tồn kho tối đa phải là số nguyên.',
             'max_stock_level.min' => 'Tồn kho tối đa phải lớn hơn hoặc bằng 0.',
-            
+
             'image_input_type.required' => 'Kiểu nhập ảnh là bắt buộc.',
             'image_input_type.in' => 'Kiểu nhập ảnh không hợp lệ.',
-            
+
             'image_url.required' => 'Đường dẫn ảnh là bắt buộc khi chọn kiểu URL.',
             'image_url.string' => 'Đường dẫn ảnh phải là chuỗi ký tự.',
             'image_url.url' => 'Đường dẫn ảnh không hợp lệ.',
             'image_url.max' => 'Đường dẫn ảnh không được vượt quá :max ký tự.',
-            
+
             'image_file.required' => 'Ảnh sản phẩm là bắt buộc khi chọn kiểu upload.',
             'image_file.image' => 'Tệp phải là hình ảnh.',
             'image_file.mimes' => 'Định dạng ảnh không được hỗ trợ. Chỉ chấp nhận: :values.',
             'image_file.max' => 'Kích thước ảnh không được vượt quá :max KB.',
-            
+
             'selected_supplier_ids.required' => 'Nhà cung cấp là bắt buộc.',
             'selected_supplier_ids.array' => 'Nhà cung cấp phải là danh sách.',
             'selected_supplier_ids.min' => 'Phải chọn ít nhất :min nhà cung cấp.',
             'selected_supplier_ids.*.exists' => 'Nhà cung cấp được chọn không tồn tại.',
-            
+
             'purchase_prices.required' => 'Giá nhập là bắt buộc.',
             'purchase_prices.array' => 'Giá nhập phải là danh sách.',
             'purchase_prices.*.required' => 'Giá nhập của nhà cung cấp là bắt buộc.',

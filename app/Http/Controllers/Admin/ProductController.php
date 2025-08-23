@@ -192,33 +192,45 @@ class ProductController extends Controller
 
             // Xử lý ảnh
             if ($data['image_input_type'] === 'file' && $request->hasFile('image_file')) {
-                // Xóa ảnh cũ nếu là file local
-                if ($product->image_url && str_starts_with($product->image_url, '/storage/')) {
-                    $oldPath = str_replace('/storage/', '', $product->image_url);
-                    if (Storage::disk('public')->exists($oldPath)) {
-                        Storage::disk('public')->delete($oldPath);
-                    }
-                }
-                // Lưu ảnh mới
+                // Upload file mới
                 $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
-                $data['image_url'] = Storage::url($uploadedFilePath);
-            } elseif ($data['image_input_type'] === 'url' && !empty($data['image_url'])) {
-                // Nếu là url, xóa file cũ nếu là file local
-                if ($product->image_url && str_starts_with($product->image_url, '/storage/')) {
-                    $oldPath = str_replace('/storage/', '', $product->image_url);
-                    if (Storage::disk('public')->exists($oldPath)) {
-                        Storage::disk('public')->delete($oldPath);
-                    }
+                $newUrl = Storage::url($uploadedFilePath);
+
+                // Nếu ảnh mới giống ảnh cũ -> không làm gì, xóa file mới upload đi
+                if ($product->image_url === $newUrl) {
+                    Storage::disk('public')->delete($uploadedFilePath);
+                    $data['image_url'] = $product->image_url;
+                } else {
+                    // Xóa ảnh cũ nếu là local
+                    $this->deleteLocalImage($product->image_url);
+
+                    // Gán ảnh mới
+                    $data['image_url'] = $newUrl;
                 }
-                // Xử lý Google Images URL
-                if (Str::contains($data['image_url'], 'google.com/imgres')) {
-                    parse_str(parse_url($data['image_url'], PHP_URL_QUERY), $query);
-                    $data['image_url'] = $query['imgurl'] ?? $data['image_url'];
+            } elseif ($data['image_input_type'] === 'url' && !empty($data['image_url'])) {
+                $newUrl = $data['image_url'];
+
+                // Nếu là link Google Images thì parse lấy ảnh gốc
+                if (Str::contains($newUrl, 'google.com/imgres')) {
+                    parse_str(parse_url($newUrl, PHP_URL_QUERY), $query);
+                    $newUrl = $query['imgurl'] ?? $newUrl;
+                }
+
+                // Nếu URL mới giống hệt URL cũ thì giữ nguyên
+                if ($product->image_url === $newUrl) {
+                    $data['image_url'] = $product->image_url;
+                } else {
+                    // Xóa ảnh cũ nếu là file local
+                    $this->deleteLocalImage($product->image_url);
+
+                    // Gán URL mới
+                    $data['image_url'] = $newUrl;
                 }
             } else {
-                // Không có ảnh mới, giữ nguyên ảnh cũ
+                // Không có ảnh mới, giữ nguyên
                 $data['image_url'] = $product->image_url;
             }
+
 
             // Xóa các field phụ không cần lưu trong CSDL
             unset($data['image_file'], $data['image_input_type']);
@@ -338,5 +350,23 @@ class ProductController extends Controller
 
         // Trả lại SKU mới
         return $prefix . str_pad($number, 2, '0', STR_PAD_LEFT); // Ví dụ: SKU03
+    }
+
+    private function deleteLocalImage(?string $url): void
+    {
+        if (!$url || !str_starts_with($url, '/storage/')) {
+            return;
+        }
+
+        // Nếu file là ảnh mặc định thì không xóa
+        $defaultImage = '/storage/piclumen-1747750187180.png';
+        if ($url === $defaultImage) {
+            return;
+        }
+
+        $path = str_replace('/storage/', '', $url);
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }
