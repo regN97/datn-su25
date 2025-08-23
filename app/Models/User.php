@@ -12,15 +12,26 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable,SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
-    protected $fillable = ['name', 'email', 'password', 'phone_number', 'role_id'];
-
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'phone_number',
+        'date_of_birth',
+        'address',
+        'role_id',
+        'email_verified_at',
+        'is_active',
+        'last_login',
+        'remember_token',
+    ];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -45,11 +56,11 @@ class User extends Authenticatable
         ];
     }
     public function role()
-{
-    return $this->belongsTo(UserRole::class, 'role_id');
-}
+    {
+        return $this->belongsTo(UserRole::class, 'role_id');
+    }
     public function userShifts()
-        {
-            return $this->hasMany(UserShift::class, 'user_id');
-        }
+    {
+        return $this->hasMany(UserShift::class, 'user_id');
+    }
 }

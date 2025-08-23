@@ -187,6 +187,7 @@ function handleDeleteProduct() {
 }
 
 
+
 function cancelDelete() {
     showDeleteModal.value = false;
     productToDelete.value = null;
