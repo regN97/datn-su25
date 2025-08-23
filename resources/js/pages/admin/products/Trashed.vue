@@ -3,7 +3,7 @@ import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Eye, EyeOff, Filter, Undo2, Trash2 } from 'lucide-vue-next';
+import { ChevronLeft, Eye, EyeOff, Filter, Undo2, Trash2 } from 'lucide-vue-next'
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -196,6 +196,9 @@ function resetFilters() {
 function toggleSidebar() {
     isSidebarOpen.value = !isSidebarOpen.value;
 }
+function goBack() {
+  router.visit('/admin/products');
+}
 </script>
 
 <template>
@@ -211,6 +214,16 @@ function toggleSidebar() {
                             <button @click="toggleSidebar" class="rounded-3xl bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
                                 <Filter class="h-5 w-5" />
                             </button>
+                            <!-- Nút quay lại -->
+
+  <button
+    @click="goBack"
+    class="rounded bg-gray-200 px-6 py-2 text-gray-700 hover:bg-gray-300"
+  >
+    <ChevronLeft class="w-4 h-4" />
+    <span>Quay lại</span>
+  </button>
+
                         </div>
                     </div>
 

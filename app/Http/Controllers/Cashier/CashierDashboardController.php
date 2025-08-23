@@ -132,34 +132,7 @@ class CashierDashboardController extends Controller
         ]);
     }
 
-    public function addToCart(Request $request)
-    {
-        $productId = $request->input('product_id');
-        $product = Product::findOrFail($productId);
 
-        $cart = session()->get('cart', []);
-        $cart[$product->id] = [
-            'name' => $product->name,
-            'sku' => $product->sku,
-            'price' => $product->selling_price,
-            'quantity' => ($cart[$product->id]['quantity'] ?? 0) + 1,
-        ];
-        session()->put('cart', $cart);
-
-        $admins = User::where('role_id', 1)->get();
-        foreach ($admins as $admin) {
-            $admin->notify(new ProductAddedToCart([
-                'name' => $product->name,
-                'sku' => $product->sku,
-                'price' => $product->selling_price,
-            ], Auth::user()));
-        }
-
-        return response()->json([
-            'message' => 'Sản phẩm đã được thêm vào giỏ hàng!',
-            'cart' => $cart,
-        ]);
-    }
     public function requestStock(Request $request)
     {
         $productId = $request->input('product_id');

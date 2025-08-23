@@ -1,9 +1,8 @@
 <script setup>
 import CashierLayout from '@/layouts/CashierLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Search, ChevronLeft, ChevronRight, Eye, UploadCloud, Image, Printer, X } from 'lucide-vue-next';
-
 const props = defineProps({
     bills: {
         type: Object,
@@ -30,6 +29,33 @@ const previewUrls = ref({});
 const isModalOpen = ref(false);
 const selectedBill = ref(null);
 
+// --- Computed property mới để gộp các sản phẩm giống nhau ---
+const groupedBillDetails = computed(() => {
+    if (!selectedBill.value || !selectedBill.value.details) return [];
+
+    const groups = {};
+    selectedBill.value.details.forEach(item => {
+        const key = item.product_name;
+        if (!groups[key]) {
+            groups[key] = {
+                product_name: item.product_name,
+                quantity: 0,
+                unit_price: item.unit_price,
+                subtotal: 0,
+            };
+        }
+        groups[key].quantity += item.quantity;
+        groups[key].subtotal += item.subtotal;
+    });
+    return Object.values(groups);
+});
+
+// --- Computed property để tính tổng tiền hàng từ dữ liệu đã gộp ---
+const subtotal_amount = computed(() => {
+    if (!selectedBill.value || !selectedBill.value.details) return 0;
+    return groupedBillDetails.value.reduce((sum, item) => sum + item.subtotal, 0);
+});
+
 const searchBills = () => {
     router.post(route('cashier.bill.lookup.search'), { query: query.value });
 };
@@ -53,11 +79,6 @@ const formatCurrency = (value) => {
         style: 'currency',
         currency: 'VND',
     }).format(value);
-};
-
-const subtotal_amount = (bill) => {
-    if (!bill || !bill.details) return 0;
-    return bill.details.reduce((sum, item) => sum + item.subtotal, 0);
 };
 
 const changePage = (page) => {
@@ -94,11 +115,11 @@ const handleInlineUpload = (event, bill) => {
 };
 
 const formatDateTime = (val) => {
-  if (!val) return '-';
-  // xử lý cả chuỗi "YYYY-MM-DD HH:mm:ss"
-  const d = typeof val === 'string' ? new Date(val.replace(' ', 'T')) : new Date(val);
-  if (isNaN(d)) return val;            // nếu vẫn không parse được thì trả về nguyên gốc
-  return d.toLocaleString('vi-VN');
+    if (!val) return '-';
+    // xử lý cả chuỗi "YYYY-MM-DD HH:mm:ss"
+    const d = typeof val === 'string' ? new Date(val.replace(' ', 'T')) : new Date(val);
+    if (isNaN(d)) return val; // nếu vẫn không parse được thì trả về nguyên gốc
+    return d.toLocaleString('vi-VN');
 };
 
 const translatePaymentMethod = (method) => {
@@ -113,9 +134,7 @@ const translatePaymentMethod = (method) => {
             return method || '-';
     }
 };
-
 </script>
-
 <template>
     <Head title="Tra cứu hóa đơn" />
     <CashierLayout>
@@ -243,7 +262,7 @@ const translatePaymentMethod = (method) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="(item, index) in selectedBill.details" :key="index">
+                                    <tr v-for="(item, index) in groupedBillDetails" :key="index">
                                         <td class="py-1">{{ item.product_name }}</td>
                                         <td class="py-1 text-center">{{ item.quantity }}</td>
                                         <td class="py-1 text-right">{{ formatCurrency(item.unit_price) }}</td>
@@ -254,7 +273,7 @@ const translatePaymentMethod = (method) => {
                         </div>
                         <hr class="border-t border-gray-400 my-4">
                         <div class="text-right">
-                            <p class="mb-1">Tổng tiền hàng: <span class="font-semibold">{{ formatCurrency(subtotal_amount(selectedBill)) }}</span></p>
+                            <p class="mb-1">Tổng tiền hàng: <span class="font-semibold">{{ formatCurrency(subtotal_amount) }}</span></p>
                             <p class="mb-1">Giảm giá: <span class="font-semibold">{{ formatCurrency(selectedBill.discount_amount ?? 0) }}</span></p>
                             <p class="text-lg font-bold">Tổng thanh toán: <span class="font-bold">{{ formatCurrency(selectedBill.total_amount) }}</span></p>
                         </div>
@@ -285,46 +304,46 @@ const translatePaymentMethod = (method) => {
     }
 }
 @media print {
-  /* Ẩn tất cả phần không cần in */
-  .no-print, .no-print-bg { display: none !important; }
-  body * { visibility: hidden !important; }
+/* Ẩn tất cả phần không cần in */
+.no-print, .no-print-bg { display: none !important; }
+body * { visibility: hidden !important; }
 
-  /* Chỉ hiện phần hóa đơn */
-  #printable-invoice, #printable-invoice * { visibility: visible !important; }
+/* Chỉ hiện phần hóa đơn */
+#printable-invoice, #printable-invoice * { visibility: visible !important; }
 
-  /* Đặt hóa đơn ra khỏi khung modal, phủ đúng vùng trang in */
-  #printable-invoice {
-    position: fixed !important;         /* quan trọng: không còn bám theo modal */
+/* Đặt hóa đơn ra khỏi khung modal, phủ đúng vùng trang in */
+#printable-invoice {
+    position: fixed !important; /* quan trọng: không còn bám theo modal */
     top: 0 !important; left: 0 !important; right: 0 !important;
     margin: 0 auto !important; /* Căn giữa trên trang in */
     padding: 0 !important;
-    width: 100% !important;             /* chiếm toàn bộ bề ngang vùng in */
+    width: 100% !important; /* chiếm toàn bộ bề ngang vùng in */
     background: #fff !important;
     font-family: Arial, Helvetica, sans-serif !important;
     font-size: 12pt !important;
-    -webkit-print-color-adjust: exact;  /* giữ màu border/dashed nếu có */
+    -webkit-print-color-adjust: exact;/* giữ màu border/dashed nếu có */
     print-color-adjust: exact;
-  }
+}
 
-  body {
+body {
     margin: 0 !important;
     font-size: 12px !important;
     transform: scale(0.95); /* nếu muốn co nhỏ */
     transform-origin: top center !important; /* căn giữa theo trục ngang */
-  }
+}
 
-  #printable-invoice {
-    width: 80mm !important;         /* khổ giấy hóa đơn (80mm ~ A4 co nhỏ) */
-    margin: 0 auto !important;      /* căn giữa */
+#printable-invoice {
+    width: 80mm !important;/* khổ giấy hóa đơn (80mm ~ A4 co nhỏ) */
+    margin: 0 auto !important;/* căn giữa */
     background: #fff !important;
     padding: 0 !important;
-  }
+}
 
-  /* Bảng gọn gàng, căng đủ chiều ngang */
-  table { width: 100% !important; border-collapse: collapse !important; }
-  th, td { padding: 4px 6px !important; }
+/* Bảng gọn gàng, căng đủ chiều ngang */
+table { width: 100% !important; border-collapse: collapse !important; }
+th, td { padding: 4px 6px !important; }
 
-  /* Khổ giấy & lề in */
+/* Khổ giấy & lề in */
     @page {
         size: auto;
         margin: 5mm;
@@ -337,6 +356,4 @@ const translatePaymentMethod = (method) => {
     }
 
 }
-
-
 </style>
