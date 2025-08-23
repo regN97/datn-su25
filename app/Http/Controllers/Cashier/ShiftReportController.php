@@ -8,6 +8,8 @@ use App\Models\User;
 use Inertia\Inertia;
 use App\Models\UserShift;
 use App\Models\BillDetail;
+use App\Models\ReturnBill;
+use App\Models\ReturnBillDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,7 +23,6 @@ class ShiftReportController extends Controller
         try {
             $user = Auth::user();
 
-            // Lấy ca làm việc hiện tại
             $currentUserShift = UserShift::where('user_id', $user->id)
                 ->where('status', 'CHECKED_IN')
                 ->latest()
@@ -42,6 +43,12 @@ class ShiftReportController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
 
+            $returnBills = ReturnBill::where('cashier_id', $user->id)
+                ->whereBetween('created_at', [$currentUserShift->check_in, $endTime])
+                ->with(['details', 'details.product', 'bill', 'customer'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
             $totalRevenue = $bills->where('payment_status_id', 2)->sum('total_amount');
             $cashRevenue = $bills->where('payment_status_id', 2)
                 ->where('payment_method', 'cash')
@@ -49,13 +56,17 @@ class ShiftReportController extends Controller
             $bankRevenue = $bills->where('payment_status_id', 2)
                 ->whereIn('payment_method', ['card', 'bank_transfer', 'credit_card', 'vnpay'])
                 ->sum('total_amount');
-            $returnValue = $bills->where('payment_status_id', 3)->sum('total_amount');
+            $returnValue = $returnBills->sum('total_amount_returned');
             $pendingRevenue = $bills->where('payment_status_id', 1)->sum('total_amount');
             $totalTransactions = $bills->count();
+            $completedTransactions = $bills->where('payment_status_id', 2)->count();
+            $refundedTransactions = $returnBills->count();
             $netRevenue = $totalRevenue - $returnValue;
 
-            // Thống kê sản phẩm bán chạy nhất
-            $topProducts = BillDetail::whereIn('bill_id', $bills->pluck('id'))
+            $totalReturnedQuantity = ReturnBillDetail::whereIn('return_bill_id', $returnBills->pluck('id'))
+                ->sum('returned_quantity');
+
+            $topProducts = BillDetail::whereIn('bill_id', $bills->where('payment_status_id', 2)->pluck('id'))
                 ->groupBy('product_id')
                 ->select('product_id', DB::raw('SUM(quantity) as total_quantity'))
                 ->with(['product' => function ($query) {
@@ -71,8 +82,8 @@ class ShiftReportController extends Controller
                     ];
                 });
 
-            // Thống kê khách hàng mua nhiều nhất
-            $topCustomers = $bills->groupBy('customer_id')
+            $topCustomers = $bills->where('payment_status_id', 2)
+                ->groupBy('customer_id')
                 ->map(function ($group) {
                     $customer = $group->first()->customer;
                     return [
@@ -85,13 +96,14 @@ class ShiftReportController extends Controller
                 ->take(5)
                 ->values();
 
-            $transactions = $bills->map(function ($bill) {
+            $salesTransactions = $bills->map(function ($bill) {
                 $details = $bill->details->map(function ($detail) {
                     return [
                         'product_name' => $detail->product ? $detail->product->name : $detail->p_name,
                         'quantity' => $detail->quantity,
                         'unit_price' => $detail->unit_price,
-                        'total' => $detail->quantity * $detail->unit_price
+                        'total' => $detail->quantity * $detail->unit_price,
+                        'discount_amount' => $detail->discount_per_item ?? 0,
                     ];
                 })->toArray();
 
@@ -107,16 +119,48 @@ class ShiftReportController extends Controller
                         'vnpay' => 'VNPay',
                         default => 'Khác',
                     },
-                    'type' => $bill->payment_status_id === 3 ? 'Trả hàng' : ($bill->payment_status_id === 1 ? 'Chờ thanh toán' : 'Bán hàng'),
+                    'type' => $bill->payment_status_id === 1 ? 'Chờ thanh toán' : 'Bán hàng',
                     'payment_status' => $bill->paymentStatus ? $bill->paymentStatus->name : match ($bill->payment_status_id) {
                         1 => 'Chưa thanh toán',
                         2 => 'Đã thanh toán',
                         3 => 'Hoàn tiền',
                         default => 'Không xác định',
                     },
-                    'details' => $details
+                    'details' => $details,
                 ];
             })->toArray();
+
+            $returnTransactions = $returnBills->map(function ($returnBill) {
+                $details = $returnBill->details->map(function ($detail) {
+                    return [
+                        'product_name' => $detail->p_name,
+                        'quantity' => $detail->returned_quantity,
+                        'unit_price' => $detail->unit_price,
+                        'total' => $detail->returned_quantity * $detail->unit_price,
+                    ];
+                })->toArray();
+
+                return [
+                    'return_bill_number' => $returnBill->return_bill_number,
+                    'bill_id' => $returnBill->bill->bill_number,
+                    'time' => Carbon::parse($returnBill->created_at)->format('H:i A'),
+                    'amount' => -$returnBill->total_amount_returned,
+                    'payment_method' => $returnBill->bill->payment_method ? match ($returnBill->bill->payment_method) {
+                        'cash' => 'Tiền mặt',
+                        'card' => 'Thẻ',
+                        'bank_transfer' => 'Chuyển khoản',
+                        'credit_card' => 'Thẻ tín dụng',
+                        'vnpay' => 'VNPay',
+                        default => 'Khác',
+                    } : 'Khác',
+                    'type' => 'Trả hàng',
+                    'payment_status' => 'Hoàn tiền',
+                    'return_reason' => $returnBill->reason ?? 'Không có lý do',
+                    'details' => $details,
+                ];
+            })->toArray();
+
+            $transactions = array_merge($salesTransactions, $returnTransactions);
 
             $duration = $currentUserShift->total_hours ? $currentUserShift->total_hours . ' giờ' : 
                 Carbon::parse($currentUserShift->check_in)->diff($endTime)->format('%H giờ %I phút');
@@ -144,8 +188,9 @@ class ShiftReportController extends Controller
                     'net_revenue' => $netRevenue,
                     'total_transactions' => $totalTransactions,
                     'pending_transactions' => $bills->where('payment_status_id', 1)->count(),
-                    'completed_transactions' => $bills->where('payment_status_id', 2)->count(),
-                    'refunded_transactions' => $bills->where('payment_status_id', 3)->count(),
+                    'completed_transactions' => $completedTransactions,
+                    'refunded_transactions' => $refundedTransactions,
+                    'total_returned_quantity' => $totalReturnedQuantity,
                     'top_products' => $topProducts,
                     'top_customers' => $topCustomers,
                 ],
@@ -205,13 +250,11 @@ class ShiftReportController extends Controller
                 return response()->json(['message' => 'Không tìm thấy ca làm việc đang mở.'], 404);
             }
 
-            // Validate input
             $data = $request->validate([
                 'closing_amount' => 'required|numeric|min:0',
                 'notes' => 'nullable|string|max:255',
             ]);
 
-            // Cập nhật ca làm việc
             $currentUserShift->update([
                 'check_out' => now(),
                 'status' => 'COMPLETED',
@@ -219,7 +262,6 @@ class ShiftReportController extends Controller
                 'notes' => $data['notes']
             ]);
 
-            // Cập nhật cash_register_sessions
             $session = \App\Models\CashRegisterSession::where('user_id', $user->id)
                 ->whereNull('closed_at')
                 ->latest()
@@ -233,6 +275,31 @@ class ShiftReportController extends Controller
                     'actual_amount' => $data['closing_amount'],
                     'difference' => $data['closing_amount'] - $session->opening_amount
                 ]);
+            }
+
+            $returnBills = ReturnBill::where('cashier_id', $user->id)
+                ->whereBetween('created_at', [$currentUserShift->check_in, now()])
+                ->with('details')
+                ->get();
+
+            foreach ($returnBills as $returnBill) {
+                foreach ($returnBill->details as $detail) {
+                    \App\Models\InventoryTransaction::create([
+                        'transaction_type_id' => 4,
+                        'product_id' => $detail->product_id,
+                        'quantity_change' => $detail->returned_quantity,
+                        'stock_after' => DB::raw('(SELECT stock_quantity FROM products WHERE id = ' . $detail->product_id . ') + ' . $detail->returned_quantity),
+                        'unit_price' => $detail->unit_price,
+                        'total_value' => $detail->returned_quantity * $detail->unit_price,
+                        'transaction_date' => now(),
+                        'related_bill_id' => $returnBill->bill_id,
+                        'related_purchase_return_id' => $returnBill->id,
+                        'user_id' => $user->id,
+                        'note' => $returnBill->reason,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
             }
 
             return response()->json(['message' => 'Ca làm việc đã kết thúc thành công.']);
@@ -270,6 +337,10 @@ class ShiftReportController extends Controller
                     ->whereNull('deleted_at')
                     ->get();
 
+                $returnBills = ReturnBill::where('cashier_id', $userShift->user_id)
+                    ->whereBetween('created_at', [$userShift->check_in, $userShift->check_out])
+                    ->get();
+
                 $totalRevenue = $bills->where('payment_status_id', 2)->sum('total_amount');
                 $cashRevenue = $bills->where('payment_status_id', 2)
                     ->where('payment_method', 'cash')
@@ -277,6 +348,9 @@ class ShiftReportController extends Controller
                 $bankRevenue = $bills->where('payment_status_id', 2)
                     ->whereIn('payment_method', ['card', 'bank_transfer', 'credit_card', 'vnpay'])
                     ->sum('total_amount');
+                $returnValue = $returnBills->sum('total_amount_returned');
+                $totalReturnedQuantity = ReturnBillDetail::whereIn('return_bill_id', $returnBills->pluck('id'))
+                    ->sum('returned_quantity');
 
                 return [
                     'shift_id' => $userShift->id,
@@ -289,6 +363,8 @@ class ShiftReportController extends Controller
                     'total_revenue' => $totalRevenue,
                     'cash_revenue' => $cashRevenue,
                     'bank_revenue' => $bankRevenue,
+                    'return_value' => $returnValue,
+                    'total_returned_quantity' => $totalReturnedQuantity,
                     'total_transactions' => $bills->count(),
                     'notes' => $userShift->notes ?? '',
                 ];
