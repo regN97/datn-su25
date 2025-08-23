@@ -31,36 +31,57 @@ const form = useForm({
     description: props.product.description ?? '',
     category_id: props.product.category_id ?? null,
     unit_id: props.product.unit_id ?? null,
-    purchase_price: props.product.purchase_price ?? 0,
     selling_price: props.product.selling_price ?? 0,
     min_stock_level: props.product.min_stock_level ?? 0,
     max_stock_level: props.product.max_stock_level ?? 0,
     is_active: typeof props.product.is_active === 'boolean'
         ? Number(props.product.is_active)
         : 1,
-    suppliers: Array.isArray(props.productSuppliers) ? [...props.productSuppliers] : [],
+    selected_supplier_ids: Array.isArray(props.productSuppliers) ? [...props.productSuppliers] : [],
+    purchase_prices: {}, // Sẽ được populate từ suppliers
     image_url: props.product.image_url ?? '',
     image_file: null as File | null,
-    image_type: 'url', // hoặc props.product.image_type nếu có
+    image_input_type: 'url',
 });
+
+// Populate purchase_prices từ suppliers
+const populatePurchasePrices = () => {
+    if (props.product.suppliers && Array.isArray(props.product.suppliers)) {
+        const prices: { [key: number]: number | null } = {};
+        props.product.suppliers.forEach((supplier: any) => {
+            if (supplier.pivot && supplier.pivot.purchase_price) {
+                prices[supplier.id] = supplier.pivot.purchase_price;
+            }
+        });
+        form.purchase_prices = prices;
+    }
+};
+
+// Gọi function khi component mount
+populatePurchasePrices();
 
 function submit() {
     form.transform((data) => {
         const payload: any = {
             ...data,
-            selected_supplier_ids: data.suppliers,
             is_active: data.is_active ? 1 : 0,
             _method: 'PUT',
         };
+        
         // Nếu chọn upload thì bỏ image_url, nếu chọn url thì bỏ image_file
-        if (data.image_type === 'upload') {
+        if (data.image_input_type === 'file') {
             delete payload.image_url;
         } else {
             delete payload.image_file;
         }
+        
         return payload;
     }).post(`/admin/products/${props.product.id}`, {
         forceFormData: true,
+        onError: (errors) => {
+            console.error('Lỗi validation:', errors);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
     });
 }
 
@@ -162,11 +183,11 @@ function goBack() {
                         <div class="space-y-4">
                             <div class="mt-4">
                                 <label class="mb-1 block font-semibold">Xem trước ảnh</label>
-                                <div v-if="form.image_type === 'url' && form.image_url">
+                                <div v-if="form.image_input_type === 'url' && form.image_url">
                                     <img :src="form.image_url" alt="Preview"
                                         class="h-[160px] w-[160px] object-contain" />
                                 </div>
-                                <div v-else-if="form.image_type === 'upload' && form.image_file">
+                                <div v-else-if="form.image_input_type === 'file' && form.image_file">
                                     <img :src="URL.createObjectURL(form.image_file)" alt="Preview"
                                         class="h-[160px] w-[160px] object-contain" />
                                 </div>
@@ -179,15 +200,15 @@ function goBack() {
                                 <label class="mb-1 block font-semibold">Ảnh</label>
                                 <div class="mb-2 flex items-center gap-4">
                                     <label class="flex items-center gap-1">
-                                        <input type="radio" value="url" v-model="form.image_type" />
+                                        <input type="radio" value="url" v-model="form.image_input_type" />
                                         Đường dẫn ảnh
                                     </label>
                                     <label class="flex items-center gap-1">
-                                        <input type="radio" value="upload" v-model="form.image_type" />
+                                        <input type="radio" value="file" v-model="form.image_input_type" />
                                         Tải ảnh lên
                                     </label>
                                 </div>
-                                <div v-if="form.image_type === 'url'">
+                                <div v-if="form.image_input_type === 'url'">
                                     <input v-model="form.image_url" type="text" class="w-full rounded border px-3 py-2"
                                         placeholder="Nhập URL ảnh sản phẩm" />
                                 </div>
@@ -198,13 +219,32 @@ function goBack() {
                             <div>
                                 <label class="mb-2 block font-medium text-gray-700 dark:text-gray-300">Nhà cung
                                     cấp</label>
-                                <MultiSelectSearch v-model="form.suppliers"
+                                <MultiSelectSearch v-model="form.selected_supplier_ids"
                                     :options="props.suppliers.map((s) => ({ label: s.name, value: s.id }))"
                                     placeholder="Tìm kiếm nhà cung cấp"
                                     no-results-text="Không tìm thấy nhà cung cấp nào."
                                     no-options-text="Không có nhà cung cấp để lựa chọn." />
                                 <span class="mt-1 block text-xs text-gray-500">Có thể chọn nhiều nhà cung cấp</span>
                                 <InputError :message="form.errors.selected_supplier_ids" />
+                                
+                                <!-- Hiển thị giá nhập cho từng supplier -->
+                                <div v-if="form.selected_supplier_ids.length > 0" class="mt-3 space-y-2">
+                                    <div v-for="supplierId in form.selected_supplier_ids" :key="supplierId" class="flex items-center gap-2">
+                                        <span class="text-sm text-gray-600">
+                                            {{ props.suppliers.find(s => s.id === supplierId)?.name }}:
+                                        </span>
+                                        <input 
+                                            v-model.number="form.purchase_prices[supplierId]" 
+                                            type="number" 
+                                            min="0" 
+                                            step="1000"
+                                            class="flex-1 rounded border px-2 py-1 text-sm"
+                                            placeholder="Giá nhập"
+                                        />
+                                        <span class="text-xs text-gray-500">VNĐ</span>
+                                    </div>
+                                    <InputError :message="form.errors.purchase_prices" />
+                                </div>
                             </div>
                             <div>
                                 <label class="mb-1 block font-semibold">Trạng thái</label>

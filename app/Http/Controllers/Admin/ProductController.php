@@ -53,7 +53,6 @@ class ProductController extends Controller
 
     public function store(ProductRequest $request): RedirectResponse
     {
-        // dd($request->all());
         try {
             $data = $request->validated();
 
@@ -95,14 +94,16 @@ class ProductController extends Controller
                     } else {
                         return back()->withErrors(['image_file' => 'File ảnh không hợp lệ hoặc đã bị xóa.'])->withInput();
                     }
-                } elseif (Str::contains($data['image_url'], 'google.com/imgres')) {
-                    parse_str(parse_url($data['image_url'], PHP_URL_QUERY), $query);
-                    $data['image_url'] = $query['imgurl'] ?? $data['image_url'];
+                } elseif ($data['image_input_type'] === 'url' && !empty($data['image_url'])) {
+                    if (Str::contains($data['image_url'], 'google.com/imgres')) {
+                        parse_str(parse_url($data['image_url'], PHP_URL_QUERY), $query);
+                        $data['image_url'] = $query['imgurl'] ?? $data['image_url'];
+                    }
                 } else {
-                    $data['image_url'] = 'test.jpg';
+                    $data['image_url'] = 'default-product.jpg';
                 }
             }
-            Log::info('Image URL:', [$data['image_url']]);
+
             // Xóa các field phụ không cần lưu trong CSDL
             unset($data['image_file'], $data['image_input_type']);
 
@@ -126,7 +127,7 @@ class ProductController extends Controller
             Log::error('Error creating product: ' . $e->getMessage());
             return back()->with([
                 'error' => 'Đã xảy ra lỗi khi tạo sản phẩm. Vui lòng thử lại sau.',
-            ]);
+            ])->withInput();
         }
     }
 
@@ -168,73 +169,88 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-
-    public function update(Request $request, string $id)
+    public function update(ProductRequest $request, string $id)
     {
-        // Validate dữ liệu với thông báo lỗi tiếng Việt
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'sku' => 'required|string|max:255',
-            'barcode' => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:5000',
-            'category_id' => 'required|integer',
-            'unit_id' => 'required|integer',
-            'purchase_price' => 'required|numeric|min:0',
-            'selling_price' => 'required|numeric|min:0',
-            'min_stock_level' => 'nullable|integer|min:0',
-            'max_stock_level' => 'nullable|integer|min:0',
-            'is_active' => 'boolean',
-            'image_url' => 'nullable|string',
-            'image_file' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
-            'image_type' => 'required|in:url,upload',
-            'selected_supplier_ids' => 'required|array|min:1',
-            'selected_supplier_ids.*' => 'exists:suppliers,id',
-        ]);
+        try {
+            $data = $request->validated();
 
-        // Lấy sản phẩm từ DB
-        $product = Product::findOrFail($id);
+            // Lấy sản phẩm từ DB
+            $product = Product::findOrFail($id);
 
-        // Xử lý ảnh
-        if ($data['image_type'] === 'upload' && $request->hasFile('image_file')) {
-            // Xóa ảnh cũ nếu là file local
-            if ($product->image_url && str_starts_with($product->image_url, '/storage/')) {
-                $oldPath = str_replace('/storage/', '', $product->image_url);
-                if (Storage::disk('public')->exists($oldPath)) {
-                    Storage::disk('public')->delete($oldPath);
+            // Kiểm tra giá bán so với giá nhập
+            if (isset($data['purchase_prices']) && is_array($data['purchase_prices'])) {
+                $purchasePrices = array_filter($data['purchase_prices'], fn($price) => !is_null($price));
+                if (!empty($purchasePrices)) {
+                    $minPurchasePrice = min($purchasePrices);
+                    if ($data['selling_price'] < $minPurchasePrice) {
+                        return back()->withErrors([
+                            'selling_price' => 'Giá bán phải lớn hơn hoặc bằng giá nhập thấp nhất (' . $minPurchasePrice . ')'
+                        ])->withInput();
+                    }
                 }
             }
-            // Lưu ảnh mới
-            $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
-            $data['image_url'] = Storage::url($uploadedFilePath);
-        } elseif ($data['image_type'] === 'url' && !empty($data['image_url'])) {
-            // Nếu là url, xóa file cũ nếu là file local
-            if ($product->image_url && str_starts_with($product->image_url, '/storage/')) {
-                $oldPath = str_replace('/storage/', '', $product->image_url);
-                if (Storage::disk('public')->exists($oldPath)) {
-                    Storage::disk('public')->delete($oldPath);
+
+            // Xử lý ảnh
+            if ($data['image_input_type'] === 'file' && $request->hasFile('image_file')) {
+                // Xóa ảnh cũ nếu là file local
+                if ($product->image_url && str_starts_with($product->image_url, '/storage/')) {
+                    $oldPath = str_replace('/storage/', '', $product->image_url);
+                    if (Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
                 }
+                // Lưu ảnh mới
+                $uploadedFilePath = $request->file('image_file')->store('product_images', 'public');
+                $data['image_url'] = Storage::url($uploadedFilePath);
+            } elseif ($data['image_input_type'] === 'url' && !empty($data['image_url'])) {
+                // Nếu là url, xóa file cũ nếu là file local
+                if ($product->image_url && str_starts_with($product->image_url, '/storage/')) {
+                    $oldPath = str_replace('/storage/', '', $product->image_url);
+                    if (Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                }
+                // Xử lý Google Images URL
+                if (Str::contains($data['image_url'], 'google.com/imgres')) {
+                    parse_str(parse_url($data['image_url'], PHP_URL_QUERY), $query);
+                    $data['image_url'] = $query['imgurl'] ?? $data['image_url'];
+                }
+            } else {
+                // Không có ảnh mới, giữ nguyên ảnh cũ
+                $data['image_url'] = $product->image_url;
             }
-        } else {
-            // Không có ảnh mới, giữ nguyên ảnh cũ
-            $data['image_url'] = $product->image_url;
+
+            // Xóa các field phụ không cần lưu trong CSDL
+            unset($data['image_file'], $data['image_input_type']);
+
+            // Xử lý dữ liệu
+            $data['is_active'] = isset($data['is_active']) && $data['is_active'] === '1';
+            $data['selling_price'] = (float) $data['selling_price'];
+            $data['min_stock_level'] = $data['min_stock_level'] ? (int) $data['min_stock_level'] : null;
+            $data['max_stock_level'] = $data['max_stock_level'] ? (int) $data['max_stock_level'] : null;
+
+            // Tách supplier & giá nhập
+            $supplierIds = $data['selected_supplier_ids'] ?? [];
+            $purchasePrices = $data['purchase_prices'] ?? [];
+            unset($data['selected_supplier_ids'], $data['purchase_prices']);
+
+            // Cập nhật thông tin sản phẩm
+            $product->update($data);
+
+            // Cập nhật nhà cung cấp & giá nhập
+            $syncData = [];
+            foreach ($supplierIds as $supplierId) {
+                $syncData[$supplierId] = ['purchase_price' => $purchasePrices[$supplierId] ?? null];
+            }
+            $product->suppliers()->sync($syncData);
+
+            return redirect()->route('admin.products.index')->with('success', 'Cập nhật sản phẩm thành công!');
+        } catch (\Exception $e) {
+            Log::error('Error updating product: ' . $e->getMessage());
+            return back()->with([
+                'error' => 'Đã xảy ra lỗi khi cập nhật sản phẩm. Vui lòng thử lại sau.',
+            ])->withInput();
         }
-
-        unset($data['image_file'], $data['image_type']);
-
-        $data['is_active'] = isset($data['is_active']) && $data['is_active'] === '1';
-        $data['selling_price'] = (float) $data['selling_price'];
-        $data['min_stock_level'] = (int) $data['min_stock_level'];
-        $data['max_stock_level'] = (int) $data['max_stock_level'];
-
-        // Cập nhật thông tin sản phẩm
-        $product->update($data);
-
-        // Cập nhật nhà cung cấp liên kết
-        if (isset($data['selected_supplier_ids'])) {
-            $product->suppliers()->sync($data['selected_supplier_ids']);
-        }
-
-        return redirect()->route('admin.products.index')->with('success', 'Cập nhật sản phẩm thành công!');
     }
 
 
