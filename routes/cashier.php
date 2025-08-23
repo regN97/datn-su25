@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Cashier\ReturnController;
 use Inertia\Inertia;
 use App\Http\Controllers\Cashier\VNPayController;
 use Illuminate\Support\Facades\Route;
@@ -70,6 +71,13 @@ Route::prefix('cashier')->name('cashier.')->group(function () {
             Route::get('/', [CustomerLookupController::class, 'index'])->name('lookup');
             Route::post('/search', [CustomerLookupController::class, 'search'])->name('lookup.search');
             Route::get('/{customer}', [CustomerLookupController::class, 'show'])->name('show');
+        });
+        Route::prefix('returns')->name('returns.')->group(function () {
+            Route::get('/', [ReturnController::class, 'index'])->name('index');
+            Route::get('search', [ReturnController::class, 'search'])->name('search');
+            Route::get('all', [ReturnController::class, 'getAll'])->name('all');
+            Route::post('process', [ReturnController::class, 'processReturn'])->name('process');
+            Route::get('list', [ReturnController::class, 'list'])->name('list');
         });
     });
 });

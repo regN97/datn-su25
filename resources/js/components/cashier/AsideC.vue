@@ -7,7 +7,7 @@
       class="p-2 hover:bg-gray-100 rounded flex items-center gap-2">
     <Search class="w-5 h-5" />
     </Link>
-    <Link href="#" title="Đổi trả" class="p-2 hover:bg-gray-100 rounded">
+    <Link :href="route('cashier.returns.list')" title="Đổi trả" class="p-2 hover:bg-gray-100 rounded">
     <Undo2 class="w-5 h-5" />
     </Link>
     <Link :href="route('cashier.shift.report')" title="Báo cáo ca" class="p-2 hover:bg-gray-100 rounded">
