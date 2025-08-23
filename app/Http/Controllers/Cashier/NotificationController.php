@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Cashier;
 use App\Models\Bill;
 use Inertia\Inertia;
 use App\Models\Promotion;
+use App\Models\ReturnBill;
 use App\Models\CashRegisterSession;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
@@ -24,11 +25,13 @@ class NotificationController extends Controller
         $recentActivities = $this->getRecentActivities($user->id);
         $quickStats = $this->getQuickStats();
         $importantNotifications = $this->getImportantNotifications();
+        $recentReturns = $this->getRecentReturns($user->id);
 
         return Inertia::render('cashier/pos/Notifications', [
             'recentActivities' => $recentActivities->toArray(),
             'quickStats' => $quickStats,
             'importantNotifications' => $importantNotifications->toArray(),
+            'recentReturns' => $recentReturns->toArray(),
             'user' => $user->only(['id', 'name', 'email']),
         ]);
     }
@@ -54,12 +57,29 @@ class NotificationController extends Controller
             ->get()
             ->map(function ($session) {
                 return [
-                    'description' => $session->closed_at ? 'Đăng xuất hệ thống: Đã đăng xuất.' : 'Đăng nhập hệ thống: Đăng nhập thành công.',
+                    'description' => $session->closed_at
+                        ? 'Đăng xuất hệ thống: Đã đăng xuất.'
+                        : 'Đăng nhập hệ thống: Đăng nhập thành công.',
                     'time' => ($session->closed_at ?? $session->opened_at)->format('d/m/Y h:i A'),
                 ];
             });
 
-        return $bills->concat($sessions)->sortByDesc('time')->take(5)->values();
+        $returns = ReturnBill::where('cashier_id', $userId)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->latest()
+            ->take(2)
+            ->get()
+            ->map(function ($return) {
+                return [
+                    'description' => "Xử lý trả hàng: #{$return->return_bill_number} (Tổng: " . number_format($return->total_amount_returned, 0, ',', '.') . " VNĐ, Lý do: {$return->reason})",
+                    'time' => $return->created_at->format('d/m/Y h:i A'),
+                ];
+            });
+
+        return $bills->concat($sessions)->concat($returns)
+            ->sortByDesc(fn($item) => strtotime($item['time']))
+            ->take(5)
+            ->values();
     }
 
     private function getQuickStats()
@@ -67,7 +87,7 @@ class NotificationController extends Controller
         $today = now()->startOfDay();
         $totalTransactions = Bill::where('created_at', '>=', $today)->count();
         $totalRevenue = Bill::where('created_at', '>=', $today)->sum('total_amount');
-        $totalReturns = \App\Models\PurchaseReturn::where('created_at', '>=', $today)->count();
+        $totalReturns = ReturnBill::where('created_at', '>=', $today)->count();
         $bestSellingProduct = \App\Models\BillDetail::where('created_at', '>=', $today)
             ->groupBy('p_name')
             ->selectRaw('p_name, SUM(quantity) as total_quantity')
@@ -108,27 +128,35 @@ class NotificationController extends Controller
                 'isNew' => false,
                 'details' => 'Bảo trì dự kiến kéo dài 2 giờ. Hệ thống sẽ tạm ngưng xử lý giao dịch.',
             ],
-            // [
-            //     'message' => 'Cập nhật phần mềm POS phiên bản 2.1.3 đã hoàn tất.',
-            //     'time' => now()->subHours(6)->format('d/m/Y h:i A'),
-            //     'isNew' => true,
-            //     'details' => 'Phiên bản mới cải thiện hiệu suất in hóa đơn và xử lý trả hàng.',
-            // ],
             [
                 'message' => 'Nhắc nhở: Kiểm tra tồn kho trước khi đóng ca.',
                 'time' => now()->subHours(3)->format('d/m/Y h:i A'),
                 'isNew' => false,
                 'details' => 'Vui lòng đối chiếu số lượng sản phẩm thực tế với dữ liệu hệ thống.',
             ],
-            // [
-            //     'message' => 'Cảnh báo: Sản phẩm "Sữa tươi Vinamilk" sắp hết hàng.',
-            //     'time' => now()->subHours(1)->format('d/m/Y h:i A'),
-            //     'isNew' => true,
-            //     'details' => 'Tồn kho hiện tại: 5 sản phẩm. Vui lòng liên hệ bộ phận nhập hàng.',
-            // ],
         ]);
 
-        return $promotions->concat($systemNotifications)->sortByDesc('time')->take(10)->values();
+        return $promotions->concat($systemNotifications)
+            ->sortByDesc(fn($item) => strtotime($item['time']))
+            ->take(10)
+            ->values();
+    }
+
+    private function getRecentReturns($userId)
+    {
+        return ReturnBill::where('cashier_id', $userId)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($return) {
+                return [
+                    'id' => $return->id,
+                    'return_bill_number' => $return->return_bill_number,
+                    'total_amount_returned' => number_format($return->total_amount_returned, 0, ',', '.'),
+                    'reason' => $return->reason ?? 'Không có lý do',
+                    'created_at' => $return->created_at->format('d/m/Y h:i A'),
+                ];
+            });
     }
 }
-?>
