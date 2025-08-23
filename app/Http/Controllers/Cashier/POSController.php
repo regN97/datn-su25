@@ -775,10 +775,12 @@ class POSController
                     'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                 ]);
 
-                // Xử lý chi tiết hóa đơn và tồn kho (giữ nguyên phần còn lại của hàm)
+                // Xử lý chi tiết hóa đơn và tồn kho
                 foreach ($data['cart'] as $item) {
                     $product = Product::lockForUpdate()->find($item['id']);
                     $remainingQuantity = $item['quantity'];
+                    // Track the running stock for this product during the transaction
+                    $currentProductStock = $product->stock_quantity;
 
                     $batchItems = BatchItem::where('product_id', $item['id'])
                         ->whereIn('inventory_status', ['active', 'low_stock'])
@@ -815,11 +817,14 @@ class POSController
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
 
+                            // Calculate stock_after based on the current product stock before deduction
+                            $stockAfter = $currentProductStock - $quantityToDeduct;
+
                             InventoryTransaction::create([
                                 'transaction_type_id' => 2,
                                 'product_id' => $product->id,
                                 'quantity_change' => -$quantityToDeduct,
-                                'stock_after' => $product->stock_quantity - $quantityToDeduct,
+                                'stock_after' => $stockAfter,
                                 'unit_price' => $product->selling_price,
                                 'total_value' => $quantityToDeduct * $product->selling_price,
                                 'transaction_date' => Carbon::now('Asia/Ho_Chi_Minh'),
@@ -846,6 +851,8 @@ class POSController
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
 
+                            // Update the running stock for the next iteration
+                            $currentProductStock -= $quantityToDeduct;
                             $remainingQuantity -= $quantityToDeduct;
                         }
                     }
@@ -854,7 +861,7 @@ class POSController
                         throw new \Exception("Không đủ hàng trong kho cho sản phẩm {$product->name}.");
                     }
 
-                    $product->stock_quantity -= $item['quantity'];
+                    $product->stock_quantity = $currentProductStock;
                     $product->last_sold_at = Carbon::now('Asia/Ho_Chi_Minh');
                     $product->save();
 
@@ -874,6 +881,8 @@ class POSController
                 foreach ($freeItems as $freeItem) {
                     $product = Product::lockForUpdate()->find($freeItem['product_id']);
                     $remainingQuantity = $freeItem['quantity'];
+                    // Track the running stock for this product during the transaction
+                    $currentProductStock = $product->stock_quantity;
 
                     $batchItems = BatchItem::where('product_id', $freeItem['product_id'])
                         ->whereIn('inventory_status', ['active', 'low_stock'])
@@ -884,7 +893,7 @@ class POSController
                         })
                         ->where(function ($query) {
                             $query->whereNull('expiry_date')
-                                ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
+                                ->orWhere('expiry_date', '>=', Carbon::now('Asia/Ho_Chi_Minh'));
                         })
                         ->orderBy('created_at', 'asc')
                         ->lockForUpdate()
@@ -910,11 +919,14 @@ class POSController
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
 
+                            // Calculate stock_after based on the current product stock before deduction
+                            $stockAfter = $currentProductStock - $quantityToDeduct;
+
                             InventoryTransaction::create([
                                 'transaction_type_id' => 2,
                                 'product_id' => $product->id,
                                 'quantity_change' => -$quantityToDeduct,
-                                'stock_after' => $product->stock_quantity - $quantityToDeduct,
+                                'stock_after' => $stockAfter,
                                 'unit_price' => 0,
                                 'total_value' => 0,
                                 'transaction_date' => Carbon::now('Asia/Ho_Chi_Minh'),
@@ -941,11 +953,13 @@ class POSController
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
 
+                            // Update the running stock for the next iteration
+                            $currentProductStock -= $quantityToDeduct;
                             $remainingQuantity -= $quantityToDeduct;
                         }
                     }
 
-                    $product->stock_quantity -= $freeItem['quantity'];
+                    $product->stock_quantity = $currentProductStock;
                     $product->last_sold_at = Carbon::now('Asia/Ho_Chi_Minh');
                     $product->save();
 
