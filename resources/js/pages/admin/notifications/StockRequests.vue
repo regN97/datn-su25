@@ -48,7 +48,9 @@ const changePerPage = (event) => {
     currentPage.value = 1;
 };
 
-
+const unreadCount = computed(() => {
+    return props.stockRequests.filter(request => !request.read_at).length;
+});
 const markAsRead = async (notificationId) => {
     try {
         // Sử dụng router.post thay vì axios.post
@@ -97,10 +99,13 @@ const deleteRequest = async (notificationId) => {
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="p-6">
-                    <div class="mb-4 flex items-center justify-between">
+                       <div class="mb-4 flex items-center justify-between">
                         <h1 class="text-xl font-bold flex items-center gap-2">
                             <Bell class="h-6 w-6 text-gray-700" />
                             Thông báo nhập hàng
+                            <span v-if="unreadCount > 0" class="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                                {{ unreadCount }}
+                            </span>
                         </h1>
                     </div>
 
