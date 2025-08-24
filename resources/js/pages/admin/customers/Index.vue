@@ -119,22 +119,27 @@ function cancelDelete() {
             <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
                     <!-- Tiêu đề và nút Thêm mới và thùng rác -->
-                    <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <h1 class="text-2xl font-bold">Khách hàng</h1>
-                        <div class="flex items-center gap-2">
-                            <!-- ô tìm kiếm -->
-                            <input
-                                v-model="search"
-                                type="text"
-                                placeholder="Tìm kiếm..."
-                                class="border rounded px-3 py-2 w-[250px]"
-                            />
-                            <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
-                                <PackagePlus />
-                            </button>
-                            <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng rác</button>
-                        </div>
-                    </div>
+                   <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <h1 class="text-2xl font-bold">Khách hàng</h1>
+    <div class="flex items-center gap-2">
+        <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
+            <PackagePlus />
+        </button>
+        <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">
+            Thùng rác
+        </button>
+    </div>
+</div>
+
+<!-- Ô tìm kiếm -->
+<div class="mb-4">
+    <input
+        v-model="search"
+        type="text"
+        placeholder="Tìm kiếm..."
+        class="border rounded px-3 py-2 w-64 md:w-72 lg:w-80"
+    />
+</div>
 
                     <!-- Bảng danh sách khách hàng -->
                     <div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">

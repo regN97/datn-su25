@@ -1,13 +1,8 @@
 <script setup>
 import CashierLayout from '@/layouts/CashierLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Image, Search } from 'lucide-vue-next';
-import { ref } from 'vue';
-<<<<<<< HEAD
-=======
+import { ref, computed } from 'vue';
 import { Search, ChevronLeft, ChevronRight, Eye, UploadCloud, Image, Printer, X } from 'lucide-vue-next';
->>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
-
 const props = defineProps({
     bills: {
         type: Object,
@@ -34,6 +29,33 @@ const previewUrls = ref({});
 const isModalOpen = ref(false);
 const selectedBill = ref(null);
 
+// --- Computed property mới để gộp các sản phẩm giống nhau ---
+const groupedBillDetails = computed(() => {
+    if (!selectedBill.value || !selectedBill.value.details) return [];
+
+    const groups = {};
+    selectedBill.value.details.forEach(item => {
+        const key = item.product_name;
+        if (!groups[key]) {
+            groups[key] = {
+                product_name: item.product_name,
+                quantity: 0,
+                unit_price: item.unit_price,
+                subtotal: 0,
+            };
+        }
+        groups[key].quantity += item.quantity;
+        groups[key].subtotal += item.subtotal;
+    });
+    return Object.values(groups);
+});
+
+// --- Computed property để tính tổng tiền hàng từ dữ liệu đã gộp ---
+const subtotal_amount = computed(() => {
+    if (!selectedBill.value || !selectedBill.value.details) return 0;
+    return groupedBillDetails.value.reduce((sum, item) => sum + item.subtotal, 0);
+});
+
 const searchBills = () => {
     router.post(route('cashier.bill.lookup.search'), { query: query.value });
 };
@@ -59,13 +81,12 @@ const formatCurrency = (value) => {
     }).format(value);
 };
 
-const subtotal_amount = (bill) => {
-    if (!bill || !bill.details) return 0;
-    return bill.details.reduce((sum, item) => sum + item.subtotal, 0);
-};
-
 const changePage = (page) => {
-    router.get(route('cashier.bill.lookup'), { page, query: query.value }, { preserveState: true });
+    router.get(
+        route('cashier.bill.lookup'),
+        { page, query: query.value },
+        { preserveState: true }
+    );
 };
 
 const handleInlineUpload = (event, bill) => {
@@ -77,24 +98,28 @@ const handleInlineUpload = (event, bill) => {
     const formData = new FormData();
     formData.append('payment_proof', file);
 
-    router.post(route('cashier.bill.lookup.proof', { bill: bill.id }), formData, {
-        forceFormData: true,
-        onSuccess: () => {
-            router.reload();
-        },
-        onError: (errors) => {
-            console.error('Upload error:', errors);
-            alert('Có lỗi xảy ra khi tải lên: ' + Object.values(errors).join(', '));
-        },
-    });
+    router.post(
+        route('cashier.bill.lookup.proof', { bill: bill.id }),
+        formData,
+        {
+            forceFormData: true,
+            onSuccess: () => {
+                router.reload();
+            },
+            onError: (errors) => {
+                console.error('Upload error:', errors);
+                alert('Có lỗi xảy ra khi tải lên: ' + Object.values(errors).join(', '));
+            },
+        }
+    );
 };
 
 const formatDateTime = (val) => {
-  if (!val) return '-';
-  // xử lý cả chuỗi "YYYY-MM-DD HH:mm:ss"
-  const d = typeof val === 'string' ? new Date(val.replace(' ', 'T')) : new Date(val);
-  if (isNaN(d)) return val;            // nếu vẫn không parse được thì trả về nguyên gốc
-  return d.toLocaleString('vi-VN');
+    if (!val) return '-';
+    // xử lý cả chuỗi "YYYY-MM-DD HH:mm:ss"
+    const d = typeof val === 'string' ? new Date(val.replace(' ', 'T')) : new Date(val);
+    if (isNaN(d)) return val; // nếu vẫn không parse được thì trả về nguyên gốc
+    return d.toLocaleString('vi-VN');
 };
 
 const translatePaymentMethod = (method) => {
@@ -110,36 +135,26 @@ const translatePaymentMethod = (method) => {
     }
 };
 </script>
-
 <template>
     <Head title="Tra cứu hóa đơn" />
     <CashierLayout>
-<<<<<<< HEAD
-        <div class="mx-auto max-w-7xl p-6">
-=======
         <div class="p-6 max-w-7xl mx-auto no-print">
->>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
             <div class="mb-8">
-                <form @submit.prevent="searchBills" class="mx-auto flex max-w-2xl items-center gap-4">
+                <form @submit.prevent="searchBills" class="flex items-center gap-4 max-w-2xl mx-auto">
                     <div class="relative flex-1">
-                        <Search class="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 transform text-gray-500" />
-                        <input
-                            v-model="query"
-                            type="text"
+                        <Search class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+                        <input v-model="query" type="text"
                             placeholder="Nhập số hóa đơn, tên khách hàng, số điện thoại hoặc số lô..."
-                            class="w-full rounded-full border border-gray-300 bg-white p-3 pr-4 pl-12 shadow-sm transition duration-200 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        />
+                            class="w-full p-3 pl-12 pr-4 bg-white border border-gray-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200" />
                     </div>
-                    <button
-                        type="submit"
-                        class="rounded-full bg-blue-600 px-6 py-3 font-semibold text-white transition duration-200 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-                    >
+                    <button type="submit"
+                        class="px-6 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200">
                         Tìm kiếm
                     </button>
                 </form>
             </div>
 
-            <div v-if="bills && bills.data && bills.data.length" class="overflow-x-auto rounded-lg bg-white shadow">
+            <div v-if="bills && bills.data && bills.data.length" class="overflow-x-auto bg-white rounded-lg shadow">
                 <table class="min-w-full border-collapse">
                     <thead>
                         <tr class="bg-gray-100">
@@ -162,74 +177,12 @@ const translatePaymentMethod = (method) => {
                             <td class="p-4">
                                 <div class="flex flex-col gap-2">
                                     <div class="flex items-center gap-2">
-                                        <a
-                                            v-if="bill.payment_proof_url"
-                                            :href="bill.payment_proof_url"
-                                            target="_blank"
-                                            class="text-blue-600 hover:underline"
-                                        >
-                                            <Image class="inline-block h-5 w-5" />
+                                        <a v-if="bill.payment_proof_url" :href="bill.payment_proof_url" target="_blank"
+                                            class="text-blue-600 hover:underline">
+                                            <Image class="w-5 h-5 inline-block" />
                                         </a>
                                         <span v-else>-</span>
                                     </div>
-<<<<<<< HEAD
-                                    <input
-                                        type="file"
-                                        :id="'proof-' + bill.id"
-                                        class="text-sm file:rounded file:border-0 file:bg-blue-100 file:text-sm file:text-blue-700"
-                                        accept="image/*"
-                                        @change="handleInlineUpload($event, bill)"
-                                    />
-                                </div>
-                            </td>
-                            <td class="p-4">
-                                <button
-                                    @click="toggleDetails(bill.id)"
-                                    class="flex items-center gap-1 text-blue-600 hover:underline focus:outline-none"
-                                >
-                                    <template v-if="expandedBill === bill.id">
-                                        <EyeOff class="inline-block h-5 w-5" />
-                                    </template>
-                                    <template v-else>
-                                        <Eye class="inline-block h-5 w-5" />
-                                    </template>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr v-if="expandedBill" class="bg-gray-50">
-                            <td colspan="8" class="p-4">
-                                <div>
-                                    <h3 class="mb-3 font-semibold text-gray-700">
-                                        Chi tiết hóa đơn - {{ bills.data.find((b) => b.id === expandedBill)?.bill_number }}
-                                    </h3>
-                                    <table class="min-w-full rounded-lg border bg-white">
-                                        <thead>
-                                            <tr class="bg-gray-100">
-                                                <th class="p-3 text-left text-sm font-semibold text-gray-600">Sản phẩm</th>
-                                                <th class="p-3 text-left text-sm font-semibold text-gray-600">Số lô</th>
-                                                <th class="p-3 text-left text-sm font-semibold text-gray-600">Số lượng</th>
-                                                <th class="p-3 text-left text-sm font-semibold text-gray-600">Đơn giá</th>
-                                                <th class="p-3 text-left text-sm font-semibold text-gray-600">Thành tiền</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr
-                                                v-for="detail in getBillDetails(expandedBill)"
-                                                :key="detail.product_name"
-                                                class="border-t hover:bg-gray-50"
-                                            >
-                                                <td class="p-3">{{ detail.product_name }}</td>
-                                                <td class="p-3">{{ detail.batch_number || '-' }}</td>
-                                                <td class="p-3">{{ detail.quantity }}</td>
-                                                <td class="p-3">{{ formatCurrency(detail.unit_price) }}</td>
-                                                <td class="p-3">{{ formatCurrency(detail.subtotal) }}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </td>
-                        </tr>
-=======
                                     <input type="file" :id="'proof-' + bill.id"
                                         class="text-sm file:text-sm file:rounded file:border-0 file:bg-blue-100 file:text-blue-700"
                                         accept="image/*" @change="handleInlineUpload($event, bill)" />
@@ -243,31 +196,26 @@ const translatePaymentMethod = (method) => {
                                 </button>
                             </td>
                         </tr>
->>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                     </tbody>
                 </table>
             </div>
 
-            <p v-else class="mt-6 text-center text-gray-500">
+            <p v-else class="text-gray-500 text-center mt-6">
                 {{ query ? `Không tìm thấy hóa đơn nào khớp với "${query}".` : 'Không có hóa đơn nào để hiển thị.' }}
             </p>
 
             <div v-if="bills && bills.data && bills.data.length" class="mt-6 flex items-center justify-between">
-                <p class="text-sm text-gray-600">Hiển thị {{ bills.from }} đến {{ bills.to }} của {{ bills.total }} hóa đơn</p>
+                <p class="text-sm text-gray-600">
+                    Hiển thị {{ bills.from }} đến {{ bills.to }} của {{ bills.total }} hóa đơn
+                </p>
                 <div class="flex items-center gap-2">
-                    <button
-                        :disabled="!bills.prev_page_url"
-                        @click="changePage(bills.current_page - 1)"
-                        class="rounded-full bg-gray-100 p-2 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <ChevronLeft class="h-5 w-5 text-gray-600" />
+                    <button :disabled="!bills.prev_page_url" @click="changePage(bills.current_page - 1)"
+                        class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <ChevronLeft class="w-5 h-5 text-gray-600" />
                     </button>
-                    <button
-                        :disabled="!bills.next_page_url"
-                        @click="changePage(bills.current_page + 1)"
-                        class="rounded-full bg-gray-100 p-2 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <ChevronRight class="h-5 w-5 text-gray-600" />
+                    <button :disabled="!bills.next_page_url" @click="changePage(bills.current_page + 1)"
+                        class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <ChevronRight class="w-5 h-5 text-gray-600" />
                     </button>
                 </div>
             </div>
@@ -314,7 +262,7 @@ const translatePaymentMethod = (method) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="(item, index) in selectedBill.details" :key="index">
+                                    <tr v-for="(item, index) in groupedBillDetails" :key="index">
                                         <td class="py-1">{{ item.product_name }}</td>
                                         <td class="py-1 text-center">{{ item.quantity }}</td>
                                         <td class="py-1 text-right">{{ formatCurrency(item.unit_price) }}</td>
@@ -325,7 +273,7 @@ const translatePaymentMethod = (method) => {
                         </div>
                         <hr class="border-t border-gray-400 my-4">
                         <div class="text-right">
-                            <p class="mb-1">Tổng tiền hàng: <span class="font-semibold">{{ formatCurrency(subtotal_amount(selectedBill)) }}</span></p>
+                            <p class="mb-1">Tổng tiền hàng: <span class="font-semibold">{{ formatCurrency(subtotal_amount) }}</span></p>
                             <p class="mb-1">Giảm giá: <span class="font-semibold">{{ formatCurrency(selectedBill.discount_amount ?? 0) }}</span></p>
                             <p class="text-lg font-bold">Tổng thanh toán: <span class="font-bold">{{ formatCurrency(selectedBill.total_amount) }}</span></p>
                         </div>
@@ -356,46 +304,46 @@ const translatePaymentMethod = (method) => {
     }
 }
 @media print {
-  /* Ẩn tất cả phần không cần in */
-  .no-print, .no-print-bg { display: none !important; }
-  body * { visibility: hidden !important; }
+/* Ẩn tất cả phần không cần in */
+.no-print, .no-print-bg { display: none !important; }
+body * { visibility: hidden !important; }
 
-  /* Chỉ hiện phần hóa đơn */
-  #printable-invoice, #printable-invoice * { visibility: visible !important; }
+/* Chỉ hiện phần hóa đơn */
+#printable-invoice, #printable-invoice * { visibility: visible !important; }
 
-  /* Đặt hóa đơn ra khỏi khung modal, phủ đúng vùng trang in */
-  #printable-invoice {
-    position: fixed !important;         /* quan trọng: không còn bám theo modal */
+/* Đặt hóa đơn ra khỏi khung modal, phủ đúng vùng trang in */
+#printable-invoice {
+    position: fixed !important; /* quan trọng: không còn bám theo modal */
     top: 0 !important; left: 0 !important; right: 0 !important;
     margin: 0 auto !important; /* Căn giữa trên trang in */
     padding: 0 !important;
-    width: 100% !important;             /* chiếm toàn bộ bề ngang vùng in */
+    width: 100% !important; /* chiếm toàn bộ bề ngang vùng in */
     background: #fff !important;
     font-family: Arial, Helvetica, sans-serif !important;
     font-size: 12pt !important;
-    -webkit-print-color-adjust: exact;  /* giữ màu border/dashed nếu có */
+    -webkit-print-color-adjust: exact;/* giữ màu border/dashed nếu có */
     print-color-adjust: exact;
-  }
+}
 
-  body {
+body {
     margin: 0 !important;
     font-size: 12px !important;
     transform: scale(0.95); /* nếu muốn co nhỏ */
     transform-origin: top center !important; /* căn giữa theo trục ngang */
-  }
+}
 
-  #printable-invoice {
-    width: 80mm !important;         /* khổ giấy hóa đơn (80mm ~ A4 co nhỏ) */
-    margin: 0 auto !important;      /* căn giữa */
+#printable-invoice {
+    width: 80mm !important;/* khổ giấy hóa đơn (80mm ~ A4 co nhỏ) */
+    margin: 0 auto !important;/* căn giữa */
     background: #fff !important;
     padding: 0 !important;
-  }
+}
 
-  /* Bảng gọn gàng, căng đủ chiều ngang */
-  table { width: 100% !important; border-collapse: collapse !important; }
-  th, td { padding: 4px 6px !important; }
+/* Bảng gọn gàng, căng đủ chiều ngang */
+table { width: 100% !important; border-collapse: collapse !important; }
+th, td { padding: 4px 6px !important; }
 
-  /* Khổ giấy & lề in */
+/* Khổ giấy & lề in */
     @page {
         size: auto;
         margin: 5mm;
@@ -408,6 +356,4 @@ const translatePaymentMethod = (method) => {
     }
 
 }
-
-
 </style>

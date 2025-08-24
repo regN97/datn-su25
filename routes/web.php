@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\{
     InventoryController,
     UserController,
     BillController,
+    ReturnBillController,
     InventoryTransactionController,
     StockRequestController
 };
@@ -98,6 +99,8 @@ Route::prefix('admin')
 
         // Bills
         Route::resource('bills', BillController::class);
+
+        Route::resource('return-bills', ReturnBillController::class);
 
         Route::get('/stock-requests', [StockRequestController::class, 'index'])->name('stock.requests.index');
 

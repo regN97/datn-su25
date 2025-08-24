@@ -14,7 +14,7 @@ class Bill extends Model
     protected $fillable = [
         'bill_number', 'customer_id', 'sub_total', 'discount_amount', 'total_amount',
         'received_money', 'change_money', 'payment_method', 'payment_status_id',
-        'payment_proof_url', 
+        'payment_proof_url', 'txn_ref', 
         'notes', 'cashier_id', 'created_at', 'updated_at', 'deleted_at',
     ];
 
@@ -40,5 +40,13 @@ class Bill extends Model
     public function cashier()
     {
         return $this->belongsTo(User::class, 'cashier_id');
+    }
+    public function bills()
+    {
+        return $this->hasMany(Bill::class);
+    }
+    public function returnBills()
+    {
+        return $this->hasMany(ReturnBill::class);
     }
 }

@@ -112,22 +112,26 @@ onMounted(() => {
       <div
         class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
         <div class="p-6">
-          <div class="mb-4 flex items-center justify-between">
-            <h1 class="text-xl font-bold">Quản lý đơn vị tính</h1>
+          <div class="mb-4">
+  <!-- H1 + nút thêm -->
+  <div class="flex items-center justify-between mb-2">
+    <h1 class="text-xl font-bold">Quản lý đơn vị tính</h1>
+    <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
+      <PackagePlus />
+    </button>
+  </div>
 
-            <!-- thêm ô tìm kiếm -->
-            <div class="flex items-center gap-2">
-              <input
-                v-model="searchTerm"
-                type="text"
-                placeholder="Tìm theo tên đơn vị..."
-                class="border rounded px-3 py-2 text-sm"
-              />
-              <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
-                <PackagePlus />
-              </button>
-            </div>
-          </div>
+  <!-- Ô tìm kiếm (xuống dưới h1) -->
+  <div>
+    <input
+      v-model="searchTerm"
+      type="text"
+      placeholder="Tìm theo tên đơn vị..."
+      class="border rounded px-3 py-2 text-sm w-[250px]"
+    />
+  </div>
+</div>
+
 
           <div class="overflow-hidden rounded-lg bg-white shadow">
             <table class="w-full border-collapse text-sm table-fixed">

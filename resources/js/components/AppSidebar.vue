@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { FilePlus2, KeyRound, Layers3, LayoutGrid, PackageSearch, RotateCw, Truck, User, UserCog, Users, Warehouse, PencilRuler, TrendingUp, Bell } from 'lucide-vue-next';
+import { FilePlus2, KeyRound, Layers3, LayoutGrid, PackageSearch, RotateCw, Truck, User, UserCog, Users, Warehouse, PencilRuler, TrendingUp, Bell, Boxes, Package2 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+import SidebarDropdown from './SideBarDropdown.vue';
+
 </script>
 
 <template>
@@ -13,9 +16,8 @@ import AppLogo from './AppLogo.vue';
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" as-child>
-
                             <Link :href="route('admin.dashboard')">
-                                <AppLogo />
+                            <AppLogo />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -24,104 +26,123 @@ import AppLogo from './AppLogo.vue';
 
             <SidebarContent class="flex-1 px-4">
                 <!-- Tổng quan -->
-                <div class="sidebar-section-label mt-2 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase">
-                    <LayoutGrid class="h-4 w-4" />
+                <div
+                    class="mt-2 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase sidebar-section-label">
+                    <LayoutGrid class="w-4 h-4" />
                     <span class="sidebar-section-text">Tổng quan</span>
                 </div>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
-
                             <Link :href="route('admin.dashboard')" class="flex items-center gap-2">
-                                <LayoutGrid class="h-4 w-4" />
-                                Tổng quan bán hàng
+                            <LayoutGrid class="w-4 h-4" />
+                            Tổng quan bán hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
-
                             <Link :href="route('admin.dashboard.inventory')" class="flex items-center gap-2">
-                                <TrendingUp class="h-4 w-4" />
-                                Thống kê
+                            <TrendingUp class="w-4 h-4" />
+                            Thống kê
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
 
-                <div class="sidebar-section-label mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase">
-                    <PackageSearch class="h-4 w-4" />
+                <!-- Quản lý bán hàng -->
+                <div
+                    class="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase sidebar-section-label">
+                    <Package2 class="w-4 h-4" />
+                    <span class="sidebar-section-text">Quản lý bán hàng</span>
+                </div>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child>
+                            <Link :href="route('admin.bills.index')" class="flex items-center gap-2">
+                            <Boxes class="w-4 h-4" />
+                            Quản lý hóa đơn
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child>
+                            <Link :href="route('admin.return-bills.index')" class="flex items-center gap-2">
+                            <RotateCw class="w-4 h-4" />
+                            Quản lý đơn trả hàng
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+
+                <!-- Quản lý hàng hóa -->
+                <div
+                    class="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase sidebar-section-label">
+                    <PackageSearch class="w-4 h-4" />
                     <span class="sidebar-section-text">Quản lý hàng hóa</span>
                 </div>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.products.index')" class="flex items-center gap-2">
-                                <LayoutGrid class="h-4 w-4" />
-                                Quản lý sản phẩm
+                            <LayoutGrid class="w-4 h-4" />
+                            Quản lý sản phẩm
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.categories.index')" class="flex items-center gap-2">
-                                <PackageSearch class="h-4 w-4" />
-                                Quản lý danh mục
+                            <PackageSearch class="w-4 h-4" />
+                            Quản lý danh mục
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.suppliers.index')" class="flex items-center gap-2">
-                                <Warehouse class="h-4 w-4" />
-                                Quản lý nhà cung cấp
+                            <Warehouse class="w-4 h-4" />
+                            Quản lý nhà cung cấp
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.units.index')" class="flex items-center gap-2">
-                                <PencilRuler class="h-4 w-4" />
-                                Quản lý đơn vị tính
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton as-child>
-                            <Link :href="route('admin.bills.index')" class="flex items-center gap-2">
-                                <Boxes class="h-4 w-4" />
-                                Quản lý hóa đơn
+                            <PencilRuler class="w-4 h-4" />
+                            Quản lý đơn vị tính
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
 
-                <div class="sidebar-section-label mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase">
-                    <Warehouse class="h-4 w-4" />
+                <div
+                    class="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase sidebar-section-label">
+                    <Warehouse class="w-4 h-4" />
                     <span class="sidebar-section-text">Quản lý kho hàng</span>
                 </div>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.purchase-orders.index')" class="flex items-center gap-2">
-                                <Truck class="h-4 w-4" />
-                                Quản lý đơn đặt hàng
+                            <Truck class="w-4 h-4" />
+                            Quản lý đơn đặt hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.batches.index')" class="flex items-center gap-2">
-                                <FilePlus2 class="h-4 w-4" />
-                                Quản lý phiếu nhập hàng
+                            <FilePlus2 class="w-4 h-4" />
+                            Quản lý phiếu nhập hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.purchaseReturn.index')" class="flex items-center gap-2">
-                                <RotateCw class="h-4 w-4" />
-                                Quản lý phiếu trả hàng
+                            <RotateCw class="w-4 h-4" />
+                            Quản lý phiếu trả hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -130,13 +151,12 @@ import AppLogo from './AppLogo.vue';
                             <Link :href="route('admin.inventory.index')" class="flex items-center gap-2">
                             <Layers3 class="w-4 h-4" />
                             Quản lý tồn kho
-
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-
                 </SidebarMenu>
-                <!-- <div
+                
+                <div
                     class="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase sidebar-section-label">
                     <Bell class="w-4 h-4" />
                     <span class="sidebar-section-text">Thông báo</span>
@@ -147,22 +167,22 @@ import AppLogo from './AppLogo.vue';
                             <Link :href="route('admin.stock.requests.index')" class="flex items-center gap-2">
                                 <Bell class="w-4 h-4" />
                                 Thông báo nhập hàng
-
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                </SidebarMenu> -->
+                </SidebarMenu>
 
-                <div class="sidebar-section-label mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase">
-                    <User class="h-4 w-4" />
+                <div
+                    class="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase sidebar-section-label">
+                    <User class="w-4 h-4" />
                     <span class="sidebar-section-text">Quản lý người dùng</span>
                 </div>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child>
                             <Link :href="route('admin.customers.index')" class="flex items-center gap-2">
-                                <User class="h-4 w-4" />
-                                Quản lý khách hàng
+                            <User class="w-4 h-4" />
+                            Quản lý khách hàng
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

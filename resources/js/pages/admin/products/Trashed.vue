@@ -200,6 +200,9 @@ function resetFilters() {
 function toggleSidebar() {
     isSidebarOpen.value = !isSidebarOpen.value;
 }
+function goBack() {
+    router.visit('/admin/products');
+}
 </script>
 
 <template>
@@ -482,7 +485,7 @@ function toggleSidebar() {
                         </table>
                     </div>
 
-                    <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div v-if="paginatedProducts.length > 0" class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <p class="text-sm">
                             Hiển thị kết quả từ
                             <span class="font-semibold">{{ (currentPage - 1) * perPage + 1 }}</span>
@@ -518,6 +521,12 @@ function toggleSidebar() {
                             </select>
                             <p class="text-sm">kết quả</p>
                         </div>
+                    </div>
+                    <div class="mt-3 flex justify-end">
+                        <!-- Nút quay lại -->
+                        <button @click="goBack" class="text-primary-700 rounded bg-gray-200 px-6 py-2 hover:bg-gray-300">
+                            <span>Quay lại</span>
+                        </button>
                     </div>
                 </div>
             </div>

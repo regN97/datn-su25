@@ -1,9 +1,9 @@
 <script setup>
 import CashierLayout from '@/layouts/CashierLayout.vue';
 import { Head, usePage } from '@inertiajs/vue3';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { Search, Plus, DollarSign, Package, User } from 'lucide-vue-next';
 import axios from 'axios';
-import { DollarSign, Package, Plus, Search, User } from 'lucide-vue-next';
-import { onMounted, onUnmounted, ref } from 'vue';
 
 const { props } = usePage();
 const {
@@ -25,13 +25,17 @@ const productPage = ref(1);
 const itemsPerPage = 10;
 const loadingProducts = ref(false);
 const activeShift = ref(currentShift || 'Không xác định');
-const currentShiftRevenue = ref(shiftRevenue.find((s) => s.shift_name === activeShift.value)?.revenue || '0đ');
+const currentShiftRevenue = ref(
+    shiftRevenue.find((s) => s.shift_name === activeShift.value)?.revenue || '0đ'
+);
 
 const searchProducts = () => {
     const trimmedQuery = searchQuery.value.trim().toLowerCase();
     if (trimmedQuery) {
         filteredProducts.value = allProducts.filter(
-            (product) => product.name.toLowerCase().includes(trimmedQuery) || product.sku.toLowerCase().includes(trimmedQuery),
+            (product) =>
+                product.name.toLowerCase().includes(trimmedQuery) ||
+                product.sku.toLowerCase().includes(trimmedQuery)
         );
     } else {
         filteredProducts.value = [];
@@ -100,14 +104,18 @@ const handleScroll = (tableId, dataRef, pageRef, sourceData, loadingRef) => {
 onMounted(() => {
     const productsTable = document.getElementById('products-table');
     if (productsTable) {
-        productsTable.addEventListener('scroll', () => handleScroll('products-table', products, productPage, allProducts, loadingProducts));
+        productsTable.addEventListener('scroll', () =>
+            handleScroll('products-table', products, productPage, allProducts, loadingProducts)
+        );
     }
 });
 
 onUnmounted(() => {
     const productsTable = document.getElementById('products-table');
     if (productsTable) {
-        productsTable.removeEventListener('scroll', () => handleScroll('products-table', products, productPage, allProducts, loadingProducts));
+        productsTable.removeEventListener('scroll', () =>
+            handleScroll('products-table', products, productPage, allProducts, loadingProducts)
+        );
     }
 });
 </script>
@@ -118,29 +126,29 @@ onUnmounted(() => {
 
     <CashierLayout>
         <div class="container mx-auto mt-6 px-4">
-            <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div class="flex items-center justify-between rounded-lg bg-white p-4 shadow-md">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
                     <div>
                         <h6 class="text-sm font-medium text-gray-600">Doanh thu {{ activeShift }}</h6>
                         <h4 class="text-xl font-bold text-green-600">{{ currentShiftRevenue }}</h4>
                     </div>
                     <DollarSign class="text-3xl text-green-600" />
                 </div>
-                <div class="flex items-center justify-between rounded-lg bg-white p-4 shadow-md">
+                <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
                     <div>
                         <h6 class="text-sm font-medium text-gray-600">Đơn hàng trong ca</h6>
                         <h4 class="text-xl font-bold text-blue-600">{{ todayOrders }}</h4>
                     </div>
                     <Package class="text-3xl text-blue-600" />
                 </div>
-                <div class="flex items-center justify-between rounded-lg bg-white p-4 shadow-md">
+                <!-- <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
                     <div>
                         <h6 class="text-sm font-medium text-gray-600">Sản phẩm còn</h6>
                         <h4 class="text-xl font-bold text-yellow-600">{{ totalStock }}</h4>
                     </div>
                     <Package class="text-3xl text-yellow-600" />
-                </div>
-                <div class="flex items-center justify-between rounded-lg bg-white p-4 shadow-md">
+                </div> -->
+                <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
                     <div>
                         <h6 class="text-sm font-medium text-gray-600">Nhân viên trực</h6>
                         <h4 class="text-xl font-bold text-teal-600">{{ currentCashier }}</h4>
@@ -149,7 +157,7 @@ onUnmounted(() => {
                 </div>
             </div>
 
-            <div class="mb-6 flex flex-col gap-4 md:flex-row">
+            <div class="flex flex-col md:flex-row gap-4 mb-6">
                 <div class="flex w-full md:w-1/2">
                     <div class="relative w-full">
                         <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -168,13 +176,15 @@ onUnmounted(() => {
                 </button>
             </div>
 
-            <div v-if="filteredProducts.length" class="mb-6 rounded-lg bg-white shadow-md">
-                <div class="border-b bg-gray-50 p-4">
-                    <h6 class="flex items-center text-sm font-medium text-gray-600"><Package class="mr-2" /> Kết quả tìm kiếm</h6>
+            <div v-if="filteredProducts.length" class="bg-white shadow-md rounded-lg mb-6">
+                <div class="p-4 border-b bg-gray-50">
+                    <h6 class="text-sm font-medium text-gray-600 flex items-center">
+                        <Package class="mr-2" /> Kết quả tìm kiếm
+                    </h6>
                 </div>
-                <div class="max-h-96 overflow-y-auto">
+                <div class="overflow-y-auto max-h-96">
                     <table class="w-full text-left">
-                        <thead class="sticky top-0 bg-gray-100">
+                        <thead class="bg-gray-100 sticky top-0">
                             <tr>
                                 <th class="p-3 text-sm font-medium text-gray-600">Tên SP</th>
                                 <th class="p-3 text-sm font-medium text-gray-600">SL Đã Bán</th>
@@ -202,14 +212,16 @@ onUnmounted(() => {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div class="rounded-lg bg-white shadow-md">
-                    <div class="border-b bg-gray-50 p-4">
-                        <h6 class="flex items-center text-sm font-medium text-gray-600"><Package class="mr-2" /> Hóa đơn {{ activeShift }}</h6>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="bg-white shadow-md rounded-lg">
+                    <div class="p-4 border-b bg-gray-50">
+                        <h6 class="text-sm font-medium text-gray-600 flex items-center">
+                            <Package class="mr-2" /> Hóa đơn {{ activeShift }}
+                        </h6>
                     </div>
-                    <div id="shift-bills-table" class="max-h-96 overflow-y-auto">
+                    <div id="shift-bills-table" class="overflow-y-auto max-h-96">
                         <table class="w-full text-left">
-                            <thead class="sticky top-0 bg-gray-100">
+                            <thead class="bg-gray-100 sticky top-0">
                                 <tr>
                                     <th class="p-3 text-sm font-medium text-gray-600">#</th>
                                     <th class="p-3 text-sm font-medium text-gray-600">Khách hàng</th>
@@ -236,13 +248,15 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <div class="rounded-lg bg-white shadow-md">
-                    <div class="border-b bg-gray-50 p-4">
-                        <h6 class="flex items-center text-sm font-medium text-gray-600"><Package class="mr-2" /> Tất cả sản phẩm</h6>
+                <div class="bg-white shadow-md rounded-lg">
+                    <div class="p-4 border-b bg-gray-50">
+                        <h6 class="text-sm font-medium text-gray-600 flex items-center">
+                            <Package class="mr-2" /> Tất cả sản phẩm
+                        </h6>
                     </div>
-                    <div id="products-table" class="max-h-96 overflow-y-auto">
+                    <div id="products-table" class="overflow-y-auto max-h-96">
                         <table class="w-full text-left">
-                            <thead class="sticky top-0 bg-gray-100">
+                            <thead class="bg-gray-100 sticky top-0">
                                 <tr>
                                     <th class="p-3 text-sm font-medium text-gray-600">Tên SP</th>
                                     <th class="p-3 text-sm font-medium text-gray-600">SL Đã Bán</th>
@@ -265,47 +279,62 @@ onUnmounted(() => {
                                     </td>
                                 </tr>
                                 <tr v-if="!products.length" class="border-t">
-                                    <td colspan="5" class="p-3 text-center text-sm text-gray-500">Không có sản phẩm</td>
+                                    <td colspan="5" class="p-3 text-sm text-center text-gray-500">Không có sản phẩm</td>
                                 </tr>
                                 <tr v-if="loadingProducts" class="border-t">
-                                    <td colspan="5" class="p-3 text-center text-sm text-gray-500">Đang tải...</td>
+                                    <td colspan="5" class="p-3 text-sm text-center text-gray-500">Đang tải...</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
+            <!-- Modal yêu cầu nhập hàng -->
             <div v-if="showRequestModal"
-                class="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 transition-all duration-300">
-                <div
-                    class="bg-white/30 p-6 rounded-2xl shadow-xl w-full max-w-sm mx-auto border border-white/40 backdrop-blur-lg">
-                    <h3 class="text-xl font-bold mb-4 text-white drop-shadow-md">📦 Yêu cầu nhập hàng</h3>
-                    <p v-if="productToRequest" class="mb-4 text-gray-100 drop-shadow-sm">
-                        Bạn muốn yêu cầu nhập thêm hàng cho sản phẩm
-                        <strong class="text-white">{{ productToRequest.name }}</strong>
-                        (SKU: {{ productToRequest.sku }})?
-                    </p>
+                class="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm transition-opacity">
 
-                    <div class="mb-4">
-                        <label for="quantity" class="block text-sm font-medium text-white">Số lượng cần nhập:</label>
-                        <input id="quantity" type="number" v-model="quantityToRequest" min="1" class="mt-1 block w-full rounded-lg border-white/50 bg-white/20 text-white placeholder-gray-200
-                focus:border-yellow-400 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" />
+                <!-- Overlay (click ngoài để tắt) -->
+                <div class="absolute inset-0" @click="closeModal"></div>
+
+                <!-- Modal box -->
+                <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 animate-fadeIn">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800">📦 Yêu cầu nhập hàng</h3>
+                        <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition">
+                            ✖
+                        </button>
                     </div>
 
-                    <div class="flex justify-end gap-3">
+                    <!-- Body -->
+                    <div class="px-5 py-4">
+                        <p v-if="productToRequest" class="mb-4 text-gray-700">
+                            Bạn muốn yêu cầu nhập thêm hàng cho sản phẩm
+                            <strong class="text-gray-900">{{ productToRequest.name }}</strong>
+                            (SKU: {{ productToRequest.sku }})?
+                        </p>
+
+                        <div class="mb-4">
+                            <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Số lượng cần
+                                nhập:</label>
+                            <input id="quantity" type="number" v-model="quantityToRequest" min="1" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-800
+                      focus:border-yellow-400 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" />
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="flex justify-end gap-3 px-5 py-3 border-t border-gray-200">
                         <button @click="closeModal"
-                            class="px-4 py-2 bg-white/30 text-white rounded-lg hover:bg-white/40 transition backdrop-blur-sm">
+                            class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
                             ❌ Hủy
                         </button>
                         <button @click="submitStockRequest"
-                            class="px-4 py-2 bg-yellow-400/80 text-white rounded-lg hover:bg-yellow-500/80 shadow-md transition">
+                            class="px-4 py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 shadow-md transition">
                             📤 Gửi yêu cầu
                         </button>
                     </div>
                 </div>
             </div>
-
-
         </div>
     </CashierLayout>
 </template>
@@ -332,5 +361,13 @@ td {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
 }
 </style>

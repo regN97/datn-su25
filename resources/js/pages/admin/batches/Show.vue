@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { CheckCircle, ChevronLeft, CircleAlert, Edit, CheckSquare } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
@@ -34,14 +35,10 @@ interface Batch {
     received_date: string;
     invoice_number: string | null;
     total_amount: number;
-    payment_status: 'unpaid' | 'partially_paid' | 'paid';
+    payment_status: "unpaid" | "partially_paid" | "paid";
     paid_amount: number;
-<<<<<<< HEAD
-    receipt_status: 'partially_received' | 'completed' | 'cancelled';
-=======
-    receipt_status: "partially_received" | "completed"; // Receipt status từ migration
+    received_status: "completed"; // Receipt status từ migration
     status: "draft" | "pending" | "completed"; // Status chính để quản lý workflow
->>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
     notes: string | null;
     created_by: number;
     creator?: User;
@@ -154,7 +151,7 @@ interface PurchaseOrder {
     updated_at: string;
     deleted_at: string | null;
     items?: PurchaseOrderItem[];
-}
+};
 
 const props = withDefaults(defineProps<Props>(), {
     suppliers: () => [],
@@ -259,10 +256,9 @@ function formatPrice(price: number): string {
 }
 
 // Updated receipt status label để bao gồm draft
-const receiptStatusLabel = computed(() => {
-    const receiptStatus = currentBatch.value?.receipt_status;
-    if (receiptStatus === 'completed') return 'Hoàn thành';
-    if (receiptStatus === 'partially_received') return 'Nhận một phần';
+const receivedStatusLabel = computed(() => {
+    const receivedStatus = currentBatch.value?.received_status;
+    if (receivedStatus === 'completed') return 'Hoàn thành';
     return 'Không rõ';
 });
 
@@ -302,7 +298,13 @@ const paymentStatusInfo = computed(() => {
 });
 
 const isPaid = computed(() => currentBatch.value?.payment_status === 'paid');
-const isUnpaidOrPartial = computed(() => ['unpaid', 'partially_paid'].includes(currentBatch.value?.payment_status));
+const isUnpaidOrPartial = computed(() => {
+    const totalAmount = currentBatch.value?.total_amount ?? 0;
+    const paymentStatus = currentBatch.value?.payment_status;
+    
+    return totalAmount > 0 && 
+           ['unpaid', 'partially_paid'].includes(paymentStatus ?? '');
+});
 
 const formattedPaidAmount = computed(() => {
     const amount = currentBatch.value?.paid_amount || 0;
@@ -381,7 +383,7 @@ function handleApproveBatch() {
             <p>Sau khi duyệt, bạn sẽ không thể chỉnh sửa đơn này nữa.</p>
             <p><strong>Dữ liệu sẽ được cập nhật vào kho:</strong></p>
             <ul style="text-align: left; margin: 10px 0;">
-                ${aggregatedProducts.value.map(item => 
+                ${aggregatedProducts.value.map(item =>
                     `<li>${item.product_name}: +${item.received_quantity} sản phẩm</li>`
                 ).join('')}
             </ul>
@@ -434,14 +436,14 @@ function handleApproveBatch() {
                 onError: (errors) => {
                     console.error('Approval errors:', errors);
                     let errorMessage = 'Không thể duyệt đơn. Vui lòng thử lại.';
-                    
+
                     // Xử lý lỗi cụ thể nếu có
                     if (errors.general) {
                         errorMessage = errors.general;
                     } else if (typeof errors === 'string') {
                         errorMessage = errors;
                     }
-                    
+
                     Swal.fire({
                         icon: 'error',
                         title: 'Có lỗi xảy ra!',
@@ -594,7 +596,7 @@ function goBack() {
 <template>
     <Head title="Chi tiết lô hàng" />
     <AppLayout>
-        <div class="no-print min-h-screen bg-gray-50 p-4">
+        <div class="min-h-screen bg-gray-50 p-4 no-print">
             <div class="mx-auto max-w-7xl">
                 <div class="mb-4 flex items-center justify-between">
                     <div class="flex items-center">
@@ -609,7 +611,6 @@ function goBack() {
                             class="ml-2 rounded-full px-3 py-1 text-sm font-medium"
                             :class="{
                                 'bg-gray-100 text-gray-700': currentBatch?.status === 'draft',
-                                'bg-blue-100 text-blue-700': currentBatch?.status === 'pending',
                                 'bg-green-100 text-green-700': currentBatch?.status === 'completed',
                             }"
                         >
@@ -637,7 +638,7 @@ function goBack() {
                                 <span>Duyệt đơn</span>
                             </button>
                         </template>
-                        
+
                         <!-- Completed Status Buttons -->
                         <template v-if="isCompleted">
                             <button
@@ -664,6 +665,7 @@ function goBack() {
                         </template>
 
                         <!-- Print button - always show -->
+                         <template v-if="isCompleted">
                         <button
                             @click="printOrder"
                             class="flex items-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-300 hover:bg-gray-100"
@@ -685,6 +687,7 @@ function goBack() {
                             </svg>
                             <span>In đơn</span>
                         </button>
+                        </template>
                     </div>
                 </div>
 
@@ -748,7 +751,7 @@ function goBack() {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Payment section - Only show for completed batches -->
                         <div v-if="!isDraft" class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-100 p-4">
@@ -839,18 +842,9 @@ function goBack() {
                                         </div>
 
                                         <div>
-<<<<<<< HEAD
-                                            <label class="mb-1 block text-sm font-medium text-gray-700">Ngày ghi nhận</label>
-                                            <input
-                                                type="date"
-                                                v-model="paymentForm.paymentDate"
-                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                            />
-=======
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Ngày ghi nhận</label>
                                             <input type="date" v-model="paymentForm.paymentDate"
                                                 class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
->>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
                                         </div>
 
                                         <div>
@@ -928,12 +922,8 @@ function goBack() {
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn nhập hàng</label>
-                                    <input
-                                        type="text"
-                                        disabled
-                                        :value="batchNumber"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                    />
+                                    <input type="text" disabled :value="batchNumber"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                                 </div>
 
                                 <!-- Draft Status Info -->
@@ -987,22 +977,22 @@ function goBack() {
                 <table class="receipt-table">
                     <thead>
                         <tr>
-                            <th style="width: 5%">STT</th>
-                            <th style="width: 45%; text-align: left">Tên sản phẩm</th>
-                            <th style="width: 15%">SL</th>
-                            <th style="width: 20%">Đơn giá</th>
-                            <th style="width: 15%; text-align: right">Thành tiền</th>
+                            <th style="width: 5%;">STT</th>
+                            <th style="width: 45%; text-align: left;">Tên sản phẩm</th>
+                            <th style="width: 15%;">SL</th>
+                            <th style="width: 20%;">Đơn giá</th>
+                            <th style="width: 15%; text-align: right;">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(item, index) in aggregatedProducts" :key="item.product_id">
-                            <td style="text-align: center">{{ index + 1 }}</td>
-                            <td style="text-align: left">
+                            <td style="text-align: center;">{{ index + 1 }}</td>
+                            <td style="text-align: left;">
                                 {{ item.product_name }}
                             </td>
-                            <td style="text-align: center">{{ item.received_quantity }}</td>
-                            <td style="text-align: right">{{ formatPrice(item.purchase_price) }}</td>
-                            <td style="text-align: right">{{ formatPrice(item.total_amount) }}</td>
+                            <td style="text-align: center;">{{ item.received_quantity }}</td>
+                            <td style="text-align: right;">{{ formatPrice(item.purchase_price) }}</td>
+                            <td style="text-align: right;">{{ formatPrice(item.total_amount) }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1049,10 +1039,6 @@ function goBack() {
                 </div>
             </div>
         </div>
-<<<<<<< HEAD
-        -->
-=======
->>>>>>> bde3e6a249962476a9f9b507f4d894ab7bce0e2d
     </AppLayout>
 </template>
 
