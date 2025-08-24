@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { PackagePlus, Pencil, Trash2 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 // import { router } from '@inertiajs/vue3';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -30,12 +30,39 @@ const perPageOptions = [5, 10, 25, 50];
 const perPage = ref(5);
 const currentPage = ref(1);
 
-const total = computed(() => suppliers.value.length);
+const searchTerm = ref('');
+
+function normalize(str: string) {
+    return str
+        ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+        : '';
+}
+
+// danh sách sau khi lọc
+const filteredSuppliers = computed(() => {
+    if (!searchTerm.value) return suppliers.value;
+    const term = normalize(searchTerm.value);
+    return suppliers.value.filter(
+        (s) =>
+            normalize(s.name).includes(term) ||
+            normalize(s.contact_person || '').includes(term) ||
+            normalize(s.email || '').includes(term) ||
+            normalize(s.phone || '').includes(term) ||
+            normalize(s.address || '').includes(term)
+    );
+});
+
+const total = computed(() => filteredSuppliers.value.length);
 const totalPages = computed(() => Math.ceil(total.value / perPage.value));
 
 const paginatedSuppliers = computed(() => {
     const start = (currentPage.value - 1) * perPage.value;
-    return suppliers.value.slice(start, start + perPage.value);
+    return filteredSuppliers.value.slice(start, start + perPage.value);
+});
+
+//  reset về trang 1 khi search
+watch(searchTerm, () => {
+    currentPage.value = 1;
 });
 
 function goToPage(page: number) {
@@ -120,6 +147,16 @@ function cancelDelete() {
                                 class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng
                                 rác</button>
                         </div>
+                    </div>
+
+                    <!-- Ô tìm kiếm -->
+                    <div class="mb-4">
+                        <input
+                            v-model="searchTerm"
+                            type="text"
+                            placeholder="Tìm kiếm nhà cung cấp..."
+                            class="border rounded px-3 py-2 w-64 md:w-72 lg:w-80"
+                        />
                     </div>
 
                     <!-- Bảng danh mục -->

@@ -39,21 +39,21 @@ createInertiaApp({
 // This will set light / dark mode on page load...
 initializeTheme();
 export default {
-  name: 'POSKeyboardHandler',
-  props: {
-    onCheckout: {
-      type: Function,
-      required: false,
-      default: () => {},
+    name: 'POSKeyboardHandler',
+    props: {
+        onCheckout: {
+            type: Function,
+            required: false,
+            default: () => {},
+        },
+        // Other props...
     },
-    // Other props...
-  },
-  methods: {
-    handleCheckout() {
-      this.$emit('checkout');
-      if (this.onCheckout) {
-        this.onCheckout();
-      }
+    methods: {
+        handleCheckout() {
+            this.$emit('checkout');
+            if (this.onCheckout) {
+                this.onCheckout();
+            }
+        },
     },
-  },
 };

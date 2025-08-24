@@ -133,9 +133,7 @@ const submitForm = () => {
                             </div>
 
                             <div>
-                                <label for="wallet" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                                    Ví tiền
-                                </label>
+                                <label for="wallet" class="mb-2 block font-medium text-gray-700 dark:text-gray-300"> Ví tiền <span class="text-red-500">*</span></label>
                                 <input
                                     type="number"
                                     id="wallet"
@@ -156,7 +154,7 @@ const submitForm = () => {
                                 @click="goBack"
                                 class="inline-flex items-center rounded-md border border-gray-300 bg-white px-5 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors duration-200 ease-in-out hover:bg-gray-100 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none dark:border-gray-500 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
                             >
-                                 Quay lại
+                                Quay lại
                             </button>
 
                             <button

@@ -179,7 +179,6 @@ const submitForm = () => {
                 </div>
             </div>
         </div>
-
     </AppLayout>
 </template>
 

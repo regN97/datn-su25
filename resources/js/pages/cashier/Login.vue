@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import TextLink from '@/components/TextLink.vue'; // Giả sử component này tồn tại
 import { Button } from '@/components/ui/button'; // Các component UI từ thư viện của bạn
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -104,7 +103,8 @@ const submit = () => {
                 <Label for="remember" class="flex cursor-pointer items-center space-x-2 text-gray-700 select-none">
                     <Checkbox
                         id="remember"
-                        v-model:checked="form.remember" :tabindex="3"
+                        v-model:checked="form.remember"
+                        :tabindex="3"
                         class="form-checkbox h-5 w-5 border-gray-300 text-orange-500 focus:ring-orange-400"
                     />
                     <span>Ghi nhớ đăng nhập</span>
@@ -120,7 +120,6 @@ const submit = () => {
                     ĐĂNG NHẬP
                 </Button>
             </form>
-
-            </AuthBase>
+        </AuthBase>
     </div>
 </template>

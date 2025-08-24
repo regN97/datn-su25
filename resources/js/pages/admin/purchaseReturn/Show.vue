@@ -1,88 +1,94 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, router } from '@inertiajs/vue3'
-import { type BreadcrumbItem } from '@/types'
+import AppLayout from '@/layouts/AppLayout.vue';
+import { Head, router } from '@inertiajs/vue3';
 import { PencilLine, Printer } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface PurchaseReturn {
-    return_number: string
-    id: number
-    purchase_order_code: string
-    supplier_name: string
-    reason: string | null
-    return_date: string
-    status: 'pending' | 'approved' | 'completed' | 'rejected'
-    created_by: string
-    total_items_returned: number
-    total_value_returned: number
-    payment_status: 'unpaid' | 'paid'
+    return_number: string;
+    id: number;
+    purchase_order_code: string;
+    supplier_name: string;
+    reason: string | null;
+    return_date: string;
+    status: 'pending' | 'approved' | 'completed' | 'rejected';
+    created_by: string;
+    total_items_returned: number;
+    total_value_returned: number;
+    payment_status: 'unpaid' | 'paid';
     items: {
-        product_name: string
-        batch_number: string
-        product_sku: string
-        manufacturing_date: string | null
-        expiry_date: string | null
-        quantity_returned: number
-        unit_cost: number
-        subtotal: number
-        reason: string | null
-    }[]
+        product_name: string;
+        batch_number: string;
+        product_sku: string;
+        manufacturing_date: string | null;
+        expiry_date: string | null;
+        quantity_returned: number;
+        unit_cost: number;
+        subtotal: number;
+        reason: string | null;
+    }[];
 }
 
 const props = defineProps<{
-    purchaseReturn: PurchaseReturn
-}>()
+    purchaseReturn: PurchaseReturn;
+}>();
 
 const currentPurchaseReturn = ref<PurchaseReturn>(props.purchaseReturn);
 
 const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('vi-VN')
-}
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN');
+};
 
 const formatDateTimeForPrint = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('vi-VN', {
-        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
-    }).format(date).replace(',', ' -');
-}
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    })
+        .format(date)
+        .replace(',', ' -');
+};
 
 const formatCurrency = (value: number | null): string => {
     if (value === null || isNaN(value)) return '0 đ';
     return value.toLocaleString('vi-VN') + ' đ';
-}
+};
 
 const statusTextClass = (status: string) => {
     switch (status.toLowerCase()) {
         case 'rejected':
-            return 'text-red-500 bg-red-100'
+            return 'text-red-500 bg-red-100';
         case 'approved':
-            return 'text-blue-500 bg-blue-100'
+            return 'text-blue-500 bg-blue-100';
         case 'pending':
-            return 'text-amber-500 bg-amber-100'
+            return 'text-amber-500 bg-amber-100';
         case 'completed':
-            return 'text-green-500 bg-green-100'
+            return 'text-green-500 bg-green-100';
         default:
-            return 'text-gray-500 bg-gray-100'
+            return 'text-gray-500 bg-gray-100';
     }
-}
+};
 
 const translateStatus = (status: string) => {
     switch (status.toLowerCase()) {
         case 'pending':
-            return 'Chờ duyệt'
+            return 'Chờ duyệt';
         case 'approved':
-            return 'Đã duyệt'
+            return 'Đã duyệt';
         case 'completed':
-            return 'Hoàn thành'
+            return 'Hoàn thành';
         case 'rejected':
-            return 'Từ chối'
+            return 'Từ chối';
         default:
-            return status
+            return status;
     }
-}
+};
 
 // FIX: Handle potential undefined status
 const paymentStatusTextClass = (status: string) => {
@@ -91,13 +97,13 @@ const paymentStatusTextClass = (status: string) => {
     }
     switch (status.toLowerCase()) {
         case 'unpaid':
-            return 'text-red-500 bg-red-100'
+            return 'text-red-500 bg-red-100';
         case 'paid':
-            return 'text-green-500 bg-green-100'
+            return 'text-green-500 bg-green-100';
         default:
-            return 'text-gray-500 bg-gray-100'
+            return 'text-gray-500 bg-gray-100';
     }
-}
+};
 
 // FIX: Handle potential undefined status
 const translatePaymentStatus = (status: string) => {
@@ -106,20 +112,20 @@ const translatePaymentStatus = (status: string) => {
     }
     switch (status.toLowerCase()) {
         case 'unpaid':
-            return 'Chưa nhận hoàn tiền'
+            return 'Chưa nhận hoàn tiền';
         case 'paid':
-            return 'Đã nhận hoàn tiền'
+            return 'Đã nhận hoàn tiền';
         default:
-            return status
+            return status;
     }
-}
+};
 
 function goToIndex() {
-    router.visit('/admin/purchaseReturn')
+    router.visit('/admin/purchaseReturn');
 }
 
 function goToEdit(id: number) {
-    router.visit(`/admin/purchaseReturn/${id}/edit`)
+    router.visit(`/admin/purchaseReturn/${id}/edit`);
 }
 
 function printReturn() {
@@ -140,67 +146,75 @@ function completePurchaseReturn() {
                 onError: (errors) => {
                     console.error('Lỗi khi cập nhật trạng thái:', errors);
                     alert('Có lỗi xảy ra khi cập nhật trạng thái phiếu trả hàng.');
-                }
-            }
+                },
+            },
         );
     }
 }
 
-
 function confirmPayment() {
     if (confirm('Bạn có chắc chắn muốn xác nhận đã nhận hoàn tiền phiếu trả hàng này không?')) {
-        router.patch(route('admin.admin.purchaseReturn.confirmPayment', currentPurchaseReturn.value.id), {}, {
-            onSuccess: () => {
-                currentPurchaseReturn.value.payment_status = 'paid';
-                alert('Trạng thái thanh toán đã được cập nhật thành công.');
+        router.patch(
+            route('admin.admin.purchaseReturn.confirmPayment', currentPurchaseReturn.value.id),
+            {},
+            {
+                onSuccess: () => {
+                    currentPurchaseReturn.value.payment_status = 'paid';
+                    alert('Trạng thái thanh toán đã được cập nhật thành công.');
+                },
+                onError: (errors) => {
+                    console.error('Lỗi khi cập nhật trạng thái thanh toán:', errors);
+                    alert('Có lỗi xảy ra khi cập nhật trạng thái thanh toán.');
+                },
             },
-            onError: (errors) => {
-                console.error('Lỗi khi cập nhật trạng thái thanh toán:', errors);
-                alert('Có lỗi xảy ra khi cập nhật trạng thái thanh toán.');
-            }
-        });
-
+        );
     }
 }
 </script>
 
 <template>
-
     <Head title="Chi tiết phiếu trả hàng" />
     <AppLayout>
-        <div class="flex flex-1 flex-col gap-6 rounded-2xl p-8 bg-gray-50 min-h-screen no-print">
-            <div class="flex items-center justify-between mb-6">
+        <div class="no-print flex min-h-screen flex-1 flex-col gap-6 rounded-2xl bg-gray-50 p-8">
+            <div class="mb-6 flex items-center justify-between">
                 <h1 class="text-2xl font-bold text-gray-900">
                     Chi tiết phiếu trả hàng
-                    <span class="text-gray-500 font-medium">{{ currentPurchaseReturn.return_number }}</span>
+                    <span class="font-medium text-gray-500">{{ currentPurchaseReturn.return_number }}</span>
                 </h1>
                 <div class="flex items-center gap-2">
                     <button
-                        class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100 transition"
-                        title="In đơn" @click="printReturn">
-                        <Printer class="w-4 h-4" />
+                        class="flex items-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-100"
+                        title="In đơn"
+                        @click="printReturn"
+                    >
+                        <Printer class="h-4 w-4" />
                         <span>In phiếu</span>
                     </button>
-                    <button @click="goToEdit(currentPurchaseReturn.id)"
-                        class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100 transition">
+                    <button
+                        @click="goToEdit(currentPurchaseReturn.id)"
+                        class="flex items-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-100"
+                    >
                         <PencilLine class="h-4 w-4" />
                         <span>Sửa đơn</span>
                     </button>
-                    <button @click="goToIndex"
-                        class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100 transition">
+                    <button
+                        @click="goToIndex"
+                        class="flex items-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-100"
+                    >
                         <span>Quay lại</span>
                     </button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div class="col-span-2 space-y-6">
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Thông tin chung</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                    <div class="rounded-xl bg-white p-6 shadow-md">
+                        <h2 class="mb-4 border-b pb-3 text-lg font-semibold text-gray-800">Thông tin chung</h2>
+                        <div class="grid grid-cols-1 gap-4 text-sm text-gray-700 md:grid-cols-2">
                             <div>
-                                <p class="mb-1"><strong>Mã phiếu trả hàng:</strong> <span class="font-medium">{{
-                                    currentPurchaseReturn.return_number }}</span></p>
+                                <p class="mb-1">
+                                    <strong>Mã phiếu trả hàng:</strong> <span class="font-medium">{{ currentPurchaseReturn.return_number }}</span>
+                                </p>
                                 <!-- <p class="mb-1">
                                     <strong>Mã đơn đặt hàng:</strong>
                                     <span class="font-medium">
@@ -208,61 +222,82 @@ function confirmPayment() {
                                     </span>
                                 </p> -->
 
-                                <p class="mb-1"><strong>Nhà cung cấp:</strong> <span class="font-medium">{{
-                                    currentPurchaseReturn.supplier_name }}</span></p>
-                                <p class="mb-1"><strong>Lý do trả hàng:</strong> <span class="font-medium">{{
-                                    currentPurchaseReturn.reason || 'Không có' }}</span></p>
+                                <p class="mb-1">
+                                    <strong>Nhà cung cấp:</strong> <span class="font-medium">{{ currentPurchaseReturn.supplier_name }}</span>
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Lý do trả hàng:</strong> <span class="font-medium">{{ currentPurchaseReturn.reason || 'Không có' }}</span>
+                                </p>
                             </div>
                             <div>
-                                <p class="mb-1"><strong>Ngày trả hàng:</strong> <span class="font-medium">{{
-                                    formatDate(currentPurchaseReturn.return_date) }}</span></p>
-                                <p class="mb-1"><strong>Trạng thái:</strong>
-                                    <span class="inline-block font-medium px-3 py-1 rounded-full text-xs"
-                                        :class="statusTextClass(currentPurchaseReturn.status)">
+                                <p class="mb-1">
+                                    <strong>Ngày trả hàng:</strong>
+                                    <span class="font-medium">{{ formatDate(currentPurchaseReturn.return_date) }}</span>
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Trạng thái:</strong>
+                                    <span
+                                        class="inline-block rounded-full px-3 py-1 text-xs font-medium"
+                                        :class="statusTextClass(currentPurchaseReturn.status)"
+                                    >
                                         {{ translateStatus(currentPurchaseReturn.status) }}
                                     </span>
                                 </p>
 
-                                <p class="mb-1"><strong>Người tạo phiếu:</strong> <span class="font-medium">{{
-                                    currentPurchaseReturn.created_by }}</span></p>
+                                <p class="mb-1">
+                                    <strong>Người tạo phiếu:</strong> <span class="font-medium">{{ currentPurchaseReturn.created_by }}</span>
+                                </p>
                             </div>
 
                             <div
-                                class="flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+                                class="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm transition-shadow duration-200 hover:shadow-md"
+                            >
                                 <!-- Icon -->
-                                <div class="flex items-center justify-center w-6 h-6 rounded-full" :class="{
-                                    'bg-green-600': currentPurchaseReturn.payment_status === 'paid',
-                                    'bg-amber-600': currentPurchaseReturn.payment_status !== 'paid'
-                                }">
-                                    <svg v-if="currentPurchaseReturn.payment_status === 'paid'"
-                                        class="w-4 h-4 text-white" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M5 13l4 4L19 7" />
+                                <div
+                                    class="flex h-6 w-6 items-center justify-center rounded-full"
+                                    :class="{
+                                        'bg-green-600': currentPurchaseReturn.payment_status === 'paid',
+                                        'bg-amber-600': currentPurchaseReturn.payment_status !== 'paid',
+                                    }"
+                                >
+                                    <svg
+                                        v-if="currentPurchaseReturn.payment_status === 'paid'"
+                                        class="h-4 w-4 text-white"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                     </svg>
-                                    <svg v-else class="w-4 h-4 text-white" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <svg v-else class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
                                     </svg>
                                 </div>
 
                                 <!-- Text -->
-                                <span class="text-sm font-medium" :class="{
-                                    'text-green-700': currentPurchaseReturn.payment_status === 'paid',
-                                    'text-amber-700': currentPurchaseReturn.payment_status !== 'paid'
-                                }">
+                                <span
+                                    class="text-sm font-medium"
+                                    :class="{
+                                        'text-green-700': currentPurchaseReturn.payment_status === 'paid',
+                                        'text-amber-700': currentPurchaseReturn.payment_status !== 'paid',
+                                    }"
+                                >
                                     {{ translatePaymentStatus(currentPurchaseReturn.payment_status) }}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Danh sách sản phẩm</h2>
+                    <div class="rounded-xl bg-white p-6 shadow-md">
+                        <h2 class="mb-4 border-b pb-3 text-lg font-semibold text-gray-800">Danh sách sản phẩm</h2>
                         <div class="overflow-x-auto">
                             <table class="min-w-full text-sm">
-                                <thead class="bg-gray-50 text-gray-600 uppercase font-semibold">
+                                <thead class="bg-gray-50 font-semibold text-gray-600 uppercase">
                                     <tr class="border-b">
                                         <th class="px-4 py-3 text-left">Tên sản phẩm</th>
                                         <th class="px-4 py-3 text-left">Mã lô</th>
@@ -276,16 +311,16 @@ function confirmPayment() {
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200">
-                                    <tr v-for="item in currentPurchaseReturn.items" :key="item.product_sku"
-                                        class="hover:bg-gray-50 transition-colors">
+                                    <tr
+                                        v-for="item in currentPurchaseReturn.items"
+                                        :key="item.product_sku"
+                                        class="transition-colors hover:bg-gray-50"
+                                    >
                                         <td class="px-4 py-3 font-medium">{{ item.product_name }}</td>
                                         <td class="px-4 py-3">{{ item.batch_number }}</td>
                                         <td class="px-4 py-3">{{ item.product_sku }}</td>
-                                        <td class="px-4 py-3">{{ item.manufacturing_date ?
-                                            formatDate(item.manufacturing_date) : '—' }}</td>
-                                        <td class="px-4 py-3">{{ item.expiry_date ? formatDate(item.expiry_date) : '—'
-                                            }}
-                                        </td>
+                                        <td class="px-4 py-3">{{ item.manufacturing_date ? formatDate(item.manufacturing_date) : '—' }}</td>
+                                        <td class="px-4 py-3">{{ item.expiry_date ? formatDate(item.expiry_date) : '—' }}</td>
                                         <td class="px-4 py-3 text-center">{{ item.quantity_returned }}</td>
                                         <td class="px-4 py-3 text-right">{{ formatCurrency(item.unit_cost) }}</td>
                                         <td class="px-4 py-3 text-right">{{ formatCurrency(item.subtotal) }}</td>
@@ -298,36 +333,37 @@ function confirmPayment() {
                 </div>
 
                 <div class="col-span-1 space-y-6">
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Tổng kết</h2>
+                    <div class="rounded-xl bg-white p-6 shadow-md">
+                        <h2 class="mb-4 border-b pb-3 text-lg font-semibold text-gray-800">Tổng kết</h2>
                         <div class="space-y-2 text-sm">
-                            <p class="flex justify-between items-center text-gray-600">
+                            <p class="flex items-center justify-between text-gray-600">
                                 <span>Tổng số sản phẩm trả:</span>
-                                <span class="font-medium text-gray-800">{{ currentPurchaseReturn.total_items_returned
-                                    }}</span>
+                                <span class="font-medium text-gray-800">{{ currentPurchaseReturn.total_items_returned }}</span>
                             </p>
-                            <p
-                                class="flex justify-between items-center font-bold text-lg text-blue-600 border-t pt-4 mt-4">
+                            <p class="mt-4 flex items-center justify-between border-t pt-4 text-lg font-bold text-blue-600">
                                 <span>Tổng giá trị trả lại:</span>
                                 <span>{{ formatCurrency(currentPurchaseReturn.total_value_returned) }}</span>
                             </p>
                         </div>
                     </div>
-                    <!-- <div class="bg-white rounded-xl shadow-md p-6" v-if="currentPurchaseReturn.status === 'pending'">
-                        <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Hành động</h2>
+                    <div class="rounded-xl bg-white p-6 shadow-md" v-if="currentPurchaseReturn.status === 'pending'">
+                        <h2 class="mb-4 border-b pb-3 text-lg font-semibold text-gray-800">Hành động</h2>
                         <div class="flex flex-col gap-3">
-                            <button @click="completePurchaseReturn"
-                                class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition">
+                            <button
+                                @click="completePurchaseReturn"
+                                class="w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
+                            >
                                 Gửi yêu cầu và hoàn thành
                             </button>
                         </div>
-                    </div> -->
-                    <div class="bg-white rounded-xl shadow-md p-6"
-                        v-if="currentPurchaseReturn.payment_status === 'unpaid'">
-                        <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Thanh toán</h2>
+                    </div>
+                    <div class="rounded-xl bg-white p-6 shadow-md" v-if="currentPurchaseReturn.payment_status === 'unpaid'">
+                        <h2 class="mb-4 border-b pb-3 text-lg font-semibold text-gray-800">Thanh toán</h2>
                         <div class="flex flex-col gap-3">
-                            <button @click="confirmPayment"
-                                class="w-full bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition">
+                            <button
+                                @click="confirmPayment"
+                                class="w-full rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition hover:bg-green-700"
+                            >
                                 Xác nhận đã nhận hoàn tiền
                             </button>
                         </div>
@@ -359,8 +395,7 @@ function confirmPayment() {
                         </p>
                         <p class="col-6">
                             <span class="label">Ngày tạo:</span>
-                            <span class="value">{{ new
-                                Date(currentPurchaseReturn.return_date).toLocaleDateString('vi-VN') }}</span>
+                            <span class="value">{{ new Date(currentPurchaseReturn.return_date).toLocaleDateString('vi-VN') }}</span>
                         </p>
                     </div>
                     <div>
@@ -376,20 +411,20 @@ function confirmPayment() {
                 <table class="receipt-table">
                     <thead>
                         <tr>
-                            <th style="width: 5%;">STT</th>
-                            <th style="width: 45%; text-align: left;">Tên sản phẩm</th>
-                            <th style="width: 15%;">SL</th>
-                            <th style="width: 20%;">Đơn giá</th>
-                            <th style="width: 15%; text-align: right;">Thành tiền</th>
+                            <th style="width: 5%">STT</th>
+                            <th style="width: 45%; text-align: left">Tên sản phẩm</th>
+                            <th style="width: 15%">SL</th>
+                            <th style="width: 20%">Đơn giá</th>
+                            <th style="width: 15%; text-align: right">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(item, index) in currentPurchaseReturn.items" :key="item.product_sku">
-                            <td style="text-align: center;">{{ index + 1 }}</td>
-                            <td style="text-align: left;">{{ item.product_name }}</td>
-                            <td style="text-align: center;">{{ item.quantity_returned }}</td>
-                            <td style="text-align: right;">{{ formatCurrency(item.unit_cost) }}</td>
-                            <td style="text-align: right;">{{ formatCurrency(item.subtotal) }}</td>
+                            <td style="text-align: center">{{ index + 1 }}</td>
+                            <td style="text-align: left">{{ item.product_name }}</td>
+                            <td style="text-align: center">{{ item.quantity_returned }}</td>
+                            <td style="text-align: right">{{ formatCurrency(item.unit_cost) }}</td>
+                            <td style="text-align: right">{{ formatCurrency(item.subtotal) }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -445,7 +480,7 @@ function confirmPayment() {
         -webkit-print-color-adjust: exact;
     }
 
-    body>*:not(.print-only) {
+    body > *:not(.print-only) {
         display: none !important;
     }
 

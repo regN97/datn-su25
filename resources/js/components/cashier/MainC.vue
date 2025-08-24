@@ -1,7 +1,7 @@
 <template>
-  <main class="flex-1 p-4 overflow-y-auto">
-    <div class="bg-white rounded-xl shadow p-6 min-h-[700px]">
-      <slot></slot>
-    </div>
-  </main>
+    <main class="flex-1 overflow-y-auto p-4">
+        <div class="min-h-[700px] rounded-xl bg-white p-6 shadow">
+            <slot></slot>
+        </div>
+    </main>
 </template>
