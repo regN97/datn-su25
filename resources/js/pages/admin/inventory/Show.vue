@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Chi tiết tồn kho',
