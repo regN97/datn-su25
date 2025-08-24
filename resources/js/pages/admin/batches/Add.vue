@@ -43,8 +43,8 @@ interface User {
 interface SelectedProduct extends Product {
     quantity: number;
     total: number;
-    manufacturingDate?: string;
-    expiryDate?: string;
+    manufacturing_date?: string;
+    expiry_date?: string;
 }
 
 interface ProductsResponse {
@@ -180,8 +180,8 @@ const selectedProducts = computed(() => {
             ...product,
             quantity: item.received_quantity,
             total: item.total_amount,
-            manufacturingDate: item.manufacturing_date,
-            expiryDate: item.expiry_date,
+            manufacturing_date: item.manufacturing_date,
+            expiry_date: item.expiry_date,
             purchase_price: item.purchase_price,
         } as SelectedProduct;
     });
@@ -248,6 +248,22 @@ function goBack() {
     window.history.back();
 }
 
+const now = () => {
+  const d = new Date();
+const pad = (n: number) => n.toString().padStart(2, "0");
+  return (
+    d.getFullYear() +
+    "-" +
+    pad(d.getMonth() + 1) +
+    "-" +
+    pad(d.getDate()) +
+    "T" +
+    pad(d.getHours()) +
+    ":" +
+    pad(d.getMinutes())
+  );
+};
+
 function formatPrice(price: number): string {
     return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
@@ -296,8 +312,8 @@ function selectProduct(product: Product) {
             received_quantity: 1,
             purchase_price: 0,
             total_amount: 0,
-            manufacturing_date: undefined,
-            expiry_date: undefined,
+            manufacturing_date: '',
+            expiry_date: '',
         });
     }
     searchQuery.value = '';
@@ -311,6 +327,13 @@ function selectProduct(product: Product) {
             replace: true,
         },
     );
+}
+
+function updateDate(productId: number, dateType: 'manufacturing_date' | 'expiry_date', value: string) {
+    const item = form.batch_items.find(item => item.product_id === productId);
+    if (item) {
+        item[dateType] = value;
+    }
 }
 
 function updateQuantity(productId: number, quantity: number) {
@@ -427,15 +450,15 @@ function handleFormattedInput(event: Event) {
 const todayStr = new Date().toISOString().split('T')[0];
 
 function validateProductDates(item: typeof form.batch_items[number]) {
-    const errors: { manufacturingDate?: string; expiryDate?: string } = {};
+    const errors: { manufacturing_date?: string; expiry_date?: string } = {};
     if (item.manufacturing_date) {
         if (item.manufacturing_date > todayStr) {
-            errors.manufacturingDate = 'NSX phải nhỏ hơn ngày hiện tại';
+            errors.manufacturing_date = 'NSX phải nhỏ hơn ngày hiện tại';
         }
     }
     if (item.expiry_date && item.manufacturing_date) {
         if (item.expiry_date <= item.manufacturing_date) {
-            errors.expiryDate = 'HSD phải lớn hơn NSX';
+            errors.expiry_date = 'HSD phải lớn hơn NSX';
         }
     }
     return errors;
@@ -445,10 +468,10 @@ function submitBatch() {
     for (const item of form.batch_items) {
         const errors = validateProductDates(item);
         const product = props.products.data.find((p) => p.id === item.product_id);
-        if (errors.manufacturingDate || errors.expiryDate) {
+        if (errors.manufacturing_date || errors.expiry_date) {
             let msg = '';
-            if (errors.manufacturingDate) msg += `Sản phẩm "${product?.name}": ${errors.manufacturingDate}\n`;
-            if (errors.expiryDate) msg += `Sản phẩm "${product?.name}": ${errors.expiryDate}\n`;
+            if (errors.manufacturing_date) msg += `Sản phẩm "${product?.name}": ${errors.manufacturing_date}\n`;
+            if (errors.expiry_date) msg += `Sản phẩm "${product?.name}": ${errors.expiry_date}\n`;
             Swal.fire({
                 icon: 'error',
                 title: 'Lỗi ngày sản xuất/hết hạn',
@@ -559,6 +582,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+
     <Head title="Create Batch" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <form @submit.prevent="submitBatch">
@@ -634,11 +658,17 @@ onUnmounted(() => {
                                                         </button>
                                                     </td>
                                                     <td class="px-4 py-3 text-center">
-                                                        <input type="date" v-model="product.manufacturingDate"
+                                                        <input type="date"
+                                                            :value="form.batch_items.find(item => item.product_id === product.id)?.manufacturing_date"
+                                                            @input="updateDate(product.id, 'manufacturing_date', ($event.target as HTMLInputElement).value)"
                                                             class="w-full rounded-md border border-gray-300 px-1 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                                                     </td>
+
+                                                    <!-- Hạn sử dụng -->
                                                     <td class="px-4 py-3 text-center">
-                                                        <input type="date" v-model="product.expiryDate"
+                                                        <input type="date"
+                                                            :value="form.batch_items.find(item => item.product_id === product.id)?.expiry_date"
+                                                            @input="updateDate(product.id, 'expiry_date', ($event.target as HTMLInputElement).value)"
                                                             class="w-full rounded-md border border-gray-300 px-1 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                                                     </td>
                                                     <td
@@ -810,7 +840,7 @@ onUnmounted(() => {
                             <!-- Suppliers Search -->
                             <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                                 <div class="border-b border-gray-200 p-4">
-                                    <h2 class="text-lg font-semibold">Tìm kiếm hay thêm mới nhà cung cấp</h2>
+                                    <h2 class="text-lg font-semibold">Tìm kiếm nhà cung cấp</h2>
                                     <div v-if="supplierError.length > 0" class="text-sm text-red-500">
                                         {{ supplierError }}
                                     </div>
@@ -894,7 +924,7 @@ onUnmounted(() => {
                                     <div>
                                         <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập
                                             hàng</label>
-                                        <input type="datetime-local" v-model="form.import_date"
+                                        <input type="datetime-local" v-model="form.import_date" :min="now()"
                                             class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                 </div>

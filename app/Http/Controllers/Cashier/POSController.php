@@ -831,6 +831,7 @@ class POSController
                                 'related_bill_id' => $bill->id,
                                 'related_batch_id' => $batchItem->batch_id,
                                 'user_id' => $user->id,
+                                'note' => 'Xuất hàng từ hóa đơn ' . $bill->bill_number,
                                 'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
@@ -933,6 +934,7 @@ class POSController
                                 'related_bill_id' => $bill->id,
                                 'related_batch_id' => $batchItem->batch_id,
                                 'user_id' => $user->id,
+                                'note' => 'Xuất hàng từ đơn ' . $bill->bill_number,
                                 'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);

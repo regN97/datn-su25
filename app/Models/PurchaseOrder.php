@@ -85,36 +85,29 @@ class PurchaseOrder extends Model
     public function updateStatusBasedOnItems()
     {
         $items = $this->items; // Quan hệ hasMany purchase_order_items
-        $isFullyReceived = true;
         $hasAnyReceived = false;
 
         foreach ($items as $item) {
-            $orderedQty = $item->ordered_quantity;
-
             $receivedQty = BatchItem::where('purchase_order_item_id', $item->id)
                 ->sum('current_quantity');
 
             if ($receivedQty > 0) {
                 $hasAnyReceived = true;
             }
-
-            if ($receivedQty < $orderedQty) {
-                $isFullyReceived = false;
-            }
         }
 
-        if ($isFullyReceived) {
+        if ($hasAnyReceived) {
+            // Nếu có nhận (dù ít hay đủ) thì coi như completed
             $this->status_id = 4; // completed
             $this->actual_delivery_date = Batch::where('purchase_order_id', $this->id)->max('received_date');
-        } elseif ($hasAnyReceived) {
-            $this->status_id = 3; // partially_received
-            $this->actual_delivery_date = Batch::where('purchase_order_id', $this->id)->max('received_date');
         } else {
-            $this->status_id = 2; // approved, chưa nhận gì
+            // Nếu chưa nhận gì thì vẫn giữ là approved
+            $this->status_id = 2; // approved
             $this->actual_delivery_date = null;
         }
 
         $this->save();
     }
+
 }
 
