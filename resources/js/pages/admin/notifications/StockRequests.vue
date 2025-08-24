@@ -53,9 +53,7 @@ const changePerPage = (event) => {
     currentPage.value = 1;
 };
 
-const unreadCount = computed(() => {
-    return props.stockRequests.filter(request => !request.read_at).length;
-});
+
 const markAsRead = async (notificationId) => {
     try {
 
