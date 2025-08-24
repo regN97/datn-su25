@@ -141,13 +141,13 @@ onUnmounted(() => {
                     </div>
                     <Package class="text-3xl text-blue-600" />
                 </div>
-                <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
+                <!-- <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
                     <div>
                         <h6 class="text-sm font-medium text-gray-600">Sản phẩm còn</h6>
                         <h4 class="text-xl font-bold text-yellow-600">{{ totalStock }}</h4>
                     </div>
                     <Package class="text-3xl text-yellow-600" />
-                </div>
+                </div> -->
                 <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
                     <div>
                         <h6 class="text-sm font-medium text-gray-600">Nhân viên trực</h6>
@@ -289,37 +289,52 @@ onUnmounted(() => {
                     </div>
                 </div>
             </div>
+            <!-- Modal yêu cầu nhập hàng -->
             <div v-if="showRequestModal"
-                class="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 transition-all duration-300">
-                <div
-                    class="bg-white/30 p-6 rounded-2xl shadow-xl w-full max-w-sm mx-auto border border-white/40 backdrop-blur-lg">
-                    <h3 class="text-xl font-bold mb-4 text-white drop-shadow-md">📦 Yêu cầu nhập hàng</h3>
-                    <p v-if="productToRequest" class="mb-4 text-gray-100 drop-shadow-sm">
-                        Bạn muốn yêu cầu nhập thêm hàng cho sản phẩm
-                        <strong class="text-white">{{ productToRequest.name }}</strong>
-                        (SKU: {{ productToRequest.sku }})?
-                    </p>
+                class="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm transition-opacity">
 
-                    <div class="mb-4">
-                        <label for="quantity" class="block text-sm font-medium text-white">Số lượng cần nhập:</label>
-                        <input id="quantity" type="number" v-model="quantityToRequest" min="1" class="mt-1 block w-full rounded-lg border-white/50 bg-white/20 text-white placeholder-gray-200
-                focus:border-yellow-400 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" />
+                <!-- Overlay (click ngoài để tắt) -->
+                <div class="absolute inset-0" @click="closeModal"></div>
+
+                <!-- Modal box -->
+                <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 animate-fadeIn">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800">📦 Yêu cầu nhập hàng</h3>
+                        <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition">
+                            ✖
+                        </button>
                     </div>
 
-                    <div class="flex justify-end gap-3">
+                    <!-- Body -->
+                    <div class="px-5 py-4">
+                        <p v-if="productToRequest" class="mb-4 text-gray-700">
+                            Bạn muốn yêu cầu nhập thêm hàng cho sản phẩm
+                            <strong class="text-gray-900">{{ productToRequest.name }}</strong>
+                            (SKU: {{ productToRequest.sku }})?
+                        </p>
+
+                        <div class="mb-4">
+                            <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Số lượng cần
+                                nhập:</label>
+                            <input id="quantity" type="number" v-model="quantityToRequest" min="1" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-800
+                      focus:border-yellow-400 focus:ring focus:ring-yellow-200 focus:ring-opacity-50" />
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="flex justify-end gap-3 px-5 py-3 border-t border-gray-200">
                         <button @click="closeModal"
-                            class="px-4 py-2 bg-white/30 text-white rounded-lg hover:bg-white/40 transition backdrop-blur-sm">
+                            class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
                             ❌ Hủy
                         </button>
                         <button @click="submitStockRequest"
-                            class="px-4 py-2 bg-yellow-400/80 text-white rounded-lg hover:bg-yellow-500/80 shadow-md transition">
+                            class="px-4 py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 shadow-md transition">
                             📤 Gửi yêu cầu
                         </button>
                     </div>
                 </div>
             </div>
-
-
         </div>
     </CashierLayout>
 </template>
@@ -346,5 +361,13 @@ td {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
 }
 </style>

@@ -2,8 +2,8 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { Trash2, Undo2 } from 'lucide-vue-next';
 import { ref } from 'vue';
-import { Undo2, Trash2 } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quản lý nhà cung cấp', href: '/admin/suppliers' },
@@ -54,16 +54,17 @@ function forceDeleteSupplier(id: number) {
         });
     }
 }
+function goBack() {
+    router.visit('/admin/suppliers');
+}
 </script>
 
 <template>
-
     <Head title="Thùng rác nhà cung cấp" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-4 p-4">
             <h1 class="text-2xl font-bold">Thùng rác nhà cung cấp</h1>
-
             <div class="overflow-hidden rounded-lg bg-white shadow">
                 <table class="w-full table-auto text-left">
                     <thead class="bg-gray-200">
@@ -85,25 +86,35 @@ function forceDeleteSupplier(id: number) {
                             <td class="p-3 text-sm">{{ supplier.phone || 'N/A' }}</td>
                             <td class="p-3 text-sm">{{ supplier.address || 'N/A' }}</td>
                             <td class="p-3 text-sm text-gray-500">{{ supplier.deleted_at }}</td>
-                            <td class="p-3 text-sm text-center">
+                            <td class="p-3 text-center text-sm">
                                 <div class="flex items-center justify-center space-x-2">
-                                    <button @click="restoreSupplier(supplier.id)"
-                                        class="rounded-md bg-green-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none">
+                                    <button
+                                        @click="restoreSupplier(supplier.id)"
+                                        class="rounded-md bg-green-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none"
+                                    >
                                         <Undo2 class="h-4 w-4" />
                                     </button>
-                                    <button @click="forceDeleteSupplier(supplier.id)"
-                                        class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none">
+                                    <button
+                                        @click="forceDeleteSupplier(supplier.id)"
+                                        class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+                                    >
                                         <Trash2 class="h-4 w-4" />
                                     </button>
                                 </div>
                             </td>
                         </tr>
                         <tr v-if="suppliers.length === 0">
-                            <td colspan="7" class="p-3 text-center text-sm">Không có nhà cung cấp nào trong thùng rác
-                            </td>
+                            <td colspan="7" class="p-3 text-center text-sm">Không có nhà cung cấp nào trong thùng rác</td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            <!-- Nút quay lại (căn phải) -->
+            <div class="flex justify-end">
+                <button @click="goBack" class="rounded bg-gray-200 px-6 py-2 text-gray-700 hover:bg-gray-300">
+                    <ChevronLeft class="h-4 w-4" />
+                    <span>Quay lại</span>
+                </button>
             </div>
         </div>
     </AppLayout>

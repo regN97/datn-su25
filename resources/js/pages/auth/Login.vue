@@ -130,10 +130,10 @@ const submit = () => {
             </form>
 
             <!-- Register -->
-            <p class="mt-8 text-center text-gray-700">
+            <!-- <p class="mt-8 text-center text-gray-700">
                 Chưa có tài khoản?
                 <TextLink :href="route('register')" class="font-semibold text-orange-600 hover:underline" :tabindex="6"> Đăng ký ngay </TextLink>
-            </p>
+            </p> -->
         </AuthBase>
     </div>
 </template>

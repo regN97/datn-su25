@@ -146,7 +146,10 @@ class CategoryController extends Controller
         $category = Category::find($id);
 
         if (!$category) {
-            return redirect()->route('admin.categories.index')->with('error', 'Không tìm thấy danh mục để xóa.');
+            return redirect()
+                ->route('admin.categories.index')
+                ->with('error', 'Không tìm thấy danh mục để xóa.')
+                ->with('info', true);
         }
 
         // Kiểm tra xem có sản phẩm nào thuộc danh mục này không
@@ -155,8 +158,10 @@ class CategoryController extends Controller
             ->exists();
 
         if ($hasLinkedProducts) {
-            return redirect()->route('admin.categories.index')
-                ->with('error', 'Không thể xóa vì danh mục đang có sản phẩm tồn kho.');
+            return redirect()
+                ->route('admin.categories.index')
+                ->with('error', 'Không thể xóa vì danh mục đang có sản phẩm tồn kho.')
+                ->with('info', true);
         }
 
         $category->delete();

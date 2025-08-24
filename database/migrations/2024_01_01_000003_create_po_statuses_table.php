@@ -19,8 +19,7 @@ return new class extends Migration
         DB::table('po_statuses')->insert([
             ['name' => 'Nháp', 'code' => 'DRAFT'],
             ['name' => 'Chờ nhập', 'code' => 'PENDING'],
-            ['name' => 'Nhập một phần', 'code' => 'PARTIAL RECEIVED'],
-            ['name' => 'Nhập toàn bộ', 'code' => 'FULLY RECEIVED'],
+            ['name' => 'Hoàn thành', 'code' => 'FULLY RECEIVED'],
             ['name' => 'Đã hủy', 'code' => 'CANCELLED'],
         ]);
     }

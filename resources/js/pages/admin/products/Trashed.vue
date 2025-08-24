@@ -3,7 +3,7 @@ import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Eye, EyeOff, Filter, Undo2, Trash2 } from 'lucide-vue-next';
+import { Eye, EyeOff, Filter, Trash2, Undo2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -168,13 +168,17 @@ function handleDeleteProduct() {
 }
 
 function restoreProduct(id: number) {
-    router.post(`/admin/products/${id}/restore`, {}, {
-        onSuccess: () => {
-            const idx = products.findIndex((p) => p.id === id);
-            if (idx !== -1) products.splice(idx, 1);
+    router.post(
+        `/admin/products/${id}/restore`,
+        {},
+        {
+            onSuccess: () => {
+                const idx = products.findIndex((p) => p.id === id);
+                if (idx !== -1) products.splice(idx, 1);
+            },
+            preserveState: true,
         },
-        preserveState: true,
-    });
+    );
 }
 
 function cancelDelete() {
@@ -195,6 +199,9 @@ function resetFilters() {
 
 function toggleSidebar() {
     isSidebarOpen.value = !isSidebarOpen.value;
+}
+function goBack() {
+    router.visit('/admin/products');
 }
 </script>
 
@@ -346,7 +353,7 @@ function toggleSidebar() {
                                         </td>
                                         <td class="w-[25%] p-3 text-left text-sm">
                                             {{ product.name || 'Không có' }}
-                                            <span class="text-red-500 text-xs"></span>
+                                            <span class="text-xs text-red-500"></span>
                                         </td>
                                         <td class="w-[20%] p-3 text-center text-sm">{{ product.sku || 'Không có' }}</td>
                                         <td class="w-[20%] p-3 text-center text-sm">
@@ -424,7 +431,9 @@ function toggleSidebar() {
                                                         </div>
                                                         <div class="flex items-start">
                                                             <span class="w-32 font-semibold text-gray-900">Ngày xóa:</span>
-                                                            <span>{{ product.deleted_at ? new Date(product.deleted_at).toLocaleString('vi-VN') : 'Không có' }}</span>
+                                                            <span>{{
+                                                                product.deleted_at ? new Date(product.deleted_at).toLocaleString('vi-VN') : 'Không có'
+                                                            }}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -476,7 +485,7 @@ function toggleSidebar() {
                         </table>
                     </div>
 
-                    <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div v-if="paginatedProducts.length > 0" class="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <p class="text-sm">
                             Hiển thị kết quả từ
                             <span class="font-semibold">{{ (currentPage - 1) * perPage + 1 }}</span>
@@ -512,6 +521,12 @@ function toggleSidebar() {
                             </select>
                             <p class="text-sm">kết quả</p>
                         </div>
+                    </div>
+                    <div class="mt-3 flex justify-end">
+                        <!-- Nút quay lại -->
+                        <button @click="goBack" class="text-primary-700 rounded bg-gray-200 px-6 py-2 hover:bg-gray-300">
+                            <span>Quay lại</span>
+                        </button>
                     </div>
                 </div>
             </div>

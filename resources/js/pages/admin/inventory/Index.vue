@@ -51,12 +51,37 @@ type Product = {
     category?: Category;
     unit?: ProductUnit;
     suppliers?: Supplier[]; // Danh sách nhà cung cấp của RIÊNG sản phẩm này
+    batches?: Batch[];
+    batch_items?: BatchItem[];
 };
+
+type Batch = {
+    id: number;
+    batch_number: string;
+    supplier_id: number;
+    receipt_status: "pending" | "completed";
+    batch_items?: BatchItem[];
+}
+
+type BatchItem = {
+    id: number;
+    batch_id: number;
+    product_id: number;
+    current_quantity: number;
+    inventory_status: "active" | "low_stock" | "out_of_stock" | "expired" | "damaged";
+}
+
+type AvailableProduct = {
+    product_id: number;
+    name: string;
+    value: number;
+}
 
 const page = usePage<SharedData>();
 const categories = page.props.categories as Category[];
 const units = page.props.units as ProductUnit[];
 const products = page.props.products as Product[];
+const availableProducts = page.props.availableProducts as AvailableProduct[];
 
 const allSuppliers = (page.props.allSuppliers as Supplier[]) || [];
 
@@ -184,6 +209,8 @@ function imageSrc(url: string): string {
 function toggleSidebar() {
     isSidebarOpen.value = !isSidebarOpen.value;
 }
+
+
 </script>
 
 <template>
@@ -358,7 +385,7 @@ function toggleSidebar() {
                                             {{ product.stock_quantity }}
                                         </td>
                                         <td class="p-3">
-                                            {{ product.stock_quantity }}
+                                            {{ availableProducts.find(ap => ap.product_id === product.id)?.value || 0 }}
                                         </td>
                                         <td class="p-3">
                                             {{ product.selling_price }}

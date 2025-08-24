@@ -67,7 +67,7 @@ class PurchaseOrderSeeder extends Seeder
             [
                 'po_number' => 'PO-20250608-004',
                 'supplier_id' => 4, // Nestlé
-                'status_id' => 4, // RECEIVED
+                'status_id' => 3, // RECEIVED
                 'order_date' => '2025-06-08',
                 'expected_delivery_date' => '2025-06-12',
                 'actual_delivery_date' => '2025-06-10',
@@ -84,7 +84,7 @@ class PurchaseOrderSeeder extends Seeder
             [
                 'po_number' => 'PO-20250610-005',
                 'supplier_id' => 5, // Sunhouse
-                'status_id' => 5, // PENDING
+                'status_id' => 4, // PENDING
                 'order_date' => '2025-06-10',
                 'expected_delivery_date' => '2025-06-15',
                 'actual_delivery_date' => null,

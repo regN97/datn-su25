@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use Illuminate\Console\Scheduling\Schedule;
 use App\Http\Middleware\EnsureUserIsCashier;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -25,8 +26,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
-             'cashier' => EnsureUserIsCashier::class,
+            'cashier' => EnsureUserIsCashier::class,
         ]);
+    })
+     ->withSchedule(function (Schedule $schedule) {
+        // Nếu test, có thể để mỗi phút:
+        $schedule->command('app:update-batch-item-status')->everyMinute();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

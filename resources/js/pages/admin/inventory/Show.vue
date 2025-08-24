@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
-import { type BreadcrumbItem } from '@/types';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { type SharedData, type BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -95,6 +95,15 @@ interface BatchItem {
         image_url?: string;
     };
 }
+
+type AvailableProduct = {
+    product_id: number;
+    name: string;
+    value: number;
+}
+
+const page = usePage<SharedData>();
+const availableProducts = page.props.availableProducts as AvailableProduct[];
 // Nhận prop product từ Inertia
 const props = defineProps<{
     product: Product;
@@ -253,7 +262,7 @@ function goBack() {
                                     <input
                                         type="text"
                                         class="block w-full rounded-md border-gray-300 px-2 py-2 shadow-sm"
-                                        :value="props.product.stock_quantity"
+                                        :value="availableProducts.find(ap => ap.product_id === props.product.id)?.value || 0"
                                         disabled
                                     />
                                 </div>

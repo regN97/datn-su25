@@ -17,6 +17,11 @@ const perPageOptions = [5, 10, 25, 50];
 const perPage = ref(5);
 const currentPage = ref(1);
 
+// Tính số lượng thông báo chưa đọc
+const unreadCount = computed(() => {
+    return props.stockRequests.filter(request => !request.read_at).length;
+});
+
 const total = computed(() => props.stockRequests.length);
 const totalPages = computed(() => Math.ceil(total.value / perPage.value));
 
@@ -53,8 +58,10 @@ const unreadCount = computed(() => {
 });
 const markAsRead = async (notificationId) => {
     try {
+
         // Sử dụng router.post thay vì axios.post
         router.post(route('admin.stock.requests.read', notificationId), {}, {
+
             preserveState: true,
             onSuccess: () => {
                 console.log('Đánh dấu đã đọc thành công');
@@ -73,8 +80,10 @@ const markAsRead = async (notificationId) => {
 const deleteRequest = async (notificationId) => {
     if (confirm('Bạn có chắc chắn muốn xóa yêu cầu này?')) {
         try {
+
             // Sử dụng router.delete thay vì axios.delete để tương thích với Inertia
             router.delete(route('admin.stock.requests.delete', notificationId), {
+
                 preserveState: true,
                 onSuccess: () => {
                     // Không cần reload vì Inertia sẽ tự động cập nhật
@@ -90,12 +99,11 @@ const deleteRequest = async (notificationId) => {
         }
     }
 };
-
 </script>
 
 <template>
     <Head title="Thông báo nhập hàng" />
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumbs" :stockRequests="stockRequests">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="p-6">

@@ -39,7 +39,7 @@ type Batch = {
     total_amount: number;
     payment_status: "unpaid" | "partially_paid" | "paid";
     paid_amount: number;
-    receipt_status: "partially_received" | "completed" | "cancelled";
+    receipt_status: 'pending' | 'completed';
     notes: string | null;
     created_by: number;
     creator?: User;
@@ -319,7 +319,7 @@ function exportBatchesToExcel() {
     }
 }
 function goToCreatePage() {
-router.visit(route("admin.batches.create"));
+    router.visit(route("admin.batches.create"));
 
 }
 
@@ -336,14 +336,12 @@ function getPaymentStatusDisplayName(status: "unpaid" | "partially_paid" | "paid
     }
 }
 
-function getReceiptStatusDisplayName(status: "partially_received" | "completed" | "cancelled") {
+function getReceiptStatusDisplayName(status: string) {
     switch (status) {
-        case "partially_received":
-            return "Đã nhận một phần";
         case "completed":
-            return "Đã nhận đủ";
-        case "cancelled":
-            return "Đã hủy";
+            return "Hoàn thành";
+        case "pending":
+            return "Chờ xử lý";
         default:
             return "N/A";
     }
@@ -517,20 +515,19 @@ async function importBatchesFromExcel(event: Event) {
                                 :disabled="isLoading">
                                 <FileDown class="h-5 w-5" />
                                 <span class="ml-2 hidden md:inline">{{ isLoading ? "Đang xuất..." : "Xuất Excel"
-                                    }}</span>
+                                }}</span>
                             </button>
                             <!-- <label
                                 class="inline-flex items-center rounded-3xl bg-emerald-500 px-4 py-2 text-white hover:bg-emerald-600 cursor-pointer"
                                 :class="{ 'opacity-50 cursor-not-allowed': isLoading }"> -->
-                                <!-- Input file đã được liên kết với hàm importBatchesFromExcel -->
-                                <!-- <input type="file" accept=".xlsx,.xls,.csv" @change="importBatchesFromExcel"
+                            <!-- Input file đã được liên kết với hàm importBatchesFromExcel -->
+                            <!-- <input type="file" accept=".xlsx,.xls,.csv" @change="importBatchesFromExcel"
                                     class="hidden" :disabled="isLoading" />
                                 <span class="ml-2 hidden md:inline">{{ isLoading ? "Đang xử lý..." : "Import Excel"
                                     }}</span>
                             </label> -->
 
-                            <button
-                            @click="goToCreatePage"
+                            <button @click="goToCreatePage"
                                 class="inline-flex items-center rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600">
                                 <PackagePlus class="h-5 w-5" />
                                 <span class="ml-2 hidden md:inline">Tạo Đơn nhập Hàng Mới</span>
@@ -608,9 +605,8 @@ async function importBatchesFromExcel(event: Event) {
                             <select v-model="filterReceiptStatus"
                                 class="mt-1 w-full rounded-md border-gray-300 py-2 text-sm" @change="resetPagination">
                                 <option value="">Tất cả</option>
-                                <option value="partially_received">Đã nhận một phần</option>
-                                <option value="completed">Đã nhận đủ</option>
-                                <option value="cancelled">Đã hủy</option>
+                                <option value="pending">Chờ xử lý</option>
+                                <option value="completed">Hoàn thành</option>
                             </select>
                         </div>
                         <div>
@@ -676,15 +672,14 @@ async function importBatchesFromExcel(event: Event) {
                                                 {{ getPaymentStatusDisplayName(batch.payment_status) }}
                                             </span>
                                         </td>
-                                        <td class="w-[10%] p-3 text-left text-sm">
-                                            <span :class="{
-                                                'rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 shadow-sm': batch.receipt_status === 'completed',
-                                                'rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800 shadow-sm': batch.receipt_status === 'partially_received',
-                                                'rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800 shadow-sm': batch.receipt_status === 'cancelled',
-                                            }" :title="getReceiptStatusDisplayName(batch.receipt_status)">
-                                                {{ getReceiptStatusDisplayName(batch.receipt_status) }}
-                                            </span>
-                                        </td>
+<td class="w-[10%] p-3 text-left text-sm">
+    <span :class="{
+        'rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 shadow-sm': batch.receipt_status === 'completed',
+        'rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800 shadow-sm': batch.receipt_status === 'pending',
+    }" :title="getReceiptStatusDisplayName(batch.receipt_status)">
+        {{ getReceiptStatusDisplayName(batch.receipt_status) }}
+    </span>
+</td>
                                         <td class="w-[5%] p-3 text-center text-sm">
                                             <div class="flex items-center justify-center space-x-2">
                                                 <button @click="toggleBatchDetails(batch.id)"
@@ -798,7 +793,7 @@ async function importBatchesFromExcel(event: Event) {
                                                                         }"
                                                                             :title="getInventoryStatusDisplayName(item.inventory_status)">
                                                                             {{
-                                                                            getInventoryStatusDisplayName(item.inventory_status)
+                                                                                getInventoryStatusDisplayName(item.inventory_status)
                                                                             }}
                                                                         </span>
                                                                     </td>
@@ -822,7 +817,7 @@ async function importBatchesFromExcel(event: Event) {
                                                             </div>
                                                             <div class="text-right">{{
                                                                 formatCurrency(calculateItemsSubtotalFromData(batch.batchItems))
-                                                                }}</div>
+                                                            }}</div>
                                                             <div class="text-left"><strong>Tổng tiền:</strong></div>
                                                             <div class="text-right text-xl font-bold">{{
                                                                 formatCurrency(batch.total_amount) }}</div>

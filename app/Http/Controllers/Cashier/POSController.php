@@ -612,10 +612,9 @@ class POSController
                 'cart.*.id' => 'required|integer|exists:products,id,deleted_at,NULL,is_active,1',
                 'cart.*.quantity' => 'required|integer|min:1',
                 'customer_id' => 'nullable|integer|exists:customers,id,deleted_at,NULL',
-                'paymentMethod' => 'required|in:cash,card,wallet,bank_transfer,combined',
+                'paymentMethod' => 'required|in:cash,bank_transfer,vnpay,wallet',
                 'amountReceived' => 'required_if:paymentMethod,cash|numeric|min:0',
-                'walletAmount' => 'required_if:paymentMethod,combined|numeric|min:0',
-                'cashAmount' => 'required_if:paymentMethod,combined|numeric|min:0',
+                'walletAmount' => 'nullable|numeric|min:0',
                 'orderNotes' => 'nullable|string|max:255',
                 'couponCode' => 'nullable|string|exists:promotions,coupon_code',
                 'orderId' => 'required_if:paymentMethod,bank_transfer|string',
@@ -647,6 +646,7 @@ class POSController
                 $freeItems = [];
                 $updatedProducts = [];
 
+                // Xử lý khuyến mãi
                 if (!empty($data['couponCode'])) {
                     $promotion = Promotion::where('coupon_code', $data['couponCode'])
                         ->where('is_active', true)
@@ -712,55 +712,50 @@ class POSController
 
                 $totalAmount = $subTotal - $discountAmount;
 
-                if ($data['paymentMethod'] === 'wallet' || $data['paymentMethod'] === 'combined') {
-                    if (!$data['customer_id']) {
-                        return response()->json(['errors' => ['customer_id' => 'Vui lòng chọn khách hàng khi thanh toán bằng ví hoặc kết hợp.']], 422);
-                    }
+                // Xử lý ví khách hàng
+                $walletAmount = $data['walletAmount'] ?? 0;
+                $customer = null;
+                if ($data['customer_id']) {
                     $customer = Customer::lockForUpdate()->find($data['customer_id']);
                     if (!$customer) {
                         return response()->json(['errors' => ['customer_id' => 'Khách hàng không tồn tại.']], 422);
                     }
-                    $walletToUse = $data['paymentMethod'] === 'wallet' ? $totalAmount : ($data['walletAmount'] ?? 0);
-                    if ($customer->wallet < $walletToUse) {
+                    if ($walletAmount > $customer->wallet) {
                         return response()->json(['errors' => ['payment' => 'Số dư ví không đủ để thanh toán.']], 422);
                     }
-                }
-
-                if ($data['paymentMethod'] === 'cash' && ($data['amountReceived'] ?? 0) < $totalAmount) {
-                    return response()->json(['errors' => ['payment' => 'Số tiền nhận không đủ để thanh toán.']], 422);
-                }
-
-                if ($data['paymentMethod'] === 'combined') {
-                    $cashNeeded = $totalAmount - $data['walletAmount'];
-                    if ($cashNeeded < 0) {
+                    if ($walletAmount > $totalAmount) {
                         return response()->json(['errors' => ['payment' => 'Số tiền ví vượt quá tổng đơn hàng.']], 422);
                     }
-                    if ($data['cashAmount'] < $cashNeeded) {
-                        return response()->json(['errors' => ['payment' => 'Số tiền mặt không đủ để thanh toán.']], 422);
-                    }
+                }
+
+                // Tính toán số tiền cần thanh toán sau khi trừ ví
+                $totalPayable = $totalAmount - $walletAmount;
+
+                // Kiểm tra số tiền nhận cho phương thức cash
+                if ($data['paymentMethod'] === 'cash' && ($data['amountReceived'] ?? 0) < $totalPayable) {
+                    return response()->json(['errors' => ['payment' => 'Số tiền nhận không đủ để thanh toán.']], 422);
                 }
 
                 $receivedMoney = 0;
                 $changeMoney = 0;
-                $paymentStatusId = 2; // Assuming 2 is paid
+                $paymentStatusId = 2; // Trạng thái đã thanh toán
 
                 if ($data['paymentMethod'] === 'cash') {
-                    $receivedMoney = $data['amountReceived'];
-                    $changeMoney = $receivedMoney - $totalAmount;
-                } elseif ($data['paymentMethod'] === 'combined') {
-                    $receivedMoney = $data['walletAmount'] + $data['cashAmount'];
-                    $changeMoney = $data['cashAmount'] - ($totalAmount - $data['walletAmount']);
-                    $customer->wallet -= $data['walletAmount'];
-                    $customer->save();
+                    $receivedMoney = $data['amountReceived'] ?? $totalPayable;
+                    $changeMoney = $receivedMoney - $totalPayable;
+                } elseif ($data['paymentMethod'] === 'bank_transfer' || $data['paymentMethod'] === 'vnpay') {
+                    $receivedMoney = $totalPayable;
+                    $changeMoney = 0;
                 } elseif ($data['paymentMethod'] === 'wallet') {
-                    $receivedMoney = $totalAmount;
+                    $receivedMoney = $totalAmount; // Ví trả toàn bộ
                     $changeMoney = 0;
-                    $paymentStatusId = 1; // Keep as is
-                    $customer->wallet -= $totalAmount;
+                    $walletAmount = $totalAmount; // Toàn bộ số tiền từ ví
+                }
+
+                // Trừ số dư ví nếu có
+                if ($walletAmount > 0 && $customer) {
+                    $customer->wallet -= $walletAmount;
                     $customer->save();
-                } else {
-                    $receivedMoney = $totalAmount;
-                    $changeMoney = 0;
                 }
 
                 $bill = Bill::create([
@@ -768,7 +763,7 @@ class POSController
                     'customer_id' => $data['customer_id'],
                     'sub_total' => $subTotal,
                     'discount_amount' => $discountAmount,
-                    'total_amount' => $totalAmount,
+                    'total_amount' => $totalPayable, // Sử dụng totalPayable
                     'received_money' => $receivedMoney,
                     'change_money' => $changeMoney,
                     'payment_method' => $data['paymentMethod'],
@@ -780,9 +775,12 @@ class POSController
                     'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                 ]);
 
+                // Xử lý chi tiết hóa đơn và tồn kho
                 foreach ($data['cart'] as $item) {
                     $product = Product::lockForUpdate()->find($item['id']);
                     $remainingQuantity = $item['quantity'];
+                    // Track the running stock for this product during the transaction
+                    $currentProductStock = $product->stock_quantity;
 
                     $batchItems = BatchItem::where('product_id', $item['id'])
                         ->whereIn('inventory_status', ['active', 'low_stock'])
@@ -819,17 +817,21 @@ class POSController
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
 
+                            // Calculate stock_after based on the current product stock before deduction
+                            $stockAfter = $currentProductStock - $quantityToDeduct;
+
                             InventoryTransaction::create([
                                 'transaction_type_id' => 2,
                                 'product_id' => $product->id,
                                 'quantity_change' => -$quantityToDeduct,
-                                'stock_after' => $product->stock_quantity - $quantityToDeduct,
+                                'stock_after' => $stockAfter,
                                 'unit_price' => $product->selling_price,
                                 'total_value' => $quantityToDeduct * $product->selling_price,
                                 'transaction_date' => Carbon::now('Asia/Ho_Chi_Minh'),
                                 'related_bill_id' => $bill->id,
                                 'related_batch_id' => $batchItem->batch_id,
                                 'user_id' => $user->id,
+                                'note' => 'Xuất hàng từ hóa đơn ' . $bill->bill_number,
                                 'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
@@ -850,6 +852,8 @@ class POSController
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
 
+                            // Update the running stock for the next iteration
+                            $currentProductStock -= $quantityToDeduct;
                             $remainingQuantity -= $quantityToDeduct;
                         }
                     }
@@ -858,7 +862,7 @@ class POSController
                         throw new \Exception("Không đủ hàng trong kho cho sản phẩm {$product->name}.");
                     }
 
-                    $product->stock_quantity -= $item['quantity'];
+                    $product->stock_quantity = $currentProductStock;
                     $product->last_sold_at = Carbon::now('Asia/Ho_Chi_Minh');
                     $product->save();
 
@@ -874,9 +878,12 @@ class POSController
                     ];
                 }
 
+                // Xử lý sản phẩm miễn phí (nếu có)
                 foreach ($freeItems as $freeItem) {
                     $product = Product::lockForUpdate()->find($freeItem['product_id']);
                     $remainingQuantity = $freeItem['quantity'];
+                    // Track the running stock for this product during the transaction
+                    $currentProductStock = $product->stock_quantity;
 
                     $batchItems = BatchItem::where('product_id', $freeItem['product_id'])
                         ->whereIn('inventory_status', ['active', 'low_stock'])
@@ -887,7 +894,7 @@ class POSController
                         })
                         ->where(function ($query) {
                             $query->whereNull('expiry_date')
-                                ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
+                                ->orWhere('expiry_date', '>=', Carbon::now('Asia/Ho_Chi_Minh'));
                         })
                         ->orderBy('created_at', 'asc')
                         ->lockForUpdate()
@@ -913,17 +920,21 @@ class POSController
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
 
+                            // Calculate stock_after based on the current product stock before deduction
+                            $stockAfter = $currentProductStock - $quantityToDeduct;
+
                             InventoryTransaction::create([
                                 'transaction_type_id' => 2,
                                 'product_id' => $product->id,
                                 'quantity_change' => -$quantityToDeduct,
-                                'stock_after' => $product->stock_quantity - $quantityToDeduct,
+                                'stock_after' => $stockAfter,
                                 'unit_price' => 0,
                                 'total_value' => 0,
                                 'transaction_date' => Carbon::now('Asia/Ho_Chi_Minh'),
                                 'related_bill_id' => $bill->id,
                                 'related_batch_id' => $batchItem->batch_id,
                                 'user_id' => $user->id,
+                                'note' => 'Xuất hàng từ đơn ' . $bill->bill_number,
                                 'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
@@ -944,11 +955,13 @@ class POSController
                                 'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
                             ]);
 
+                            // Update the running stock for the next iteration
+                            $currentProductStock -= $quantityToDeduct;
                             $remainingQuantity -= $quantityToDeduct;
                         }
                     }
 
-                    $product->stock_quantity -= $freeItem['quantity'];
+                    $product->stock_quantity = $currentProductStock;
                     $product->last_sold_at = Carbon::now('Asia/Ho_Chi_Minh');
                     $product->save();
 
@@ -964,11 +977,11 @@ class POSController
                     ];
                 }
 
+                // Cập nhật ví khách hàng (thêm tiền thưởng)
                 if ($data['customer_id']) {
                     $customer = Customer::lockForUpdate()->find($data['customer_id']);
                     $walletBonus = $totalAmount * 0.001;
                     $customer->wallet += $walletBonus;
-
                     $customer->save();
                 }
 
@@ -976,7 +989,7 @@ class POSController
                     $promotion->increment('usage_count');
                 }
 
-                $session->actual_amount = ($session->actual_amount ?? 0) + $totalAmount;
+                $session->actual_amount = ($session->actual_amount ?? 0) + $totalPayable;
                 $session->save();
 
                 if ($data['customer_id']) {
@@ -985,6 +998,7 @@ class POSController
                         try {
                             Mail::to($customer->email)->queue(new ReceiptEmail($bill));
                         } catch (\Exception $e) {
+                            // Log lỗi gửi email nếu cần
                         }
                     }
                 }
@@ -1224,6 +1238,4 @@ class POSController
         }
         return null;
     }
-
-    
 }
