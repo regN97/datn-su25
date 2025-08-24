@@ -298,7 +298,13 @@ const paymentStatusInfo = computed(() => {
 });
 
 const isPaid = computed(() => currentBatch.value?.payment_status === 'paid');
-const isUnpaidOrPartial = computed(() => ['unpaid', 'partially_paid'].includes(currentBatch.value?.payment_status));
+const isUnpaidOrPartial = computed(() => {
+    const totalAmount = currentBatch.value?.total_amount ?? 0;
+    const paymentStatus = currentBatch.value?.payment_status;
+    
+    return totalAmount > 0 && 
+           ['unpaid', 'partially_paid'].includes(paymentStatus ?? '');
+});
 
 const formattedPaidAmount = computed(() => {
     const amount = currentBatch.value?.paid_amount || 0;

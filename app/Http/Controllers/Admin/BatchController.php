@@ -429,6 +429,7 @@ class BatchController extends Controller
             ])->withInput();
         }
     }
+
     public function pay(Request $request, $id)
     {
         $request->validate([
@@ -460,19 +461,13 @@ class BatchController extends Controller
             $paymentStatus = 'unpaid';
         }
 
-        // Xác định trạng thái nhận hàng dựa vào thanh toán
+        // Xác định receipt_status dựa vào payment_status
         $newReceiptStatus = $batch->receipt_status;
-
         if ($paymentStatus === 'paid') {
             $newReceiptStatus = 'completed';
-        } elseif ($paymentStatus === 'partially_paid') {
-            $newReceiptStatus = 'partially_received';
+        } else {
+            $newReceiptStatus = 'pending';  // Sửa từ 'partially_received' thành 'pending'
         }
-
-        Log::info('Received paid_amount:', [
-            'raw' => $request->input('paid_amount'),
-            'converted' => (float) str_replace('.', '', $request->paid_amount)
-        ]);
 
         // Cập nhật Batch
         $batch->update([
@@ -567,6 +562,7 @@ class BatchController extends Controller
                 'paid_amount' => $request->paid_amount,
                 'payment_status' => $paymentStatus,
                 'status' => 'draft', // nháp
+                'receipt_status' => 'pending',
                 'created_by' => Auth::id(),
                 'note' => $request->note,
             ]);
@@ -637,6 +633,21 @@ class BatchController extends Controller
                     ->with('error', 'Không thể chỉnh sửa đơn nhập hàng đã được duyệt!');
             }
 
+            // Tính toán trạng thái thanh toán mới
+            $totalAmount = $request->total_amount;
+            $paidAmount = $batch->paid_amount ?? 0;
+
+            // Xác định payment_status dựa trên total_amount mới
+            if ($totalAmount == 0) {
+                $paymentStatus = 'paid';
+            } else if ($paidAmount >= $totalAmount) {
+                $paymentStatus = 'paid';
+            } else if ($paidAmount > 0) {
+                $paymentStatus = 'partially_paid';
+            } else {
+                $paymentStatus = 'unpaid';
+            }
+
             // Cập nhật thông tin batch
             $batch->update([
                 'batch_number' => $request->batch_code ?? $batch->batch_number,
@@ -647,6 +658,9 @@ class BatchController extends Controller
                 'discount_type' => $request->discount_type,
                 'discount_amount' => $request->discount_amount,
                 'total_amount' => $request->total_amount,
+                'payment_status' => $paymentStatus,
+                'status' => 'draft',
+                'receipt_status' => 'pending',
                 'created_by' => $request->user_id ?? Auth::id(),
                 'notes' => $request->notes,
             ]);
@@ -990,26 +1004,26 @@ class BatchController extends Controller
         }
     }
 
-    private function generateBatchNumber(): string 
+    private function generateBatchNumber(): string
     {
-        return DB::transaction(function() {
+        return DB::transaction(function () {
             $today = Carbon::now();
             $prefix = "REC-" . $today->format('Ymd');
-            
+
             // Lấy số batch cuối cùng trong ngày hiện tại
             $lastBatch = Batch::where('batch_number', 'like', $prefix . '%')
                 ->orderByDesc('id')
                 ->lockForUpdate()
                 ->first();
-                
+
             if (!$lastBatch) {
                 return $prefix . '-001';
             }
-            
+
             // Lấy số sequence hiện tại và tăng lên 1
             $currentSequence = (int) substr($lastBatch->batch_number, -3);
             $nextSequence = str_pad($currentSequence + 1, 3, '0', STR_PAD_LEFT);
-            
+
             return $prefix . '-' . $nextSequence;
         }, 3); // Retry tối đa 3 lần nếu có conflict
     }
