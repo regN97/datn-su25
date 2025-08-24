@@ -5,6 +5,7 @@ import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { PackagePlus, Pencil, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { watch } from 'vue'; // thêm watch để reset trang khi tìm kiếm
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -31,16 +32,45 @@ const getParentName = (parent_id: number | null) => {
     return parent ? parent.name : '—';
 };
 
+// Thêm ô tìm kiếm
+const search = ref("");
+
+//chuẩn hoá chuỗi: về thường + bỏ dấu + trim
+function normalizeText(v: unknown): string {
+    return (typeof v === 'string' ? v : v == null ? '' : String(v))
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+}
+
+// Lọc dữ liệu trước khi phân trang (đã sửa: không phân biệt dấu/hoa-thường & an toàn null)
+const filteredCategories = computed(() => {
+    const q = normalizeText(search.value);
+    if (!q) return categories;
+    return categories.filter(cat => {
+        const name = normalizeText(cat.name);
+        const desc = normalizeText(cat.description);
+        const parent = normalizeText(getParentName(cat.parent_id));
+        return name.includes(q) || desc.includes(q) || parent.includes(q);
+    });
+});
+
+// khi đổi từ khoá => quay về trang 1 để tránh "tưởng không có kết quả"
+watch(search, () => {
+    currentPage.value = 1;
+});
+
 const perPageOptions = [5, 10, 25, 50];
 const perPage = ref(5);
 const currentPage = ref(1);
 
-const total = computed(() => categories.length);
+const total = computed(() => filteredCategories.value.length);
 const totalPages = computed(() => Math.ceil(total.value / perPage.value));
 
 const paginatedCategories = computed(() => {
     const start = (currentPage.value - 1) * perPage.value;
-    return categories.slice(start, start + perPage.value);
+    return filteredCategories.value.slice(start, start + perPage.value);
 });
 
 function goToPage(page: number) {
@@ -115,6 +145,16 @@ function cancelDelete() {
                             </button>
                             <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng rác</button>
                         </div>
+                    </div>
+
+                    <!--  Ô tìm kiếm -->
+                    <div class="mb-4">
+                        <input
+                            v-model="search"
+                            type="text"
+                            placeholder="Tìm kiếm danh mục..."
+                            class="w-[250px] rounded border px-3 py-2 text-sm"
+                        />
                     </div>
 
                     <div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">

@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { router, usePage, Head } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Pencil, Trash2, PackagePlus } from 'lucide-vue-next';
 
 const props = defineProps({ units: Array })
@@ -14,12 +14,33 @@ const perPageOptions = [5, 10, 25, 50]
 const perPage = ref(5)
 const currentPage = ref(1)
 
-const total = computed(() => props.units.length)
+const searchTerm = ref('') 
+
+function normalize(str) {
+  return str
+    ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    : ''
+}
+
+const filteredUnits = computed(() => {
+  if (!searchTerm.value) return props.units
+  const term = normalize(searchTerm.value)
+  return props.units.filter(u =>
+    normalize(u.name).includes(term)
+  )
+})
+
+const total = computed(() => filteredUnits.value.length)
 const totalPages = computed(() => Math.ceil(total.value / perPage.value))
 
 const paginatedUnits = computed(() => {
   const start = (currentPage.value - 1) * perPage.value
-  return props.units.slice(start, start + perPage.value)
+  return filteredUnits.value.slice(start, start + perPage.value)
+})
+
+// reset trang về 1 khi search
+watch(searchTerm, () => {
+  currentPage.value = 1
 })
 
 const notification = ref('success');
@@ -93,9 +114,19 @@ onMounted(() => {
         <div class="p-6">
           <div class="mb-4 flex items-center justify-between">
             <h1 class="text-xl font-bold">Quản lý đơn vị tính</h1>
-            <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
-              <PackagePlus />
-            </button>
+
+            <!-- thêm ô tìm kiếm -->
+            <div class="flex items-center gap-2">
+              <input
+                v-model="searchTerm"
+                type="text"
+                placeholder="Tìm theo tên đơn vị..."
+                class="border rounded px-3 py-2 text-sm"
+              />
+              <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
+                <PackagePlus />
+              </button>
+            </div>
           </div>
 
           <div class="overflow-hidden rounded-lg bg-white shadow">

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import DeleteModal from '@/components/DeleteModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import DeleteModal from '@/components/DeleteModal.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Camera, Eye, PackagePlus, Trash2 } from 'lucide-vue-next';
+import { PackagePlus, Eye, Trash2, Camera } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 // ... (Giữ nguyên các type và breadcrumbs) ...
@@ -62,14 +62,16 @@ watch(
         };
 
         // Loại bỏ các trường rỗng
-        const filteredParams = Object.fromEntries(Object.entries(queryParams).filter(([, value]) => value !== '' && value !== null));
+        const filteredParams = Object.fromEntries(
+            Object.entries(queryParams).filter(([, value]) => value !== '' && value !== null)
+        );
 
         router.get('/admin/bills', filteredParams, {
             preserveState: true,
             replace: true,
         });
     },
-    { deep: true },
+    { deep: true }
 );
 
 // Thêm watch để xóa ngày khi thay đổi loại lọc
@@ -79,7 +81,7 @@ watch(
         if (newValue !== 'custom_date') {
             filters.value.selected_date = '';
         }
-    },
+    }
 );
 
 // Logic phân trang
@@ -128,29 +130,29 @@ function getStatusColor(status: PaymentStatus) {
     if (!status || !status.code) {
         return {
             textColor: 'text-gray-900',
-            bgColor: 'bg-gray-200',
+            bgColor: 'bg-gray-200'
         };
     }
     switch (status.code) {
         case 'PAID':
             return {
                 textColor: 'text-green-900',
-                bgColor: 'bg-green-200',
+                bgColor: 'bg-green-200'
             };
         case 'UNPAID':
             return {
                 textColor: 'text-yellow-900',
-                bgColor: 'bg-yellow-200',
+                bgColor: 'bg-yellow-200'
             };
         case 'REFUNDED':
             return {
                 textColor: 'text-red-900',
-                bgColor: 'bg-red-200',
+                bgColor: 'bg-red-200'
             };
         default:
             return {
                 textColor: 'text-gray-900',
-                bgColor: 'bg-gray-200',
+                bgColor: 'bg-gray-200'
             };
     }
 }
@@ -186,9 +188,11 @@ function getPaymentMethodName(method: string) {
             return 'Khác';
     }
 }
+
 </script>
 
 <template>
+
     <Head title="Bills" />
 
 <AppLayout :breadcrumbs="breadcrumbs">
@@ -199,46 +203,38 @@ function getPaymentMethodName(method: string) {
             <h1 class="text-2xl font-bold">Danh sách Hóa đơn</h1>
           </div>
 
-                    <div class="mb-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
-                        <input
-                            type="text"
-                            v-model="filters.search"
-                            placeholder="Tìm kiếm theo mã hóa đơn..."
-                            class="w-full rounded-lg border px-4 py-2 md:w-auto"
-                        />
-                        <div class="flex w-full flex-col gap-2 md:w-auto md:flex-row">
-                            <select v-model="filters.filter_date" class="rounded-lg border px-4 py-2">
-                                <option value="">Tất cả thời gian</option>
-                                <option value="today">Hôm nay</option>
-                                <option value="this_week">Tuần này</option>
-                                <option value="this_month">Tháng này</option>
-                                <option value="custom_date">Tùy chọn ngày</option>
-                            </select>
-                            <input
-                                v-if="filters.filter_date === 'custom_date'"
-                                type="date"
-                                v-model="filters.selected_date"
-                                class="rounded-lg border px-4 py-2"
-                            />
-                        </div>
-                    </div>
+          <div class="mb-4 flex flex-col items-center gap-4 md:flex-row md:justify-between">
+            <input type="text" v-model="filters.search" placeholder="Tìm kiếm theo mã hóa đơn..."
+              class="w-full rounded-lg border px-4 py-2 md:w-auto" />
+            <div class="flex w-full flex-col gap-2 md:flex-row md:w-auto">
+              <select v-model="filters.filter_date" class="rounded-lg border px-4 py-2">
+                <option value="">Tất cả thời gian</option>
+                <option value="today">Hôm nay</option>
+                <option value="this_week">Tuần này</option>
+                <option value="this_month">Tháng này</option>
+                <option value="custom_date">Tùy chọn ngày</option>
+              </select>
+              <input v-if="filters.filter_date === 'custom_date'" type="date"
+                v-model="filters.selected_date" class="rounded-lg border px-4 py-2" />
+            </div>
+          </div>
 
-
-                    <div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="w-[5%] p-3 text-center text-sm font-semibold">STT</th>
-                                    <th class="w-[12%] p-3 text-left text-sm font-semibold">Mã HĐ</th>
-                                    <th class="w-[12%] p-3 text-left text-sm font-semibold">Khách hàng</th>
-                                    <th class="w-[12%] p-3 text-left text-sm font-semibold">Thu ngân</th>
-                                    <th class="w-[12%] p-3 text-right text-sm font-semibold">Tổng tiền</th>
-                                    <th class="w-[12%] p-3 text-left text-sm font-semibold">Trạng thái TT</th>
-                                    <th class="w-[10%] p-3 text-left text-sm font-semibold">Phương thức</th>
-                                    <th class="w-[7%] p-3 text-center text-sm font-semibold">Minh chứng</th>
-                                    <th class="w-[8%] p-3 text-left text-sm font-semibold">Ngày tạo</th>
-                                    <th class="w-[10%] p-3 text-center text-sm font-semibold">Thao tác</th>
-                                </tr>
+<div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">
+    <table class="w-full text-left">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="w-[5%] p-3 text-center text-sm font-semibold">STT</th>
+                <th class="w-[12%] p-3 text-left text-sm font-semibold">Mã HĐ</th>
+                <th class="w-[12%] p-3 text-left text-sm font-semibold">Khách hàng</th>
+                <th class="w-[12%] p-3 text-left text-sm font-semibold">Thu ngân</th>
+                <th class="w-[12%] p-3 text-right text-sm font-semibold">Tổng tiền</th>
+                <th class="w-[12%] p-3 text-left text-sm font-semibold">Trạng thái TT</th>
+                <th class="w-[10%] p-3 text-left text-sm font-semibold">Phương thức</th>
+                <th class="w-[7%] p-3 text-center text-sm font-semibold">Minh chứng</th>
+                <th class="w-[8%] p-3 text-left text-sm font-semibold">Ngày tạo</th>
+                <th class="w-[10%] p-3 text-center text-sm font-semibold">Thao tác</th>
+            </tr>
+        </thead>
         <tbody>
             <tr v-for="(bill, idx) in paginatedBills" :key="bill.id" class="border-t">
                 <td class="w-[5%] p-3 text-center text-sm">{{ (currentPage - 1) * perPage + idx + 1 }}</td>
@@ -299,9 +295,18 @@ function getPaymentMethodName(method: string) {
                 :disabled="currentPage === totalPages" @click="nextPage">
                 Trang sau &rarr;
               </button>
-
             </div>
+            <div class="flex items-center space-x-2">
+              <p class="text-sm">Hiển thị</p>
+              <select class="rounded border p-1 text-sm" v-model="perPage" @change="changePerPage">
+                <option v-for="opt in perPageOptions" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+              <p class="text-sm">kết quả</p>
+            </div>
+          </div>
         </div>
+      </div>
+    </div>
 
     <div v-if="showProofModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-70" @click.self="closeProofModal()">
         <div class="relative max-w-4xl p-4 bg-white rounded-lg shadow-lg">
