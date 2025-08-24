@@ -313,7 +313,7 @@ function confirmPayment() {
                             </p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-xl shadow-md p-6" v-if="currentPurchaseReturn.status === 'pending'">
+                    <!-- <div class="bg-white rounded-xl shadow-md p-6" v-if="currentPurchaseReturn.status === 'pending'">
                         <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Hành động</h2>
                         <div class="flex flex-col gap-3">
                             <button @click="completePurchaseReturn"
@@ -321,7 +321,7 @@ function confirmPayment() {
                                 Gửi yêu cầu và hoàn thành
                             </button>
                         </div>
-                    </div>
+                    </div> -->
                     <div class="bg-white rounded-xl shadow-md p-6"
                         v-if="currentPurchaseReturn.payment_status === 'unpaid'">
                         <h2 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Thanh toán</h2>
