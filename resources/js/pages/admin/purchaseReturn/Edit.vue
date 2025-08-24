@@ -236,7 +236,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow p-4 space-y-3">
+                <!-- <div class="bg-white rounded-xl shadow p-4 space-y-3">
                     <h2 class="font-semibold text-gray-700">Lịch sử đơn trả hàng nhập</h2>
                     <div class="space-y-4">
                         <div v-for="(history, index) in purchaseReturnData.return_history" :key="index"
@@ -252,7 +252,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> -->
             </div>
 
             <div class="col-span-1 space-y-6">
