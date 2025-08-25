@@ -160,9 +160,6 @@ function printInvoice() {
                     <p class="mb-1">
                         Tổng tiền hàng: <span class="font-semibold">{{ formatCurrency(subtotal_amount) }}</span>
                     </p>
-                    <p class="mb-1">
-                        Giảm giá: <span class="font-semibold">{{ formatCurrency(bill.discount_amount ?? 0) }}</span>
-                    </p>
                     <p class="text-lg font-bold">
                         Tổng thanh toán: <span class="font-bold">{{ formatCurrency(bill.total_amount) }}</span>
                     </p>

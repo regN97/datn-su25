@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { BarElement, CategoryScale, Chart, Legend, LinearScale, Tooltip } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { Package, Layers, TrendingDown, AlertTriangle, ChartNoAxesCombined, Undo2 } from 'lucide-vue-next';
+import { Package, Layers, TrendingDown, AlertTriangle, ChartNoAxesCombined, HandCoins  } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { type BreadcrumbItem } from '@/types'
 import { Bar } from 'vue-chartjs';
@@ -94,6 +94,7 @@ const iconMap = {
     Layers,
     TrendingDown,
     AlertTriangle,
+    HandCoins,
 };
 
 const productList = ref([...props.products]);
@@ -146,7 +147,7 @@ function formatCurrency(value: number | string) {
             <!-- Biểu đồ giá trị tồn kho theo tháng -->
             <div class="bg-white rounded-xl shadow p-6">
                 <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <ChartNoAxesCombined class="w-5 h-5 text-blue-500" /> Biểu đồ giá trị tồn kho theo tháng
+                    <ChartNoAxesCombined class="w-5 h-5 text-blue-500" /> Biểu đồ giá trị tồn kho theo 12 tháng
                 </h2>
                 <!-- @ts-ignore -->
                 <!-- @ts-ignore -->

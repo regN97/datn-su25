@@ -341,9 +341,9 @@ class DashboardController extends Controller
         return Inertia::render('admin/dashboard/InventoryDashboard', [
             'overviewStats' => [
                 ['label' => 'Tổng sản phẩm', 'value' => $total_products, 'icon' => 'Package', 'color' => 'text-blue-500'],
-                ['label' => 'Tổng giá trị tồn kho', 'value' => $total_inventory_value, 'icon' => 'TrendingUp', 'color' => 'text-indigo-500', 'unit' => 'VND'],
+                ['label' => 'Tổng giá trị tồn kho trong 1 năm', 'value' => $total_inventory_value, 'icon' => 'HandCoins', 'color' => 'text-green-500', 'unit' => 'VND'],
                 ['label' => 'Lô sắp hết hạn trong 30 ngày', 'value' => $expiring_products, 'icon' => 'AlertTriangle', 'color' => 'text-red-500'],
-                ['label' => 'Sản phẩm sắp hết hàng', 'value' => $low_stock_count, 'icon' => 'AlertTriangle', 'color' => 'text-red-500']
+                ['label' => 'Sản phẩm sắp hết hàng', 'value' => $low_stock_count, 'icon' => 'AlertTriangle', 'color' => 'text-red-500'],
             ],
             'chartData' => $chartData,
             'products' => $products,
