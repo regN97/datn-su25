@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
+import FlashMessageHistory from '@/components/FlashMessageHistory.vue';
 
 const props = defineProps<{
   product: { id: number; name: string; sku: string };
@@ -20,6 +21,8 @@ const props = defineProps<{
       user: { id: number; name: string } | null;
       note: string | null;
       created_at: string;
+      expiry_date: string | null;
+      expiry_status: 'valid' | 'near_expiry' | 'expired' | null;
     }[];
     links: {
       url: string | null;
@@ -28,6 +31,29 @@ const props = defineProps<{
     }[];
   };
 }>();
+
+const flashMessages = ref<{ message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([]);
+
+watch(
+  () => props.transactions.data,
+  (newTransactions) => {
+    flashMessages.value = [];
+    newTransactions.forEach((t) => {
+      if (t.expiry_status === 'expired') {
+        flashMessages.value.push({
+          message: `Sản phẩm ${props.product.name} (Lô: ${t.related_batch?.batch_number ?? '—'}) đã hết hạn sử dụng vào ${formatDate(t.expiry_date)}`,
+          type: 'error',
+        });
+      } else if (t.expiry_status === 'near_expiry') {
+        flashMessages.value.push({
+          message: `Sản phẩm ${props.product.name} (Lô: ${t.related_batch?.batch_number ?? '—'}) sắp hết hạn vào ${formatDate(t.expiry_date)}`,
+          type: 'warning',
+        });
+      }
+    });
+  },
+  { immediate: true }
+);
 
 const formattedTransactions = computed(() =>
   props.transactions.data.map(t => ({
@@ -88,6 +114,17 @@ function goBack() {
           <h1 class="text-xl font-bold text-gray-800">
             Lịch sử biến động - {{ props.product.name }} (SKU: {{ props.product.sku }})
           </h1>
+        </div>
+
+        <!-- Hiển thị Flash Messages -->
+        <div class="fixed top-4 right-4 space-y-2 z-50">
+          <FlashMessageHistory
+            v-for="(msg, index) in flashMessages"
+            :key="index"
+            :message="msg.message"
+            :type="msg.type"
+            :duration="5000"
+          />
         </div>
 
         <div

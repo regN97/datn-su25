@@ -36,18 +36,19 @@ class ReturnController extends Controller
         $query = $request->input('query');
         $date = $request->input('date');
 
+
         $returnBills = ReturnBill::with(['bill', 'details.product', 'cashier:id,name', 'customer'])
             ->when($query, function ($q, $query) {
                 $q->where('return_bill_number', 'like', '%' . $query . '%')
-                  ->orWhereHas('bill', function ($b) use ($query) {
-                      $b->where('bill_number', 'like', '%' . $query . '%');
-                  });
+                    ->orWhereHas('bill', function ($b) use ($query) {
+                        $b->where('bill_number', 'like', '%' . $query . '%');
+                    });
             })
             ->when($date, function ($q, $date) {
                 $q->whereDate('created_at', $date);
             })
             ->latest()
-            ->get();
+            ->paginate(10);
 
         return response()->json($returnBills);
     }
@@ -84,7 +85,7 @@ class ReturnController extends Controller
         return response()->json($billData);
     }
 
-public function processReturn(Request $request)
+    public function processReturn(Request $request)
     {
         try {
             $validated = $request->validate([
@@ -144,6 +145,7 @@ public function processReturn(Request $request)
                         $subtotal = $actualReturnQuantity * $billDetail->unit_price;
                         $totalAmountReturned += $subtotal;
 
+
                         ReturnBillDetail::create([
                             'return_bill_id' => $returnBill->id,
                             'product_id' => $billDetail->product_id,
@@ -156,6 +158,7 @@ public function processReturn(Request $request)
                         $product = Product::findOrFail($billDetail->product_id);
                         if (!$product->is_active) {
                             throw new \Exception("Sản phẩm {$billDetail->p_name} đã ngừng kinh doanh.");
+
                         }
                         $product->increment('stock_quantity', $actualReturnQuantity);
 
@@ -201,6 +204,7 @@ public function processReturn(Request $request)
                     'total_amount_returned' => $totalAmountReturned,
                     'payment_status' => 'paid',
                 ]);
+
             });
 
             Log::info("Xử lý trả hàng thành công cho hóa đơn ID {$validated['bill_id']}.");

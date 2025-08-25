@@ -79,6 +79,7 @@ const confirmReturn = () => {
     }
 };
 
+
 const returnBill = () => {
     if (!bill.value) {
         error.value = 'Không có hóa đơn để xử lý.';
@@ -100,6 +101,7 @@ const returnBill = () => {
     returnForm.bill_id = bill.value.id;
     returnForm.return_items = itemsToReturn;
     
+
     // Thay thế axios.post bằng form.post
     returnForm.post(route('cashier.returns.process'), {
         onSuccess: () => {

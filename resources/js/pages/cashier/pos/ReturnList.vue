@@ -144,10 +144,11 @@ const groupedReturnDetails = computed(() => {
                             </tr>
                         </thead>
                         <tbody>
-                            <template v-if="allReturnBills.length > 0" v-for="returnBill in allReturnBills" :key="returnBill.id">
+                            <template v-if="allReturnBills.data && allReturnBills.data.length > 0" v-for="returnBill in allReturnBills.data" :key="returnBill.id">
                                 <tr class="border-t">
                                     <td class="p-3">{{ returnBill.return_bill_number }}</td>
                                     <td class="p-3">{{ returnBill.bill?.bill_number }}</td>
+
                                     <td class="p-3">{{ returnBill.customer?.customer_name || 'Khách lẻ' }}</td>
                                     <td class="p-3">{{ formatCurrency(returnBill.total_amount_returned) }}</td>
                                     <td class="p-3">{{ formatDate(returnBill.created_at) }}</td>
@@ -179,7 +180,12 @@ const groupedReturnDetails = computed(() => {
                                                             <td class="p-3">{{ detail.p_name }}</td>
                                                             <td class="p-3">{{ detail.returned_quantity }}</td>
                                                             <td class="p-3">{{ formatCurrency(detail.unit_price) }}</td>
-                                                            <td class="p-3">{{ formatCurrency(detail.returned_quantity * detail.unit_price) }}</td>
+                                                            <td class="p-3">
+                                                                {{ formatCurrency(detail.subtotal) }}
+                                                                <span v-if="detail.returned_quantity * detail.unit_price !== detail.subtotal" class="text-red-500 ml-2">
+                                                                    (Dữ liệu không khớp!)
+                                                                </span>
+                                                            </td>
                                                         </tr>
                                                     </tbody>
                                                 </table>

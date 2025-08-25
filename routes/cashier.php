@@ -42,6 +42,7 @@ Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::get('/bill-lookup', [BillLookupController::class, 'index'])->name('bill.lookup');
         Route::post('/bill-lookup/search', [BillLookupController::class, 'search'])->name('bill.lookup.search');
         Route::post('/bill-lookup/{bill}/upload-proof', [BillLookupController::class, 'uploadPaymentProof'])->name('bill.lookup.proof');
+        Route::post('/bill-lookup/{bill}/mark-as-paid', [BillLookupController::class, 'markAsPaid'])->name('bill.mark-as-paid');
 
 
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications');
@@ -65,6 +66,7 @@ Route::prefix('cashier')->name('cashier.')->group(function () {
             // IPN (Instant Payment Notification) server-to-server
             Route::post('/ipn', [VNPayController::class, 'handleVNPayIPN'])
                 ->name('ipn');
+            Route::get('/sync-stock', [VNPayController::class, 'syncStockQuantities']);
         });
         // Customer Lookup
         Route::prefix('customer')->name('customer.')->group(function () {
