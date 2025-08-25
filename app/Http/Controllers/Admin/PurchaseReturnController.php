@@ -320,12 +320,17 @@ class PurchaseReturnController extends Controller
 
             foreach ($validatedData['items'] as $item) {
                 $batchItem = null;
+                $batch = null;
+
+                // Lấy thông tin batch và batch item
                 if (!empty($item['batch_id'])) {
+                    $batch = Batch::find($item['batch_id']);
                     $batchItem = BatchItem::where('batch_id', $item['batch_id'])
                         ->where('product_id', $item['product_id'])
                         ->first();
                 }
 
+                // Ưu tiên thông tin từ batch_item, fallback về thông tin từ request
                 $manufacturingDateToSave = $batchItem->manufacturing_date ?? ($item['manufacturing_date'] ?? null);
                 $expiryDateToSave = $batchItem->expiry_date ?? ($item['expiry_date'] ?? null);
                 $itemReasonToSave = $item['reason'] ?? null;
@@ -333,6 +338,7 @@ class PurchaseReturnController extends Controller
                 $productNameToSave = $item['product_name'] ?? '';
                 $productSkuToSave = $item['product_sku'] ?? '';
 
+                // Tạo purchase return item
                 $purchaseReturn->items()->create([
                     'product_id' => $item['product_id'],
                     'batch_id' => $item['batch_id'] ?? null,
@@ -348,11 +354,13 @@ class PurchaseReturnController extends Controller
                     'reason' => $itemReasonToSave,
                 ]);
 
+                // Cập nhật current_quantity của batch item nếu có
                 if ($batchItem) {
                     $batchItem->current_quantity -= $item['quantity_returned'];
                     $batchItem->save();
                 }
 
+                // Cập nhật tồn kho sản phẩm và ghi lịch sử biến động
                 $product = Product::find($item['product_id']);
                 if ($product) {
                     $previousStock = $product->stock_quantity;
@@ -361,18 +369,35 @@ class PurchaseReturnController extends Controller
                     $product->stock_quantity = $newStock;
                     $product->save();
 
+                    // Tạo ghi chú chi tiết bao gồm thông tin lô hàng
+                    $note = 'Trả hàng từ phiếu ' . $purchaseReturn->return_number;
+                    if ($batchNumberToSave) {
+                        $note .= ' - Lô hàng: ' . $batchNumberToSave;
+                    }
+                    if ($itemReasonToSave) {
+                        $note .= ' - Lý do: ' . $itemReasonToSave;
+                    }
+
+                    // Tạo inventory transaction với thông tin lô hàng
                     InventoryTransaction::create([
-                        'transaction_type_id' => 4,
+                        'transaction_type_id' => 4, // ID cho loại giao dịch trả hàng
                         'product_id' => $product->id,
                         'quantity_change' => -$changeQty,
                         'unit_price' => $item['unit_cost'],
                         'total_value' => $item['quantity_returned'] * $item['unit_cost'],
                         'transaction_date' => now(),
                         'related_purchase_return_id' => $purchaseReturn->id,
+                        'related_batch_id' => $item['batch_id'] ?? null, // 🌟 Thêm thông tin lô hàng
                         'user_id' => auth()->id(),
                         'stock_after' => $newStock,
-                        'note' => 'Trả hàng từ phiếu ' . $purchaseReturn->return_number
+                        'note' => $note,
+                        // Thêm các trường bổ sung nếu cần thiết
+                        'batch_number' => $batchNumberToSave, // Lưu batch_number để dễ tra cứu
+                        'manufacturing_date' => $manufacturingDateToSave,
+                        'expiry_date' => $expiryDateToSave,
                     ]);
+
+                    Log::info("Updated stock for product {$product->id} due to return: {$previousStock} -> {$newStock} (-{$changeQty}) - Batch: {$batchNumberToSave}");
                 }
             }
 
@@ -383,12 +408,16 @@ class PurchaseReturnController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Lỗi khi tạo phiếu trả hàng: ' . $e->getMessage());
+            Log::error('Lỗi khi tạo phiếu trả hàng: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+
             return redirect()->back()
-                ->with('error', 'Tạo phiếu trả hàng thất bại. Vui lòng thử lại.');
+                ->with('error', 'Tạo phiếu trả hàng thất bại. Vui lòng thử lại.')
+                ->withInput();
         }
     }
-
     public function complete(PurchaseReturn $purchaseReturn)
     {
         if ($purchaseReturn->status !== 'pending') {
