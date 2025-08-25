@@ -346,17 +346,7 @@ function confirmPayment() {
                             </p>
                         </div>
                     </div>
-                    <div class="rounded-xl bg-white p-6 shadow-md" v-if="currentPurchaseReturn.status === 'pending'">
-                        <h2 class="mb-4 border-b pb-3 text-lg font-semibold text-gray-800">Hành động</h2>
-                        <div class="flex flex-col gap-3">
-                            <button
-                                @click="completePurchaseReturn"
-                                class="w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
-                            >
-                                Gửi yêu cầu và hoàn thành
-                            </button>
-                        </div>
-                    </div>
+
                     <div class="rounded-xl bg-white p-6 shadow-md" v-if="currentPurchaseReturn.payment_status === 'unpaid'">
                         <h2 class="mb-4 border-b pb-3 text-lg font-semibold text-gray-800">Thanh toán</h2>
                         <div class="flex flex-col gap-3">

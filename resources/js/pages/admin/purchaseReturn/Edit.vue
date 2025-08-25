@@ -247,21 +247,6 @@ const breadcrumbs: BreadcrumbItem[] = [
                     </div>
                 </div>
 
-                <div class="space-y-3 rounded-xl bg-white p-4 shadow">
-                    <h2 class="font-semibold text-gray-700">Lịch sử đơn trả hàng nhập</h2>
-                    <div class="space-y-4">
-                        <div v-for="(history, index) in purchaseReturnData.return_history" :key="index" class="flex items-start">
-                            <div class="mr-3 flex flex-col items-center">
-                                <div class="text-xs text-gray-500">{{ history.time }}</div>
-                                <div class="my-1 h-2 w-2 rounded-full bg-blue-500"></div>
-                                <div v-if="index < purchaseReturnData.return_history.length - 1" class="h-8 w-px bg-gray-300"></div>
-                            </div>
-                            <div class="text-sm text-gray-800">
-                                <span class="font-medium">{{ history.user }}</span> {{ history.action }}
-                            </div>
-                        </div>
-                    </div>
-                </div> -->
             </div>
 
             <div class="col-span-1 space-y-6">
