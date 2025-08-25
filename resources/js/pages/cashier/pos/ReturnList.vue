@@ -4,7 +4,6 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ref, onMounted, watch, computed } from 'vue';
 import { ChevronDown, ChevronUp, Plus, Search, Calendar } from 'lucide-vue-next';
 import axios from 'axios';
-
 import { debounce } from 'lodash';
 
 const allReturnBills = ref([]);
@@ -89,12 +88,14 @@ const groupedReturnDetails = computed(() => {
             };
         }
         groups[key].returned_quantity += detail.returned_quantity;
-        groups[key].subtotal += detail.subtotal;
+        // Tính lại subtotal để đảm bảo chính xác
+        groups[key].subtotal += detail.returned_quantity * detail.unit_price;
     });
     
     return Object.values(groups);
 });
 </script>
+
 <template>
     <Head title="Danh sách đơn trả hàng" />
     <CashierLayout>
@@ -135,6 +136,7 @@ const groupedReturnDetails = computed(() => {
                             <tr class="bg-gray-100">
                                 <th class="p-3 text-left text-sm font-semibold text-gray-600">Số đơn trả</th>
                                 <th class="p-3 text-left text-sm font-semibold text-gray-600">Số hóa đơn gốc</th>
+                                <th class="p-3 text-left text-sm font-semibold text-gray-600">Khách hàng</th>
                                 <th class="p-3 text-left text-sm font-semibold text-gray-600">Tổng tiền hoàn trả</th>
                                 <th class="p-3 text-left text-sm font-semibold text-gray-600">Ngày tạo</th>
                                 <th class="p-3 text-left text-sm font-semibold text-gray-600">Người trả</th>
@@ -146,6 +148,7 @@ const groupedReturnDetails = computed(() => {
                                 <tr class="border-t">
                                     <td class="p-3">{{ returnBill.return_bill_number }}</td>
                                     <td class="p-3">{{ returnBill.bill?.bill_number }}</td>
+                                    <td class="p-3">{{ returnBill.customer?.customer_name || 'Khách lẻ' }}</td>
                                     <td class="p-3">{{ formatCurrency(returnBill.total_amount_returned) }}</td>
                                     <td class="p-3">{{ formatDate(returnBill.created_at) }}</td>
                                     <td class="p-3">{{ returnBill.cashier?.name || 'N/A' }}</td>
@@ -157,7 +160,7 @@ const groupedReturnDetails = computed(() => {
                                     </td>
                                 </tr>
                                 <tr v-if="expandedReturnBill && expandedReturnBill.id === returnBill.id">
-                                    <td colspan="6" class="p-3 bg-gray-50 border-t">
+                                    <td colspan="7" class="p-3 bg-gray-50 border-t">
                                         <div class="p-4 rounded-lg">
                                             <h2 class="font-bold text-lg mb-2">Chi tiết đơn trả</h2>
                                             <p class="text-sm text-gray-600 mb-2"><b class="text-sm text-black mb-2">Lý do: </b>{{ returnBill.reason || 'Không có lý do' }}</p>
@@ -186,8 +189,11 @@ const groupedReturnDetails = computed(() => {
                                 </tr>
                             </template>
                             <tr v-else>
-                                <td colspan="6" class="p-3 text-center text-gray-500">
+                                <td colspan="7" class="p-3 text-center text-gray-500">
                                     Không có đơn trả hàng nào được tìm thấy.
+                                    <Link :href="route('cashier.returns.index')" class="text-blue-600 hover:underline">
+                                        Tạo đơn trả hàng mới
+                                    </Link>
                                 </td>
                             </tr>
                         </tbody>
