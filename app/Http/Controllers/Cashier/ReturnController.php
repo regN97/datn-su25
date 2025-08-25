@@ -36,7 +36,8 @@ class ReturnController extends Controller
         $query = $request->input('query');
         $date = $request->input('date');
 
-        $returnBills = ReturnBill::with(['bill', 'details.product', 'cashier:id,name', 'customer:id,name'])
+
+        $returnBills = ReturnBill::with(['bill', 'details.product', 'cashier:id,name', 'customer'])
             ->when($query, function ($q, $query) {
                 $q->where('return_bill_number', 'like', '%' . $query . '%')
                     ->orWhereHas('bill', function ($b) use ($query) {
@@ -57,7 +58,7 @@ class ReturnController extends Controller
         $query = $request->input('query');
 
         if (!$query) {
-            return response()->json(['error' => 'Vui lòng nhập số hóa đơn hoặc số điện thoại.'], 400);
+            return response()->json(['error' => 'Vui lòng nhập số hóa đơn.'], 400);
         }
 
         $bill = Bill::with(['customer', 'details.product', 'details.batch', 'returnBills'])
@@ -144,7 +145,6 @@ class ReturnController extends Controller
                         $subtotal = $actualReturnQuantity * $billDetail->unit_price;
                         $totalAmountReturned += $subtotal;
 
-                        Log::info("Tính subtotal: {$actualReturnQuantity} x {$billDetail->unit_price} = {$subtotal} cho product_id {$billDetail->product_id}");
 
                         ReturnBillDetail::create([
                             'return_bill_id' => $returnBill->id,
@@ -158,12 +158,14 @@ class ReturnController extends Controller
                         $product = Product::findOrFail($billDetail->product_id);
                         if (!$product->is_active) {
                             throw new \Exception("Sản phẩm {$billDetail->p_name} đã ngừng kinh doanh.");
+
                         }
                         $product->increment('stock_quantity', $actualReturnQuantity);
 
                         $batchItem = BatchItem::where('batch_id', $billDetail->batch_id)
                             ->where('product_id', $billDetail->product_id)
                             ->first();
+
                         if (!$batchItem) {
                             Log::error("Không tìm thấy batch_item cho product_id {$billDetail->product_id} và batch_id {$billDetail->batch_id}");
                             throw new \Exception("Không tìm thấy lô hàng cho sản phẩm {$billDetail->p_name}.");
@@ -171,7 +173,13 @@ class ReturnController extends Controller
                         if ($batchItem->inventory_status === 'expired' || $batchItem->inventory_status === 'damaged') {
                             throw new \Exception("Lô hàng của sản phẩm {$billDetail->p_name} không hợp lệ để trả hàng.");
                         }
+                        
+                        // Cập nhật số lượng và trạng thái của lô hàng
                         $batchItem->increment('current_quantity', $actualReturnQuantity);
+                        
+                        // Sửa lỗi ở đây: Cập nhật inventory_status của batchItem
+                        $batchItem->inventory_status = 'active'; 
+                        $batchItem->save();
 
                         InventoryTransaction::create([
                             'transaction_type_id' => 4,
@@ -197,21 +205,17 @@ class ReturnController extends Controller
                     'payment_status' => 'paid',
                 ]);
 
-                if ($bill->customer_id && $bill->payment_method === 'wallet') {
-                    $customer = Customer::findOrFail($bill->customer_id);
-                    $customer->increment('wallet', $totalAmountReturned);
-                    Log::info("Cập nhật ví khách hàng {$customer->id} với số tiền {$totalAmountReturned}.");
-                }
             });
 
             Log::info("Xử lý trả hàng thành công cho hóa đơn ID {$validated['bill_id']}.");
-            return response()->json(['message' => 'Xử lý trả hàng thành công!'], 200);
+            return redirect()->route('cashier.returns.list')->with('success', 'Xử lý trả hàng thành công!');
+
         } catch (ModelNotFoundException $e) {
             Log::error("Lỗi khi xử lý trả hàng: Hóa đơn hoặc sản phẩm không tồn tại. " . $e->getMessage());
-            return response()->json(['error' => 'Hóa đơn hoặc sản phẩm không tồn tại.'], 404);
+            return redirect()->back()->withErrors(['error' => 'Hóa đơn hoặc sản phẩm không tồn tại.']);
         } catch (\Exception $e) {
             Log::error("Lỗi khi xử lý trả hàng: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 422);
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 }

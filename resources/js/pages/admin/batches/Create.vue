@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronDown, ChevronLeft, ChevronUp } from 'lucide-vue-next';
+import { ChevronLeft } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
@@ -164,7 +164,6 @@ const importDate = ref('');
 const subtotal = computed(() => {
     return selectedProducts.value.reduce((sum, product) => sum + product.total, 0);
 });
-
 
 const discountAmount = computed(() => {
     if (discount.value.type === 'amount') {
@@ -429,6 +428,23 @@ function validateProductDates(product: SelectedProduct) {
     return errors;
 }
 
+// Hàm lấy ngày hiện tại theo format datetime-local
+const now = () => {
+  const d = new Date();
+const pad = (n: number) => n.toString().padStart(2, "0");
+  return (
+    d.getFullYear() +
+    "-" +
+    pad(d.getMonth() + 1) +
+    "-" +
+    pad(d.getDate()) +
+    "T" +
+    pad(d.getHours()) +
+    ":" +
+    pad(d.getMinutes())
+  );
+};
+
 function submitBatch() {
     for (const product of selectedProducts.value) {
         const errors = validateProductDates(product);
@@ -585,7 +601,6 @@ onMounted(() => {
                 ...item.product,
                 ordered_quantity: item.ordered_quantity,
                 available_quantity: availableQty,
-                // Nếu status_id === 3 (partially received), quantity = available_quantity
                 quantity: props.purchaseOrder.status_id === 3 ? availableQty : item.ordered_quantity,
                 recievedQuantity: item.received_quantity || 0,
                 remainingQuantity: availableQty,
@@ -605,20 +620,17 @@ onUnmounted(() => {
 </script>
 
 <template>
-
     <Head title="Create Batch" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="min-h-screen bg-gray-50 p-4">
             <div class="mx-auto max-w-7xl">
                 <!-- Header -->
                 <div class="mb-6">
-                    <button @click="goBack"
-                        class="mb-4 flex cursor-pointer items-center text-gray-600 hover:text-gray-800">
+                    <button @click="goBack" class="mb-4 flex cursor-pointer items-center text-gray-600 hover:text-gray-800">
                         <ChevronLeft class="mr-1 h-4 w-4" />
                         Quay lại
                     </button>
-                    <h1 class="text-3xl font-bold text-gray-900">Tạo đơn nhập từ đơn đặt {{
-                        selectedPurchaseOrder?.po_number }}</h1>
+                    <h1 class="text-3xl font-bold text-gray-900">Tạo đơn nhập từ đơn đặt {{ selectedPurchaseOrder?.po_number }}</h1>
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -631,28 +643,40 @@ onUnmounted(() => {
                                     <table class="min-w-full divide-y divide-gray-200 text-xs">
                                         <thead class="bg-gray-50">
                                             <tr>
-                                                <th scope="col"
-                                                    class="w-[22%] px-2 py-2 text-left font-medium tracking-wider text-gray-500 uppercase">
+                                                <th
+                                                    scope="col"
+                                                    class="w-[22%] px-2 py-2 text-left font-medium tracking-wider text-gray-500 uppercase"
+                                                >
                                                     Sản phẩm
                                                 </th>
-                                                <th scope="col"
-                                                    class="w-[11%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase">
+                                                <th
+                                                    scope="col"
+                                                    class="w-[11%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase"
+                                                >
                                                     Số lượng
                                                 </th>
-                                                <th scope="col"
-                                                    class="w-[13%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase">
+                                                <th
+                                                    scope="col"
+                                                    class="w-[13%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase"
+                                                >
                                                     Đơn giá
                                                 </th>
-                                                <th scope="col"
-                                                    class="w-[14%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase">
+                                                <th
+                                                    scope="col"
+                                                    class="w-[14%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase"
+                                                >
                                                     NSX
                                                 </th>
-                                                <th scope="col"
-                                                    class="w-[14%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase">
+                                                <th
+                                                    scope="col"
+                                                    class="w-[14%] px-2 py-2 text-center font-medium tracking-wider text-gray-500 uppercase"
+                                                >
                                                     HSD
                                                 </th>
-                                                <th scope="col"
-                                                    class="w-[10%] px-2 py-2 text-left font-medium tracking-wider text-gray-500 uppercase">
+                                                <th
+                                                    scope="col"
+                                                    class="w-[10%] px-2 py-2 text-left font-medium tracking-wider text-gray-500 uppercase"
+                                                >
                                                     Tổng tiền
                                                 </th>
                                             </tr>
@@ -661,20 +685,19 @@ onUnmounted(() => {
                                             <tr v-for="product in selectedProducts" :key="product.id">
                                                 <td class="w-[22%] px-2 py-2 whitespace-nowrap">
                                                     <div class="flex items-center space-x-2">
-                                                        <img :src="product.image_url || '/storage/piclumen-1747750187180.png'"
+                                                        <img
+                                                            :src="product.image_url || '/storage/piclumen-1747750187180.png'"
                                                             :alt="product.name"
-                                                            class="h-10 w-10 rounded-lg border border-gray-200 object-cover" />
+                                                            class="h-10 w-10 rounded-lg border border-gray-200 object-cover"
+                                                        />
                                                         <div>
-                                                            <h4 class="text-xs font-medium text-gray-900">{{
-                                                                product.name }}</h4>
-                                                            <p class="text-[11px] text-gray-500">SKU: {{ product.sku }}
-                                                            </p>
+                                                            <h4 class="text-xs font-medium text-gray-900">{{ product.name }}</h4>
+                                                            <p class="text-[11px] text-gray-500">SKU: {{ product.sku }}</p>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td class="w-[11%] text-center align-middle">
                                                     <div class="relative flex flex-col items-center justify-center">
-
                                                         <button
                                                             class="text-xs text-blue-600 hover:text-blue-800"
                                                             @click="openQuantityModal(product)"
@@ -686,50 +709,53 @@ onUnmounted(() => {
                                                                     ? product.available_quantity
                                                                     : product.ordered_quantity
                                                             }}
-
                                                         </button>
                                                         <div v-if="product.rejectedQuantity > 0" class="group relative">
-                                                            <span
-                                                                class="cursor-pointer text-xs text-red-600 select-none">{{
-                                                                    product.rejectedQuantity
-                                                                }}</span>
-                                                            <div class="absolute z-50 hidden w-48 flex-col items-start rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs text-gray-700 shadow-md group-hover:flex"
-                                                                style="top: 100%; left: 50%; transform: translateX(-50%) translateY(8px)">
+                                                            <span class="cursor-pointer text-xs text-red-600 select-none">{{
+                                                                product.rejectedQuantity
+                                                            }}</span>
+                                                            <div
+                                                                class="absolute z-50 hidden w-48 flex-col items-start rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs text-gray-700 shadow-md group-hover:flex"
+                                                                style="top: 100%; left: 50%; transform: translateX(-50%) translateY(8px)"
+                                                            >
                                                                 <div class="mb-1 flex items-center">
-                                                                    <span
-                                                                        class="mr-1 h-2 w-2 rounded-full bg-red-600"></span>
-                                                                    <span class="font-semibold">Số lượng đã từ chối: {{
-                                                                        product.rejectedQuantity }}</span>
+                                                                    <span class="mr-1 h-2 w-2 rounded-full bg-red-600"></span>
+                                                                    <span class="font-semibold"
+                                                                        >Số lượng đã từ chối: {{ product.rejectedQuantity }}</span
+                                                                    >
                                                                 </div>
                                                                 <hr class="my-1 w-full border-gray-200" />
-                                                                <div class="mb-1 text-xs text-gray-400">Lý do từ chối
-                                                                </div>
+                                                                <div class="mb-1 text-xs text-gray-400">Lý do từ chối</div>
                                                                 <div class="leading-snug break-words text-gray-800">
                                                                     {{ product.rejectedReason || 'Không có lý do' }}
                                                                 </div>
                                                                 <div
-                                                                    class="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 transform border-t border-r border-gray-300 bg-white shadow-sm">
-                                                                </div>
+                                                                    class="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 transform border-t border-r border-gray-300 bg-white shadow-sm"
+                                                                ></div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td class="w-[13%] text-center text-xs whitespace-nowrap text-gray-900">
-                                                    <button class="text-blue-600 hover:text-blue-800"
-                                                        @click="openPriceModal(product)" type="button">
+                                                    <button class="text-blue-600 hover:text-blue-800" @click="openPriceModal(product)" type="button">
                                                         {{ formatPrice(product.purchase_price) }}
                                                     </button>
                                                 </td>
                                                 <td class="w-[14%] text-center text-xs whitespace-nowrap">
-                                                    <input type="date" v-model="product.manufacturingDate"
-                                                        class="w-full rounded-md border border-gray-300 px-1 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                                                    <input
+                                                        type="date"
+                                                        v-model="product.manufacturingDate"
+                                                        class="w-full rounded-md border border-gray-300 px-1 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                                    />
                                                 </td>
                                                 <td class="w-[14%] px-2 py-2 text-center text-xs whitespace-nowrap">
-                                                    <input type="date" v-model="product.expiryDate"
-                                                        class="w-full rounded-md border border-gray-300 px-1 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                                                    <input
+                                                        type="date"
+                                                        v-model="product.expiryDate"
+                                                        class="w-full rounded-md border border-gray-300 px-1 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                                    />
                                                 </td>
-                                                <td
-                                                    class="w-[10%] px-2 py-2 text-xs font-semibold whitespace-nowrap text-gray-900">
+                                                <td class="w-[10%] px-2 py-2 text-xs font-semibold whitespace-nowrap text-gray-900">
                                                     {{ formatPrice(product.total) }}
                                                     <p v-if="product.rejectedQuantity > 0" class="mt-0.5 text-xs text-red-500">
                                                         -{{ formatPrice(product.rejectedQuantity * product.purchase_price) }}
@@ -754,12 +780,14 @@ onUnmounted(() => {
                                 </div>
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <button class="flex items-center text-sm text-blue-600 hover:text-blue-700"
-                                            @click="openDiscountModal" type="button">
+                                        <button
+                                            class="flex items-center text-sm text-blue-600 hover:text-blue-700"
+                                            @click="openDiscountModal"
+                                            type="button"
+                                        >
                                             Chiết khấu đơn
                                         </button>
-                                        <span class="min-w-[80px] text-right font-medium text-red-600">{{
-                                            formattedDiscount }}</span>
+                                        <span class="min-w-[80px] text-right font-medium text-red-600">{{ formattedDiscount }}</span>
                                     </div>
                                 </div>
                                 <div class="border-t pt-4">
@@ -773,50 +801,56 @@ onUnmounted(() => {
                                         <div class="space-y-4 rounded-md bg-blue-50 p-4">
                                             <div class="flex items-center space-x-6">
                                                 <label class="inline-flex items-center space-x-2">
-                                                    <input type="radio" value="paid" v-model="paymentStatus"
-                                                        class="form-radio text-blue-600" />
+                                                    <input type="radio" value="paid" v-model="paymentStatus" class="form-radio text-blue-600" />
                                                     <span class="font-medium text-gray-800">Đã thanh toán</span>
                                                 </label>
                                             </div>
-                                            <div v-if="paymentStatus === 'paid'"
-                                                class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                            <div v-if="paymentStatus === 'paid'" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Hình thức
-                                                        thanh toán</label>
-                                                    <select v-model="paymentMethod" name="payment_method"
-                                                        class="border-white-300 mt-1 w-full rounded-md bg-white p-2 shadow-sm">
+                                                    <label class="block text-sm font-medium text-gray-700">Hình thức thanh toán</label>
+                                                    <select
+                                                        v-model="paymentMethod"
+                                                        name="payment_method"
+                                                        class="border-white-300 mt-1 w-full rounded-md bg-white p-2 shadow-sm"
+                                                    >
                                                         <option value="cash">Tiền mặt</option>
                                                         <option value="bank_transfer">Chuyển khoản</option>
                                                         <option value="credit_card">Thẻ</option>
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Số tiền thanh
-                                                        toán</label>
+                                                    <label class="block text-sm font-medium text-gray-700">Số tiền thanh toán</label>
                                                     <div class="relative mt-1">
-                                                        <input type="text" :value="formattedPaidAmount"
+                                                        <input
+                                                            type="text"
+                                                            :value="formattedPaidAmount"
                                                             @input="handleFormattedInput"
-                                                            class="w-full rounded-md bg-white p-2 pr-10 shadow-sm" />
+                                                            class="w-full rounded-md bg-white p-2 pr-10 shadow-sm"
+                                                        />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Ngày ghi
-                                                        nhận</label>
-                                                    <input type="date" v-model="paymentDate" name="payment_date"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm" />
+                                                    <label class="block text-sm font-medium text-gray-700">Ngày ghi nhận</label>
+                                                    <input
+                                                        type="date"
+                                                        v-model="paymentDate"
+                                                        name="payment_date"
+                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
+                                                    />
                                                 </div>
                                                 <div>
-                                                    <label class="block text-sm font-medium text-gray-700">Tham
-                                                        chiếu</label>
-                                                    <input type="text" v-model="paymentReference"
+                                                    <label class="block text-sm font-medium text-gray-700">Tham chiếu</label>
+                                                    <input
+                                                        type="text"
+                                                        v-model="paymentReference"
                                                         placeholder="Nhập mã tham chiếu"
-                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm" />
+                                                        class="mt-1 w-full rounded-md border-gray-300 bg-white p-2 shadow-sm"
+                                                    />
                                                 </div>
                                             </div>
                                             <div class="flex items-center space-x-6">
                                                 <label class="inline-flex items-center space-x-2">
-                                                    <input type="radio" value="unpaid" v-model="paymentStatus"
-                                                        class="form-radio text-blue-600" />
+                                                    <input type="radio" value="unpaid" v-model="paymentStatus" class="form-radio text-blue-600" />
                                                     <span class="font-medium text-gray-800">Thanh toán sau</span>
                                                 </label>
                                             </div>
@@ -840,12 +874,9 @@ onUnmounted(() => {
                                     </div>
                                     <div class="space-y-1 text-sm">
                                         <h3 class="text-black-900 font-bold">Thông tin nhà cung cấp</h3>
-                                        <p v-if="selectedSupplier.email" class="text-black-400">{{
-                                            selectedSupplier.email }}</p>
-                                        <p v-if="selectedSupplier.phone" class="text-black-400">{{
-                                            selectedSupplier.phone }}</p>
-                                        <p v-if="selectedSupplier.address" class="text-black-400">{{
-                                            selectedSupplier.address }}</p>
+                                        <p v-if="selectedSupplier.email" class="text-black-400">{{ selectedSupplier.email }}</p>
+                                        <p v-if="selectedSupplier.phone" class="text-black-400">{{ selectedSupplier.phone }}</p>
+                                        <p v-if="selectedSupplier.address" class="text-black-400">{{ selectedSupplier.address }}</p>
                                     </div>
                                 </div>
                                 <div v-else class="text-gray-500">Không có thông tin nhà cung cấp</div>
@@ -858,28 +889,38 @@ onUnmounted(() => {
                             </div>
                             <div class="space-y-4 p-4">
                                 <div class="relative" ref="userDropdownRef">
-                                    <label class="text-black-700 mb-1 block text-sm font-medium">Nhân viên phụ
-                                        trách</label>
+                                    <label class="text-black-700 mb-1 block text-sm font-medium">Nhân viên phụ trách</label>
                                     <div class="relative">
-                                        <input type="text" :value="props.user?.name" disabled
-                                            class="h-10 w-full rounded-md border border-gray-300 px-3 bg-white text-black" />
+                                        <input
+                                            type="text"
+                                            :value="props.user?.name"
+                                            disabled
+                                            class="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-black"
+                                        />
                                     </div>
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập hàng</label>
-                                    <input type="datetime-local" v-model="importDate"
+                                    <input type="datetime-local" v-model="importDate" :min="now()"
                                         class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng
-                                        nhập</label>
-                                    <input type="text" v-model="batchCode" readonly
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng nhập</label>
+                                    <input
+                                        type="text"
+                                        v-model="batchCode"
+                                        readonly
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Tham chiếu</label>
-                                    <input type="text" v-model="invoiceCode" placeholder="Mã nhập tham chiếu"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <input
+                                        type="text"
+                                        v-model="invoiceCode"
+                                        placeholder="Mã nhập tham chiếu"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -889,17 +930,29 @@ onUnmounted(() => {
                                 <h2 class="text-lg font-semibold">Ghi chú</h2>
                             </div>
                             <div class="p-4">
-                                <textarea v-model="notes" placeholder="Thêm ghi chú..." name="notes"
-                                    class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"></textarea>
+                                <textarea
+                                    v-model="notes"
+                                    placeholder="Thêm ghi chú..."
+                                    name="notes"
+                                    class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                ></textarea>
                             </div>
                         </div>
 
-                        <button class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600"
-                            @click="submitBatch" v-if="selectedProducts.length > 0" :disabled="isLoading">
+                        <button
+                            class="mt-4 h-12 w-full rounded-md bg-blue-500 font-medium text-white hover:bg-blue-600"
+                            @click="submitBatch"
+                            v-if="selectedProducts.length > 0"
+                            :disabled="isLoading"
+                        >
                             {{ isLoading ? 'Đang lưu...' : 'Lưu đơn nhập hàng' }}
                         </button>
-                        <button class="mt-4 h-12 w-full rounded-md bg-gray-500 font-medium text-white hover:bg-gray-600"
-                            @click="submitBatch" v-else disabled>
+                        <button
+                            class="mt-4 h-12 w-full rounded-md bg-gray-500 font-medium text-white hover:bg-gray-600"
+                            @click="submitBatch"
+                            v-else
+                            disabled
+                        >
                             Lưu đơn nhập hàng
                         </button>
                     </div>
@@ -913,13 +966,10 @@ onUnmounted(() => {
             <div class="fixed inset-0 flex items-center justify-center p-4">
                 <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
                     <h3 class="mb-4 text-lg font-semibold">Điều chỉnh giá sản phẩm</h3>
-                    <input type="number" min="0" v-model.number="editingPrice"
-                        class="mb-4 w-full rounded border border-gray-300 px-3 py-2" />
+                    <input type="number" min="0" v-model.number="editingPrice" class="mb-4 w-full rounded border border-gray-300 px-3 py-2" />
                     <div class="flex justify-end space-x-2">
-                        <button @click="closePriceModal"
-                            class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
-                        <button @click="savePrice" class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Áp
-                            dụng</button>
+                        <button @click="closePriceModal" class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
+                        <button @click="savePrice" class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Áp dụng</button>
                     </div>
                 </div>
             </div>
@@ -933,26 +983,36 @@ onUnmounted(() => {
                     <h3 class="mb-4 text-lg font-semibold">Điều chỉnh số lượng nhập</h3>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700">Số lượng nhập</label>
-                        <input type="number" min="0" v-model.number="editingQuantity"
+                        <input
+                            type="number"
+                            min="0"
+                            v-model.number="editingQuantity"
                             class="w-full rounded border border-gray-300 px-3 py-2"
-                            @input="editingQuantity = Math.max(0, Number(($event.target as HTMLInputElement).value))" />
+                            @input="editingQuantity = Math.max(0, Number(($event.target as HTMLInputElement).value))"
+                        />
                     </div>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700">Số lượng từ chối</label>
-                        <input type="number" min="0" v-model.number="editingRejectedQuantity"
+                        <input
+                            type="number"
+                            min="0"
+                            v-model.number="editingRejectedQuantity"
                             class="w-full rounded border border-gray-300 px-3 py-2"
-                            @input="editingRejectedQuantity = Math.max(0, Number(($event.target as HTMLInputElement).value))" />
+                            @input="editingRejectedQuantity = Math.max(0, Number(($event.target as HTMLInputElement).value))"
+                        />
                     </div>
                     <div class="mb-4" v-if="editingRejectedQuantity > 0">
                         <label class="block text-sm font-medium text-gray-700">Lý do từ chối</label>
-                        <textarea v-model="editingRejectedReason" placeholder="Nhập lý do từ chối..." maxlength="255"
-                            class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"></textarea>
+                        <textarea
+                            v-model="editingRejectedReason"
+                            placeholder="Nhập lý do từ chối..."
+                            maxlength="255"
+                            class="min-h-[80px] w-full rounded-md border border-gray-300 p-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                        ></textarea>
                     </div>
                     <div class="flex justify-end space-x-2">
-                        <button @click="closeQuantityModal"
-                            class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
-                        <button @click="saveQuantity"
-                            class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Áp dụng</button>
+                        <button @click="closeQuantityModal" class="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300">Hủy</button>
+                        <button @click="saveQuantity" class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Áp dụng</button>
                     </div>
                 </div>
             </div>
@@ -967,25 +1027,37 @@ onUnmounted(() => {
                     <div class="mb-6 flex items-center gap-2 border-b pb-6">
                         <label class="font-medium whitespace-nowrap text-gray-700">Loại chiết khấu:</label>
                         <div class="flex items-center">
-                            <button :class="[
-                                'h-10 rounded-l border border-gray-300 px-4 whitespace-nowrap',
-                                modalDiscountType === 'amount' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700',
-                            ]" @click="setDiscountType('amount')" type="button">
+                            <button
+                                :class="[
+                                    'h-10 rounded-l border border-gray-300 px-4 whitespace-nowrap',
+                                    modalDiscountType === 'amount' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700',
+                                ]"
+                                @click="setDiscountType('amount')"
+                                type="button"
+                            >
                                 Giá trị
                             </button>
-                            <button :class="[
-                                'h-10 rounded-r border-t border-r border-b border-gray-300 px-4',
-                                modalDiscountType === 'percent' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700',
-                            ]" @click="setDiscountType('percent')" type="button">
+                            <button
+                                :class="[
+                                    'h-10 rounded-r border-t border-r border-b border-gray-300 px-4',
+                                    modalDiscountType === 'percent' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700',
+                                ]"
+                                @click="setDiscountType('percent')"
+                                type="button"
+                            >
                                 %
                             </button>
                         </div>
                         <div class="flex items-center">
-                            <input v-model="modalDiscountInput" placeholder="0" type="text" min="0"
+                            <input
+                                v-model="modalDiscountInput"
+                                placeholder="0"
+                                type="text"
+                                min="0"
                                 :max="modalDiscountType === 'percent' ? 100 : subtotal"
-                                class="h-10 w-32 rounded-l border border-gray-300 px-2 focus:outline-none" />
-                            <button class="h-10 w-[36px] rounded-r border border-l-0 border-gray-300 px-2"
-                                type="button">
+                                class="h-10 w-32 rounded-l border border-gray-300 px-2 focus:outline-none"
+                            />
+                            <button class="h-10 w-[36px] rounded-r border border-l-0 border-gray-300 px-2" type="button">
                                 <span v-if="modalDiscountType === 'amount'" class="text-gray-500">₫</span>
                                 <span v-else class="text-gray-500">%</span>
                             </button>
@@ -993,12 +1065,13 @@ onUnmounted(() => {
                     </div>
                     <div v-if="discountError" class="mb-2 text-sm text-red-600">{{ discountError }}</div>
                     <div class="flex justify-end space-x-2">
-                        <button @click="closeDiscountModal"
-                            class="bg-white-200 rounded border-1 border-red-500 px-4 py-1 font-semibold text-red-500 hover:bg-red-100">
+                        <button
+                            @click="closeDiscountModal"
+                            class="bg-white-200 rounded border-1 border-red-500 px-4 py-1 font-semibold text-red-500 hover:bg-red-100"
+                        >
                             Xóa
                         </button>
-                        <button @click="saveDiscount"
-                            class="rounded bg-blue-500 px-4 py-1 font-semibold text-white hover:bg-blue-400">Lưu</button>
+                        <button @click="saveDiscount" class="rounded bg-blue-500 px-4 py-1 font-semibold text-white hover:bg-blue-400">Lưu</button>
                     </div>
                 </div>
             </div>

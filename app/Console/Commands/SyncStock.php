@@ -18,24 +18,39 @@ class SyncStock extends Command
     {
         try {
             DB::transaction(function () {
+                $this->info('Bắt đầu quá trình đồng bộ...');
+
                 $products = Product::where('is_active', 1)
                     ->whereNull('deleted_at')
                     ->select('id', 'stock_quantity')
                     ->get();
 
                 foreach ($products as $product) {
-                    $totalBatchQuantity = BatchItem::where('product_id', $product->id)
-                        ->where('inventory_status', 'active')
-                        ->where('current_quantity', '>', 0)
-                        ->whereHas('batch', function ($query) {
-                            $query->whereNull('deleted_at')
-                                ->where('receipt_status', 'completed');
-                        })
-                        ->where(function ($query) {
-                            $query->whereNull('expiry_date')
-                                ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
-                        })
-                        ->sum('current_quantity');
+                    // Debug query từng bước
+                    $query = BatchItem::where('product_id', $product->id);
+
+                    $query->whereIn('inventory_status', ['active', 'expiring_soon']);
+
+                    $query->where('current_quantity', '>', 0);
+
+                    $query->whereHas('batch', function ($q) {
+                        $q->whereNull('deleted_at')
+                            ->where('receipt_status', 'completed');
+                    });
+
+                    $query->where(function ($q) {
+                        $q->whereNull('expiry_date')
+                            ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
+                    });
+
+                    // Debug thông tin chi tiết của batch items
+                    if ($product->id == 18 || $product->id == 19) {
+                        $batchItems = BatchItem::with('batch')
+                            ->where('product_id', $product->id)
+                            ->get();
+                    }
+
+                    $totalBatchQuantity = $query->sum('current_quantity');
 
                     if ($product->stock_quantity != $totalBatchQuantity) {
                         Log::warning('Phát hiện không đồng bộ tồn kho trong quá trình đồng bộ', [

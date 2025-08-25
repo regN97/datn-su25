@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
 import type { Page } from '@inertiajs/core';
+import { Head, router } from '@inertiajs/vue3';
 import { ChevronLeft, CircleCheckBig, CircleX, PackagePlus, PencilLine, Printer } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { computed, ref } from 'vue';
@@ -112,10 +112,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const po_products = ref<PurchaseOrderItem[]>(props.purchaseOrderItem.map(item => ({
-    ...item,
-    received_quantity: item.received_quantity || 0
-})));
+const po_products = ref<PurchaseOrderItem[]>(
+    props.purchaseOrderItem.map((item) => ({
+        ...item,
+        received_quantity: item.received_quantity || 0,
+    })),
+);
 
 const purchase_order = ref<PurchaseOrder[]>(props.purchaseOrder);
 
@@ -224,13 +226,17 @@ function importOrder() {
                                     purchase_order.value[0].status_id = statusPage.props.status_id ?? purchase_order.value[0].status_id;
                                     purchase_order.value[0].status.name = statusPage.props.status_name ?? purchase_order.value[0].status.name;
                                     purchase_order.value[0].status.code = statusPage.props.status_code ?? purchase_order.value[0].status.code;
-                                    Swal.fire('Thành công', `Trạng thái đơn hàng đã được cập nhật thành "${statusPage.props.status_name}"`, 'success');
+                                    Swal.fire(
+                                        'Thành công',
+                                        `Trạng thái đơn hàng đã được cập nhật thành "${statusPage.props.status_name}"`,
+                                        'success',
+                                    );
                                 }
                             },
                             onError: () => {
                                 Swal.fire('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.', 'error');
                             },
-                        }
+                        },
                     );
 
                     // Gọi API để lấy số lượng nhập
@@ -255,14 +261,14 @@ function importOrder() {
                             onError: () => {
                                 Swal.fire('Lỗi', 'Không thể lấy thông tin số lượng nhập.', 'error');
                             },
-                        }
+                        },
                     );
                 }
             },
             onError: () => {
                 Swal.fire('Lỗi', 'Không thể nhập hàng.', 'error');
             },
-        }
+        },
     );
 }
 
@@ -314,8 +320,8 @@ function printOrder() {
                         <h1 class="ml-4 text-3xl font-bold text-gray-900">{{ orderCode }}</h1>
                         <span
                             :class="[
-                            'text-1xl font-regular ml-3 inline-flex rounded-full px-3.5 py-1 leading-5',
-                            getStatusClass(purchase_order[0].status_id),
+                                'text-1xl font-regular ml-3 inline-flex rounded-full px-3.5 py-1 leading-5',
+                                getStatusClass(purchase_order[0].status_id),
                             ]"
                             >{{ purchase_order[0].status.name }}</span
                         >
@@ -323,7 +329,7 @@ function printOrder() {
                     <!-- Nhóm bên phải: 4 nút chức năng -->
                     <div class="flex space-x-2">
                         <button
-                            v-if="purchase_order[0].status_id != 5 && purchase_order[0].status_id != 3 && purchase_order[0].status_id != 4"
+                            v-if="purchase_order[0].status_id == 1"
                             @click="editOrder"
                             class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                         >
@@ -341,7 +347,7 @@ function printOrder() {
                         </button>
 
                         <button
-                            v-if="purchase_order[0].status_id == 2 || purchase_order[0].status_id == 3"
+                            v-if="purchase_order[0].status_id == 2"
                             @click="importOrder"
                             class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                         >
@@ -350,7 +356,7 @@ function printOrder() {
                         </button>
 
                         <button
-                            v-if="purchase_order[0].status_id != 5 && purchase_order[0].status_id != 3 && purchase_order[0].status_id != 4"
+                            v-if="purchase_order[0].status_id != 4 && purchase_order[0].status_id != 3"
                             @click="cancelOrder"
                             class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                         >
@@ -452,7 +458,7 @@ function printOrder() {
                                         <span>Tiền cần trả NCC</span>
                                         <span class="ml-2">{{
                                             new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAfterDiscount)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                 </div>
                             </div>

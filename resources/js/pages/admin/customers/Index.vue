@@ -27,16 +27,30 @@ const page = usePage<SharedData>();
 // Safely initialize customers
 const customers = ref<Customer[]>(Array.isArray(page.props.customers) ? [...page.props.customers] : []);
 
+// biến search
+const search = ref("");
+
+// computed lọc khách hàng
+const filteredCustomers = computed(() => {
+    if (!search.value) return customers.value;
+    const term = search.value.toLowerCase();
+    return customers.value.filter((c) =>
+        c.customer_name?.toLowerCase().includes(term) ||
+        c.email?.toLowerCase().includes(term) ||
+        c.phone?.toLowerCase().includes(term)
+    );
+});
+
 const perPageOptions = [5, 10, 25, 50];
 const perPage = ref(5);
 const currentPage = ref(1);
 
-const total = computed(() => customers.value.length);
+const total = computed(() => filteredCustomers.value.length); // đổi sang filtered
 const totalPages = computed(() => Math.ceil(total.value / perPage.value));
 
 const paginatedCustomers = computed(() => {
     const start = (currentPage.value - 1) * perPage.value;
-    return customers.value.slice(start, start + perPage.value);
+    return filteredCustomers.value.slice(start, start + perPage.value); // đổi sang filtered
 });
 
 function goToPage(page: number) {
@@ -105,15 +119,27 @@ function cancelDelete() {
             <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
                     <!-- Tiêu đề và nút Thêm mới và thùng rác -->
-                    <div class="mb-4 flex items-center justify-between">
-                        <h1 class="text-2xl font-bold">Khách hàng</h1>
-                        <div class="flex gap-2">
-                            <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
-                                <PackagePlus />
-                            </button>
-                            <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng rác</button>
-                        </div>
-                    </div>
+                   <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <h1 class="text-2xl font-bold">Khách hàng</h1>
+    <div class="flex items-center gap-2">
+        <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
+            <PackagePlus />
+        </button>
+        <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">
+            Thùng rác
+        </button>
+    </div>
+</div>
+
+<!-- Ô tìm kiếm -->
+<div class="mb-4">
+    <input
+        v-model="search"
+        type="text"
+        placeholder="Tìm kiếm..."
+        class="border rounded px-3 py-2 w-64 md:w-72 lg:w-80"
+    />
+</div>
 
                     <!-- Bảng danh sách khách hàng -->
                     <div class="table-wrapper overflow-hidden rounded-lg bg-white shadow-md">
@@ -147,7 +173,7 @@ function cancelDelete() {
                                     </td>
                                     <!-- Đã xóa cột địa chỉ -->
                                     <td class="w-[10%] p-3 text-center text-sm">
-                                        {{ customer.wallet.toLocaleString('vi-VN') }} VND
+                                        {{ (typeof customer.wallet === 'number' && !isNaN(customer.wallet)) ? customer.wallet.toLocaleString('vi-VN') + ' VND' : 'N/A' }}
                                     </td>
                                     <td class="w-[10%] p-3 text-center text-sm">
                                         <button

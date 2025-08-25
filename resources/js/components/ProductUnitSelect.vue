@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import axios from 'axios';
-import { ref, computed, watch } from 'vue';
 import { ChevronDown } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
 
 interface ProductUnit {
     id: number;
@@ -36,16 +36,12 @@ watch(
         const selected = props.units.find((u) => u.id === val);
         if (selected) inputText.value = selected.name;
     },
-    { immediate: true }
+    { immediate: true },
 );
 
 // Danh sách lọc đơn vị theo text
 const filteredUnits = computed(() =>
-    !inputText.value
-        ? props.units
-        : props.units.filter((unit) =>
-              unit.name.toLowerCase().includes(inputText.value.toLowerCase()),
-          ),
+    !inputText.value ? props.units : props.units.filter((unit) => unit.name.toLowerCase().includes(inputText.value.toLowerCase())),
 );
 
 // Xử lý chọn đơn vị
@@ -68,9 +64,7 @@ async function addNewUnit() {
         return;
     }
 
-    const exists = props.units.find(
-        (u) => u.name.toLowerCase() === name.toLowerCase(),
-    );
+    const exists = props.units.find((u) => u.name.toLowerCase() === name.toLowerCase());
     if (exists) {
         selectUnit(exists);
         return;
@@ -113,10 +107,7 @@ function handleBlur(e: FocusEvent) {
                 @blur="handleBlur"
                 autocomplete="off"
             />
-            <ChevronDown
-                class="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 text-gray-500"
-                :class="{ 'rotate-180': showDropdown }"
-            />
+            <ChevronDown class="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 text-gray-500" :class="{ 'rotate-180': showDropdown }" />
             <div
                 v-if="showDropdown"
                 class="dropdown-content absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-gray-100 bg-white shadow-2xl ring-1 ring-gray-200/50"
@@ -135,7 +126,10 @@ function handleBlur(e: FocusEvent) {
                         @mousedown.prevent="addNewUnit"
                         class="cursor-pointer px-4 py-2.5 text-sm text-indigo-600 hover:bg-indigo-50"
                     >
-                        <span v-if="isLoading" class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"></span>
+                        <span
+                            v-if="isLoading"
+                            class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"
+                        ></span>
                         Thêm "{{ inputText }}"
                     </li>
                 </ul>

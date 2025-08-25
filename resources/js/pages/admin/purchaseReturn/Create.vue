@@ -344,9 +344,6 @@ watch(() => props.purchaseOrder, (newPurchaseOrder) => {
                         </svg>
                     </button>
                     <h1 class="text-xl font-semibold text-gray-900">Tạo đơn trả hàng
-                        <span v-if="props.purchaseOrder">
-                            cho lô {{ props.purchaseOrder.code }}
-                        </span>
                     </h1>
                 </div>
                 <div class="flex space-x-3">

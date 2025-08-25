@@ -4,24 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use Carbon\Carbon;
 use App\Models\Bill;
-use App\Models\User;
 use Inertia\Inertia;
 use App\Models\Batch;
 use App\Models\Product;
-use App\Models\Supplier;
 use App\Models\BatchItem;
 use Illuminate\Http\Request;
-use App\Models\PurchaseOrder;
-use App\Models\PurchaseReturn;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Models\BillDetail;
 
 class DashboardController extends Controller
 {
     public function salesDashboard(Request $request)
     {
-        // Lấy ngày bắt đầu và kết thúc từ request hoặc mặc định 7 ngày gần nhất
         $startDate = $request->input('start_date')
             ? Carbon::parse($request->input('start_date'))->startOfDay()
             : now()->subDays(6)->startOfDay();
@@ -30,19 +24,32 @@ class DashboardController extends Controller
             ? Carbon::parse($request->input('end_date'))->endOfDay()
             : now()->endOfDay();
 
-        // Tổng doanh thu trong khoảng thời gian
-        $totalRevenue = Bill::whereBetween('created_at', [$startDate, $endDate])
+        // Doanh thu tổng (PAID - return)
+        $totalRevenueBills = Bill::whereBetween('created_at', [$startDate, $endDate])
+            ->whereHas('paymentStatus', fn($q) => $q->where('code', 'PAID'))
             ->sum('total_amount');
 
-        // Tổng đơn hàng
         $totalBills = Bill::whereBetween('created_at', [$startDate, $endDate])
+            ->whereHas('paymentStatus', fn($q) => $q->where('code', 'PAID'))
             ->count();
 
-        // Doanh thu theo ngày
+        $totalReturned = DB::table('return_bills')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->sum('total_amount_returned');
+
+        $totalRevenue = $totalRevenueBills - $totalReturned;
+
+        // Doanh thu theo ngày (PAID - return)
         $rawRevenue = Bill::selectRaw('DATE(created_at) as date, SUM(total_amount) as total')
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereHas('paymentStatus', fn($q) => $q->where('code', 'PAID'))
             ->groupBy('date')
-            ->orderBy('date', 'asc')
+            ->pluck('total', 'date');
+
+        $rawReturn = DB::table('return_bills')
+            ->selectRaw('DATE(created_at) as date, SUM(total_amount_returned) as total')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('date')
             ->pluck('total', 'date');
 
         $labels = [];
@@ -50,16 +57,18 @@ class DashboardController extends Controller
         $current = $startDate->copy();
         while ($current <= $endDate) {
             $dateStr = $current->toDateString();
+            $bills = $rawRevenue[$dateStr] ?? 0;
+            $returns = $rawReturn[$dateStr] ?? 0;
             $labels[] = $dateStr;
-            $revenueData[] = $rawRevenue[$dateStr] ?? 0;
+            $revenueData[] = $bills - $returns;
             $current->addDay();
         }
 
-        // Giá trị đơn hàng trung bình
+        // Giá trị đơn hàng trung bình (chỉ PAID)
         $rawAvg = Bill::selectRaw('DATE(created_at) as date, AVG(total_amount) as avg_value')
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereHas('paymentStatus', fn($q) => $q->where('code', 'PAID'))
             ->groupBy('date')
-            ->orderBy('date', 'asc')
             ->pluck('avg_value', 'date');
 
         $avgLabels = [];
@@ -72,19 +81,21 @@ class DashboardController extends Controller
             $current->addDay();
         }
 
-        // Top sản phẩm bán chạy
+        // Top sản phẩm bán chạy (chỉ PAID)
         $topProducts = DB::table('bill_details')
             ->join('bills', 'bills.id', '=', 'bill_details.bill_id')
             ->join('products', 'products.id', '=', 'bill_details.product_id')
+            ->join('order_payment_statuses as ps', 'ps.id', '=', 'bills.payment_status_id')
             ->whereBetween('bills.created_at', [$startDate, $endDate])
+            ->where('ps.code', 'PAID')
             ->select(
                 'products.id',
                 'products.name',
                 'products.sku',
                 DB::raw('SUM(bill_details.quantity) as total_sold'),
-                DB::raw('SUM(bill_details.quantity * products.selling_price) as total_revenue')
+                DB::raw('SUM(bill_details.quantity * bill_details.unit_price) as total_revenue')
             )
-            ->groupBy('products.id', 'products.name', 'products.sku', 'products.selling_price')
+            ->groupBy('products.id', 'products.name', 'products.sku')
             ->orderByDesc('total_sold')
             ->take(10)
             ->get()
@@ -94,11 +105,11 @@ class DashboardController extends Controller
                 return $p;
             });
 
-        //  Số lượng đơn hàng theo ngày
+        // Số lượng đơn hàng theo ngày (chỉ PAID)
         $billCounts = Bill::selectRaw('DATE(created_at) as date, COUNT(*) as total_bills')
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereHas('paymentStatus', fn($q) => $q->where('code', 'PAID'))
             ->groupBy('date')
-            ->orderBy('date', 'asc')
             ->pluck('total_bills', 'date');
 
         $billLabels = [];
@@ -111,11 +122,10 @@ class DashboardController extends Controller
             $current->addDay();
         }
 
-        // 👥 Chi tiêu của khách hàng (khách mới vs khách cũ)
+        // Chi tiêu khách hàng (cũ / mới) — chỉ PAID
         $spendingLabels = [];
         $spendingMultiData = [];
         $spendingOneData = [];
-
         $oldCustomers = [];
 
         $current = $startDate->copy();
@@ -124,6 +134,7 @@ class DashboardController extends Controller
 
             $billsInDay = Bill::whereDate('created_at', $dateStr)
                 ->whereBetween('created_at', [$startDate, $endDate])
+                ->whereHas('paymentStatus', fn($q) => $q->where('code', 'PAID'))
                 ->whereNotNull('customer_id')
                 ->get();
 
@@ -131,7 +142,6 @@ class DashboardController extends Controller
             $dayReturningSpent = 0;
 
             $grouped = $billsInDay->groupBy('customer_id');
-
             foreach ($grouped as $customerId => $bills) {
                 $totalSpent = $bills->sum('total_amount');
                 if (in_array($customerId, $oldCustomers)) {
@@ -152,7 +162,6 @@ class DashboardController extends Controller
             $current->addDay();
         }
 
-        // Trả dữ liệu về Vue Inertia
         return Inertia::render('admin/dashboard/SalesDashboard', [
             'filters' => [
                 'start_date' => $startDate->toDateString(),
@@ -177,17 +186,16 @@ class DashboardController extends Controller
         ]);
     }
 
+
     public function inventoryDashboard()
     {
         // Tổng số sản phẩm
         $total_products = Product::count();
-        // Tổng tồn kho
-        $total_stock = Product::all()->sum(fn($p) => $p->getCurrentStock());
         // Tổng giá trị tồn kho
         $total_inventory_value = BatchItem::where('inventory_status', 'active')
             ->sum(DB::raw('purchase_price * current_quantity'));
         // Số sản phẩm sắp hết hạn (hạn dùng < 30 ngày, còn tồn kho)
-        $expiring_products = BatchItem::where('inventory_status', 'active')
+        $expiring_products = BatchItem::where('inventory_status', 'expiring_soon')
             ->whereNotNull('expiry_date')
             ->where('expiry_date', '<', now()->addDays(30))
             ->where('current_quantity', '>', 0)
@@ -220,14 +228,23 @@ class DashboardController extends Controller
                     'current_stock' => $product->getCurrentStock(),
                 ];
             });
-        // Top 5 sản phẩm bán chạy (theo số lượng bán ra trong 12 tháng gần nhất)
-        $topSellingProducts = DB::table('bill_details')
-            ->join('products', 'bill_details.product_id', '=', 'products.id')
-            ->select('products.id', 'products.name', DB::raw('SUM(bill_details.quantity) as sold'))
-            ->where('bill_details.created_at', '>=', now()->subMonths(12)->startOfMonth())
+        // Top 10 sản phẩm bán chậm (theo số lượng bán ra trong 30 ngày gần nhất)
+        $slowMovingProducts = DB::table('products')
+            ->leftJoin('bill_details', function ($join) {
+                $join->on('products.id', '=', 'bill_details.product_id')
+                    ->where('bill_details.created_at', '>=', now()->subDays(30)->startOfMonth());
+            })
+            ->select(
+                'products.id',
+                'products.name',
+                DB::raw('COALESCE(SUM(bill_details.quantity), 0) as sold')
+            )
+            ->where('products.is_active', true) // Sửa lại điều kiện theo đúng tên trường
+            ->where('products.is_trackable', true) // Chỉ lấy sản phẩm có quản lý tồn kho
+            ->where('products.deleted_at', null) // Không lấy sản phẩm đã xóa
             ->groupBy('products.id', 'products.name')
-            ->orderByDesc('sold')
-            ->limit(5)
+            ->orderBy('sold', 'asc')
+            ->limit(10)
             ->get();
         // Thống kê trả hàng
         $returnStats = [
@@ -240,18 +257,101 @@ class DashboardController extends Controller
                 ->orderByDesc('qty')
                 ->value('products.name'),
         ];
+
+        // Thống kê batch items sắp hết hạn (30 ngày tới)
+        $expiringBatchItems = BatchItem::with(['product', 'batch'])
+            ->where('inventory_status', 'expiring_soon')
+            ->where('current_quantity', '>', 0)
+            ->whereNotNull('expiry_date')
+            ->where('expiry_date', '>', now())
+            ->where('expiry_date', '<=', now()->addDays(30))
+            ->select([
+                'batch_items.id',
+                'batch_items.product_id',
+                'batch_items.batch_id', // Thêm batch_id
+                'batch_items.current_quantity',
+                'batch_items.expiry_date',
+                DB::raw('DATEDIFF(expiry_date, CURDATE()) as days_until_expiry')
+            ])
+            ->orderBy('expiry_date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'product_name' => $item->product->name,
+                    'batch_number' => $item->batch->batch_number, // Thêm batch_number
+                    'current_quantity' => $item->current_quantity,
+                    'expiry_date' => $item->expiry_date->format('d/m/Y'),
+                    'days_until_expiry' => $item->days_until_expiry,
+                ];
+            });
+
+        // Thêm logic thống kê sản phẩm sắp hết hàng
+        $lowStockProducts = Product::where('is_active', true)
+            ->where('is_trackable', true)
+            ->whereRaw('stock_quantity <= min_stock_level')
+            ->where('stock_quantity', '>', 0) // Chỉ lấy sp còn hàng
+            ->select([
+                'id',
+                'name',
+                'sku',
+                'stock_quantity',
+                'min_stock_level',
+                'selling_price'
+            ])
+            ->orderBy('stock_quantity')
+            ->get()
+            ->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'sku' => $product->sku,
+                    'current_stock' => $product->stock_quantity,
+                    'min_stock' => $product->min_stock_level,
+                    'remaining_percent' => round(($product->stock_quantity / $product->min_stock_level) * 100)
+                ];
+            });
+
+        // Thêm số lượng sản phẩm sắp hết vào overviewStats
+        $low_stock_count = $lowStockProducts->count();
+
+        // Thống kê sản phẩm hết hàng
+        $outOfStockProducts = Product::where('is_active', true)
+            ->where('is_trackable', true)
+            ->where('stock_quantity', '=', 0)
+            ->select([
+                'id',
+                'name',
+                'sku',
+                'min_stock_level',
+                'selling_price'
+            ])
+            ->orderBy('name')
+            ->get()
+            ->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'sku' => $product->sku,
+                    'min_stock' => $product->min_stock_level
+                ];
+            });
+
         // Truyền sang view
         return Inertia::render('admin/dashboard/InventoryDashboard', [
             'overviewStats' => [
                 ['label' => 'Tổng sản phẩm', 'value' => $total_products, 'icon' => 'Package', 'color' => 'text-blue-500'],
-                ['label' => 'Tổng tồn kho', 'value' => $total_stock, 'icon' => 'Layers', 'color' => 'text-green-500'],
                 ['label' => 'Tổng giá trị tồn kho', 'value' => $total_inventory_value, 'icon' => 'TrendingUp', 'color' => 'text-indigo-500', 'unit' => 'VND'],
-                ['label' => 'Sắp hết hạn', 'value' => $expiring_products, 'icon' => 'AlertTriangle', 'color' => 'text-yellow-500'],
+                ['label' => 'Lô sắp hết hạn trong 30 ngày', 'value' => $expiring_products, 'icon' => 'AlertTriangle', 'color' => 'text-red-500'],
+                ['label' => 'Sản phẩm sắp hết hàng', 'value' => $low_stock_count, 'icon' => 'AlertTriangle', 'color' => 'text-red-500']
             ],
             'chartData' => $chartData,
             'products' => $products,
-            'topSellingProducts' => $topSellingProducts,
+            'slowMovingProducts' => $slowMovingProducts,
             'returnStats' => $returnStats,
+            'expiringBatchItems' => $expiringBatchItems,
+            'lowStockProducts' => $lowStockProducts,
+            'outOfStockProducts' => $outOfStockProducts
         ]);
     }
 }

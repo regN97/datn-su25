@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { Eye, Search, Plus, TrendingUp, ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-vue-next';
+import { CheckCircle2, ChevronLeft, ChevronRight, Eye, Plus, Search, TrendingUp, XCircle } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface PurchaseReturn {
@@ -41,7 +41,7 @@ const formatCurrency = computed(() => (amount: string) => {
     const value = parseFloat(amount.replace(/[^0-9.-]+/g, '')) || 0;
     return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'VND',
     }).format(value);
 });
 
@@ -72,8 +72,9 @@ const getPaymentStatusDisplayName = computed(() => (paymentStatus: 'unpaid' | 'p
 });
 
 const filteredReturns = computed(() => {
-    return props.purchaseReturns.filter(item => {
-        const matchesSearch = searchQuery.value === '' ||
+    return props.purchaseReturns.filter((item) => {
+        const matchesSearch =
+            searchQuery.value === '' ||
             item.return_number.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             item.supplier_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             item.created_by.toLowerCase().includes(searchQuery.value.toLowerCase());
@@ -92,9 +93,15 @@ const paginatedReturns = computed(() => {
     return filteredReturns.value.slice(start, end);
 });
 
-const prevPage = () => { if (currentPage.value > 1) currentPage.value--; };
-const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++; };
-const goToPage = (page: number) => { if (page >= 1 && page <= totalPages.value) currentPage.value = page; };
+const prevPage = () => {
+    if (currentPage.value > 1) currentPage.value--;
+};
+const nextPage = () => {
+    if (currentPage.value < totalPages.value) currentPage.value++;
+};
+const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages.value) currentPage.value = page;
+};
 
 const paginationRange = computed(() => {
     const range = [];
@@ -114,13 +121,13 @@ const paginationRange = computed(() => {
 
 const stats = computed(() => {
     const total = props.purchaseReturns.length;
-    const pending = props.purchaseReturns.filter(r => r.status === 'pending').length;
-    const approved = props.purchaseReturns.filter(r => r.status === 'approved').length;
-    const completed = props.purchaseReturns.filter(r => r.status === 'completed').length;
-    const rejected = props.purchaseReturns.filter(r => r.status === 'rejected').length;
+    const pending = props.purchaseReturns.filter((r) => r.status === 'pending').length;
+    const approved = props.purchaseReturns.filter((r) => r.status === 'approved').length;
+    const completed = props.purchaseReturns.filter((r) => r.status === 'completed').length;
+    const rejected = props.purchaseReturns.filter((r) => r.status === 'rejected').length;
 
-    const paid = props.purchaseReturns.filter(r => r.payment_status === 'paid').length;
-    const unpaid = props.purchaseReturns.filter(r => r.payment_status === 'unpaid').length;
+    const paid = props.purchaseReturns.filter((r) => r.payment_status === 'paid').length;
+    const unpaid = props.purchaseReturns.filter((r) => r.payment_status === 'unpaid').length;
 
     const totalValue = props.purchaseReturns.reduce((sum, item) => {
         const value = parseFloat(item.total_value_returned.replace(/[^0-9.-]+/g, '')) || 0;
@@ -133,17 +140,17 @@ const stats = computed(() => {
 <template>
     <Head title="Quản lý phiếu trả hàng" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="bg-white min-h-screen">
-            <div class="px-4 sm:px-6 lg:px-8 py-8">
+        <div class="min-h-screen bg-white">
+            <div class="px-4 py-8 sm:px-6 lg:px-8">
                 <div class="mb-8">
                     <h1 class="text-3xl font-semibold text-gray-800">Quản lý phiếu trả hàng</h1>
-                    <p class="mt-1 text-gray-500 text-sm">Theo dõi và quản lý các phiếu trả hàng nhà cung cấp</p>
+                    <p class="mt-1 text-sm text-gray-500">Theo dõi và quản lý các phiếu trả hàng nhà cung cấp</p>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-                    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                         <div class="flex items-center gap-3">
-                            <Plus class="text-blue-500 w-6 h-6" />
+                            <Plus class="h-6 w-6 text-blue-500" />
                             <div>
                                 <p class="text-sm text-gray-500">Tổng phiếu</p>
                                 <p class="text-xl font-bold text-gray-800">{{ stats.total }}</p>
@@ -151,9 +158,9 @@ const stats = computed(() => {
                         </div>
                     </div>
 
-                    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                         <div class="flex items-center gap-3">
-                            <CheckCircle2 class="text-green-500 w-6 h-6" />
+                            <CheckCircle2 class="h-6 w-6 text-green-500" />
                             <div>
                                 <p class="text-sm text-gray-500">Đã nhận hoàn tiền</p>
                                 <p class="text-xl font-bold text-gray-800">{{ stats.paid }}</p>
@@ -161,9 +168,9 @@ const stats = computed(() => {
                         </div>
                     </div>
 
-                    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                         <div class="flex items-center gap-3">
-                            <XCircle class="text-red-500 w-6 h-6" />
+                            <XCircle class="h-6 w-6 text-red-500" />
                             <div>
                                 <p class="text-sm text-gray-500">Chưa nhận hoàn tiền</p>
                                 <p class="text-xl font-bold text-gray-800">{{ stats.unpaid }}</p>
@@ -171,9 +178,9 @@ const stats = computed(() => {
                         </div>
                     </div>
 
-                    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                         <div class="flex items-center gap-3">
-                            <TrendingUp class="text-indigo-500 w-6 h-6" />
+                            <TrendingUp class="h-6 w-6 text-indigo-500" />
                             <div>
                                 <p class="text-sm text-gray-500">Tổng giá trị</p>
                                 <p class="text-lg font-bold text-gray-800">{{ formatCurrency(stats.totalValue.toString()) }}</p>
@@ -182,20 +189,20 @@ const stats = computed(() => {
                     </div>
                 </div>
 
-                <div class="mb-6 flex flex-col sm:flex-row gap-4">
+                <div class="mb-6 flex flex-col gap-4 sm:flex-row">
                     <div class="relative flex-1">
-                        <Search class="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                        <Search class="absolute top-3 left-3 h-5 w-5 text-gray-400" />
                         <input
                             v-model="searchQuery"
                             type="text"
-                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring focus:ring-blue-200 shadow-sm"
+                            class="w-full rounded-xl border border-gray-300 py-2 pr-4 pl-10 shadow-sm focus:ring focus:ring-blue-200 focus:outline-none"
                             placeholder="Tìm theo mã phiếu, nhà cung cấp, người tạo..."
                         />
                     </div>
                     <div>
                         <select
                             v-model="paymentStatusFilter"
-                            class="px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring focus:ring-blue-200"
+                            class="rounded-xl border border-gray-300 px-4 py-2 shadow-sm focus:ring focus:ring-blue-200 focus:outline-none"
                         >
                             <option value="all">Tất cả trạng thái thanh toán</option>
                             <option value="paid">Đã nhận hoàn tiền</option>
@@ -204,36 +211,32 @@ const stats = computed(() => {
                     </div>
                 </div>
 
-                <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-100 text-sm">
-                            <thead class="bg-gray-50 text-gray-600 font-semibold">
+                            <thead class="bg-gray-50 font-semibold text-gray-600">
                                 <tr>
-                                    <th class="text-left px-6 py-3">Mã phiếu</th>
-                                    <th class="text-left px-6 py-3">Nhà cung cấp</th>
-                                    <th class="text-left px-6 py-3">Ngày trả</th>
-                                    <th class="text-left px-6 py-3">Trạng thái</th>
-                                    <th class="text-left px-6 py-3">Thanh toán</th>
-                                    <th class="text-right px-6 py-3">Tổng tiền</th>
-                                    <th class="text-left px-6 py-3">Người tạo</th>
-                                    <th class="text-center px-6 py-3">Hành động</th>
+                                    <th class="px-6 py-3 text-left">Mã phiếu</th>
+                                    <th class="px-6 py-3 text-left">Nhà cung cấp</th>
+                                    <th class="px-6 py-3 text-left">Ngày trả</th>
+                                    <th class="px-6 py-3 text-left">Trạng thái</th>
+                                    <th class="px-6 py-3 text-left">Thanh toán</th>
+                                    <th class="px-6 py-3 text-right">Tổng tiền</th>
+                                    <th class="px-6 py-3 text-left">Người tạo</th>
+                                    <th class="px-6 py-3 text-center">Hành động</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 <tr v-if="paginatedReturns.length === 0">
-                                    <td colspan="8" class="text-center py-10 text-gray-500">Không có dữ liệu phù hợp</td>
+                                    <td colspan="8" class="py-10 text-center text-gray-500">Không có dữ liệu phù hợp</td>
                                 </tr>
-                                <tr
-                                    v-for="item in paginatedReturns"
-                                    :key="item.id"
-                                    class="hover:bg-gray-50"
-                                >
+                                <tr v-for="item in paginatedReturns" :key="item.id" class="hover:bg-gray-50">
                                     <td class="px-6 py-4 font-medium text-blue-700">{{ item.return_number }}</td>
                                     <td class="px-6 py-4">{{ item.supplier_name }}</td>
                                     <td class="px-6 py-4 text-gray-600">{{ item.return_date }}</td>
                                     <td class="px-6 py-4">
                                         <span
-                                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                                            class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium"
                                             :class="{
                                                 'bg-yellow-50 text-yellow-700': item.status === 'pending',
                                                 'bg-blue-50 text-blue-700': item.status === 'approved',
@@ -246,7 +249,7 @@ const stats = computed(() => {
                                     </td>
                                     <td class="px-6 py-4">
                                         <span
-                                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                                            class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium"
                                             :class="{
                                                 'bg-red-50 text-red-700': item.payment_status === 'unpaid',
                                                 'bg-green-50 text-green-700': item.payment_status === 'paid',
@@ -255,17 +258,17 @@ const stats = computed(() => {
                                             ● {{ getPaymentStatusDisplayName(item.payment_status) }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 text-right text-gray-800 font-semibold">
+                                    <td class="px-6 py-4 text-right font-semibold text-gray-800">
                                         {{ formatCurrency(item.total_value_returned) }}
                                     </td>
                                     <td class="px-6 py-4">{{ item.created_by }}</td>
                                     <td class="px-6 py-4 text-center">
                                         <button
                                             @click="showPurchaseReturn(item.id)"
-                                            class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-gray-600 hover:text-black"
+                                            class="rounded-lg bg-gray-100 p-2 text-gray-600 transition hover:bg-gray-200 hover:text-black"
                                             title="Xem chi tiết"
                                         >
-                                            <Eye class="w-4 h-4" />
+                                            <Eye class="h-4 w-4" />
                                         </button>
                                     </td>
                                 </tr>
@@ -274,17 +277,18 @@ const stats = computed(() => {
                     </div>
                 </div>
 
-                <div class="mt-6 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+                <div class="mt-6 flex flex-col items-center justify-between space-y-4 sm:flex-row sm:space-y-0">
                     <span class="text-sm text-gray-500">
-                        Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, filteredReturns.length) }} trong {{ filteredReturns.length }} phiếu trả hàng
+                        Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, filteredReturns.length) }} trong
+                        {{ filteredReturns.length }} phiếu trả hàng
                     </span>
                     <div class="flex items-center space-x-2">
                         <button
                             @click="prevPage"
                             :disabled="currentPage === 1"
-                            class="p-2 border rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="rounded-lg border p-2 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            <ChevronLeft class="w-4 h-4" />
+                            <ChevronLeft class="h-4 w-4" />
                         </button>
                         <div class="flex space-x-1">
                             <button
@@ -294,10 +298,10 @@ const stats = computed(() => {
                                 :class="{
                                     'bg-blue-600 text-white': currentPage === page,
                                     'hover:bg-gray-200': currentPage !== page,
-                                    'text-gray-500 cursor-not-allowed': page === '...',
-                                    'bg-white text-gray-700': currentPage !== page && page !== '...'
+                                    'cursor-not-allowed text-gray-500': page === '...',
+                                    'bg-white text-gray-700': currentPage !== page && page !== '...',
                                 }"
-                                class="px-3 py-1 rounded-lg border text-sm"
+                                class="rounded-lg border px-3 py-1 text-sm"
                                 :disabled="page === '...'"
                             >
                                 {{ page }}
@@ -306,12 +310,12 @@ const stats = computed(() => {
                         <button
                             @click="nextPage"
                             :disabled="currentPage === totalPages"
-                            class="p-2 border rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="rounded-lg border p-2 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            <ChevronRight class="w-4 h-4" />
+                            <ChevronRight class="h-4 w-4" />
                         </button>
                     </div>
-                    <span class="text-sm text-gray-500 hidden sm:block">Trang {{ currentPage }} / {{ totalPages }}</span>
+                    <span class="hidden text-sm text-gray-500 sm:block">Trang {{ currentPage }} / {{ totalPages }}</span>
                 </div>
             </div>
         </div>

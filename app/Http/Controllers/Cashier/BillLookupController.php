@@ -71,9 +71,6 @@ class BillLookupController extends Controller
                     ->orWhereHas('customer', function ($q) use ($query) {
                         $q->where('customer_name', 'like', "%{$query}%")
                             ->orWhere('phone', 'like', "%{$query}%");
-                    })
-                    ->orWhereHas('details.batch', function ($q) use ($query) {
-                        $q->where('batch_number', 'like', "%{$query}%");
                     });
             })
             ->latest()

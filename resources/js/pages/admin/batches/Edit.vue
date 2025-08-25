@@ -35,6 +35,8 @@ interface SelectedProduct extends Product {
     purchase_price: number;
     total: number;
     total_amount: number;
+    manufacturing_date?: string; 
+    expiry_date?: string; 
 }
 
 interface BatchItem {
@@ -157,6 +159,8 @@ function initializeFromBatch() {
         total_amount: item.total_amount,
         image_url: item.product.image_url,
         description: item.product.description,
+        manufacturing_date: item.manufacturing_date,
+        expiry_date: item.expiry_date,
     }));
 
     // Tìm và thiết lập nhà cung cấp
@@ -469,6 +473,8 @@ const payload = {
         received_quantity: product.quantity,
         purchase_price: product.purchase_price,
         total_amount: product.total_amount,
+        manufacturing_date: product.manufacturing_date,
+        expiry_date: product.expiry_date,
     })),
     supplier_id: selectedSupplier.value.id,
     discount_type: discount.value ? discount.value.type : null,

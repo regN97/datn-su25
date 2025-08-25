@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Pencil, Trash, Eye } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { Eye, Pencil, Trash } from 'lucide-vue-next';
+import { onMounted, ref, computed } from 'vue'; 
 
 interface User {
     id: number;
@@ -16,7 +16,7 @@ interface User {
     };
 }
 
-defineProps<{
+const props = defineProps<{ // gán vào biến props để dùng trong script (template vẫn dùng users, userRoles bình thường)
     users: User[];
     userRoles: {
         id: number;
@@ -51,7 +51,7 @@ function submit() {
                 alert('Thêm tài khoản thành công');
             },
         });
-    } 
+    }
 }
 
 function goToShowPage(id: number) {
@@ -95,6 +95,42 @@ onMounted(() => {
         hasShownSuccess.value = true;
     }
 });
+
+/* ===========================
+    THÊM: TÌM KIẾM & LỌC
+   - searchTerm: tìm theo tên/email/sđt
+   - selectedRole: lọc theo vai trò
+   - filteredUsers: danh sách đã lọc
+   =========================== */
+const searchTerm = ref('');
+const selectedRole = ref<string | number | ''>('');
+
+// chuẩn hoá chuỗi để so khớp tiếng Việt cơ bản
+const normalize = (s: string) =>
+    s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
+const filteredUsers = computed<User[]>(() => {
+    const term = normalize(searchTerm.value.trim());
+    const roleFilter = selectedRole.value;
+
+    let list = props.users ?? [];
+
+    if (term) {
+        list = list.filter((u) => {
+            const name = u.name ? normalize(u.name) : '';
+            const email = u.email ? normalize(u.email) : '';
+            const phone = u.phone_number ? normalize(u.phone_number) : '';
+            const roleName = u.role?.name ? normalize(u.role.name) : '';
+            return name.includes(term) || email.includes(term) || phone.includes(term) || roleName.includes(term);
+        });
+    }
+
+    if (roleFilter !== '' && roleFilter !== null) {
+        list = list.filter((u) => u.role && String(u.role.id) === String(roleFilter));
+    }
+
+    return list;
+});
 </script>
 
 <template>
@@ -109,6 +145,38 @@ onMounted(() => {
                         <button class="rounded-3xl bg-green-600 px-6 py-2 text-white hover:bg-green-700" @click="showForm = !showForm">
                             {{ showForm ? 'Đóng' : 'Thêm mới' }}
                         </button>
+                    </div>
+
+                    <!--  KHỐI TÌM KIẾM & LỌC -->
+                    <div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <div class="col-span-1">
+                            <label class="mb-1 block text-sm font-medium">Tìm kiếm</label>
+                            <input
+                                v-model="searchTerm"
+                                type="text"
+                                placeholder="Nhập tên, email, SĐT hoặc vai trò"
+                                class="w-full rounded border p-2"
+                            />
+                        </div>
+                        <div class="col-span-1">
+                            <label class="mb-1 block text-sm font-medium">Lọc theo vai trò</label>
+                            <select v-model="selectedRole" class="w-full rounded border p-2">
+                                <option value="">Tất cả vai trò</option>
+                                <option v-for="role in userRoles" :key="role.id" :value="role.id">
+                                    {{ role.name }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-span-1 flex items-end">
+                            <button
+                                type="button"
+                                class="w-full rounded border px-4 py-2 hover:bg-gray-50"
+                                @click="searchTerm = ''; selectedRole = ''"
+                                title="Xoá bộ lọc"
+                            >
+                                Xoá bộ lọc
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Form thêm mới -->
@@ -168,7 +236,7 @@ onMounted(() => {
 
                             <tbody>
                                 <tr
-                                    v-for="user in users"
+                                    v-for="user in filteredUsers"
                                     :key="user.id"
                                     class="rounded-lg border border-gray-200 bg-white shadow-sm transition hover:bg-gray-100"
                                 >
@@ -177,9 +245,13 @@ onMounted(() => {
                                     <td class="px-6 py-4">{{ user.phone_number }}</td>
                                     <td class="px-6 py-4">{{ user.role?.name }}</td>
                                     <td class="rounded-r-lg px-6 py-4 text-center">
-                                        <button class="p-1 text-gray-600 transition hover:text-gray-800" title="Xem chi tiết" @click="goToShowPage(user.id)">
+                                        <button
+                                            class="p-1 text-gray-600 transition hover:text-gray-800"
+                                            title="Xem chi tiết"
+                                            @click="goToShowPage(user.id)"
+                                        >
                                             <Eye class="h-5 w-5" />
-                                         </button>
+                                        </button>
                                         <button class="p-1 text-blue-600 transition hover:text-blue-800" title="Sửa" @click="editUser(user)">
                                             <Pencil class="h-5 w-5" />
                                         </button>
@@ -188,7 +260,7 @@ onMounted(() => {
                                         </button>
                                     </td>
                                 </tr>
-                                <tr v-if="users.length === 0">
+                                <tr v-if="filteredUsers.length === 0">
                                     <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Không có dữ liệu</td>
                                 </tr>
                             </tbody>

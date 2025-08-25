@@ -15,7 +15,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'COS-001',
                 'barcode' => '8936001234567',
                 'description' => 'Bánh quy Cosy Marie vị bơ thơm ngon',
-                'category_id' => 1,
+                'category_id' => 6,
                 'unit_id' => 3, // Hộp
                 'selling_price' => 25000,
                 'min_stock_level' => 50,
@@ -28,7 +28,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'HRB-001',
                 'barcode' => '8936001234574',
                 'description' => 'Kẹo dẻo Haribo hình gấu nhiều màu sắc',
-                'category_id' => 1,
+                'category_id' => 6,
                 'unit_id' => 2, // Gói
                 'selling_price' => 30000,
                 'min_stock_level' => 50,
@@ -43,9 +43,22 @@ class ProductSeeder extends Seeder
                 'sku' => 'LAY-001',
                 'barcode' => '8936002345678',
                 'description' => 'Snack khoai tây chiên Lay’s vị muối nguyên bản',
-                'category_id' => 2,
+                'category_id' => 6,
                 'unit_id' => 2, // Gói
                 'selling_price' => 12000,
+                'min_stock_level' => 100,
+                'max_stock_level' => 1000,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+            [
+                'name' => 'Snack đùi gà 50g Phúc Thịnh',
+                'sku' => 'PHUC-001',
+                'barcode' => '8938533974517',
+                'description' => 'Snack đùi gà Phúc Thịnh vị cay giòn rụm',
+                'category_id' => 6,
+                'unit_id' => 2, // Gói
+                'selling_price' => 10000,
                 'min_stock_level' => 100,
                 'max_stock_level' => 1000,
                 'is_active' => true,
@@ -56,7 +69,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'OIS-001',
                 'barcode' => '8936002345685',
                 'description' => 'Snack Oishi vị tôm cay giòn rụm',
-                'category_id' => 2,
+                'category_id' => 6,
                 'unit_id' => 2, // Gói
                 'selling_price' => 10000,
                 'min_stock_level' => 100,
@@ -71,7 +84,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'CCP-001',
                 'barcode' => '8936003456789',
                 'description' => 'Kẹo mút Chupa Chups nhiều hương vị',
-                'category_id' => 3,
+                'category_id' => 6,
                 'unit_id' => 1, // Cái
                 'selling_price' => 5000,
                 'min_stock_level' => 200,
@@ -84,7 +97,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'ORI-001',
                 'barcode' => '8936003456796',
                 'description' => 'Bánh Chocopie Orion nhân sô-cô-la',
-                'category_id' => 3,
+                'category_id' => 6,
                 'unit_id' => 3, // Hộp
                 'selling_price' => 45000,
                 'min_stock_level' => 50,
@@ -93,89 +106,7 @@ class ProductSeeder extends Seeder
                 'image_url' => '/storage/piclumen-1747750187180.png'
             ],
 
-            // Danh mục 4: Thực phẩm đông lạnh
-            [
-                'name' => 'Xúc xích CP 500g',
-                'sku' => 'CPC-001',
-                'barcode' => '8936004567890',
-                'description' => 'Xúc xích CP tươi ngon, tiện lợi',
-                'category_id' => 4,
-                'unit_id' => 2, // Gói
-                'selling_price' => 55000,
-                'min_stock_level' => 30,
-                'max_stock_level' => 300,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Chả cá basa 300g',
-                'sku' => 'CCB-001',
-                'barcode' => '8936004567906',
-                'description' => 'Chả cá basa đông lạnh, dùng cho lẩu hoặc chiên',
-                'category_id' => 4,
-                'unit_id' => 2, // Gói
-                'selling_price' => 40000,
-                'min_stock_level' => 30,
-                'max_stock_level' => 300,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 5: Thực phẩm tươi sống
-            [
-                'name' => 'Thịt bò thăn 1kg',
-                'sku' => 'TBT-001',
-                'barcode' => '8936005678901',
-                'description' => 'Thịt bò thăn tươi, chất lượng cao',
-                'category_id' => 5,
-                'unit_id' => 4, // Kg
-                'selling_price' => 250000,
-                'min_stock_level' => 10,
-                'max_stock_level' => 100,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Cá hồi phi lê 500g',
-                'sku' => 'CHO-001',
-                'barcode' => '8936005678918',
-                'description' => 'Cá hồi phi lê tươi, nhập khẩu từ Na Uy',
-                'category_id' => 5,
-                'unit_id' => 4, // Kg
-                'selling_price' => 350000,
-                'min_stock_level' => 10,
-                'max_stock_level' => 100,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-
-            // Danh mục 6: Rau củ quả
-            [
-                'name' => 'Cà chua 1kg',
-                'sku' => 'CCH-001',
-                'barcode' => '8936006789012',
-                'description' => 'Cà chua tươi sạch, nguồn gốc Đà Lạt',
-                'category_id' => 6,
-                'unit_id' => 4, // Kg
-                'selling_price' => 25000,
-                'min_stock_level' => 50,
-                'max_stock_level' => 500,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
-            [
-                'name' => 'Khoai tây Đà Lạt 1kg',
-                'sku' => 'KTD-001',
-                'barcode' => '8936006789029',
-                'description' => 'Khoai tây sạch, dùng cho chiên hoặc luộc',
-                'category_id' => 6,
-                'unit_id' => 4, // Kg
-                'selling_price' => 30000,
-                'min_stock_level' => 50,
-                'max_stock_level' => 500,
-                'is_active' => true,
-                'image_url' => '/storage/piclumen-1747750187180.png'
-            ],
+            // ...existing code...
 
             // Danh mục 7: Gia vị
             [
@@ -185,6 +116,19 @@ class ProductSeeder extends Seeder
                 'description' => 'Nước mắm Phú Quốc nguyên chất, độ đạm cao',
                 'category_id' => 7,
                 'unit_id' => 1, // Chai
+                'selling_price' => 45000,
+                'min_stock_level' => 50,
+                'max_stock_level' => 500,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+            [
+                'name' => 'Muối ăn VISACO',
+                'sku' => 'VIS-001',
+                'barcode' => '8935002800445',
+                'description' => 'Muối ăn VISACO tinh khiết, an toàn cho sức khỏe',
+                'category_id' => 7,
+                'unit_id' => 2, // Gói
                 'selling_price' => 45000,
                 'min_stock_level' => 50,
                 'max_stock_level' => 500,
@@ -211,7 +155,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'TAN-001',
                 'barcode' => '8936008901234',
                 'description' => 'Dầu ăn Tường An tinh luyện, an toàn',
-                'category_id' => 8,
+                'category_id' => 7,
                 'unit_id' => 1, // Chai
                 'selling_price' => 35000,
                 'min_stock_level' => 50,
@@ -224,7 +168,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'BGS-001',
                 'barcode' => '8936008901241',
                 'description' => 'Dầu ô liu nguyên chất, nhập khẩu từ Tây Ban Nha',
-                'category_id' => 8,
+                'category_id' => 7,
                 'unit_id' => 1, // Chai
                 'selling_price' => 120000,
                 'min_stock_level' => 20,
@@ -239,7 +183,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'HNK-001',
                 'barcode' => '8936009012345',
                 'description' => 'Bia Heineken lon 330ml, nhập khẩu Hà Lan',
-                'category_id' => 9,
+                'category_id' => 2,
                 'unit_id' => 7, // Lon
                 'selling_price' => 18000,
                 'min_stock_level' => 100,
@@ -252,7 +196,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'VGC-001',
                 'barcode' => '8936009012352',
                 'description' => 'Rượu vang đỏ Chile thơm ngon, nhập khẩu',
-                'category_id' => 9,
+                'category_id' => 2,
                 'unit_id' => 1, // Chai
                 'selling_price' => 250000,
                 'min_stock_level' => 20,
@@ -267,9 +211,22 @@ class ProductSeeder extends Seeder
                 'sku' => 'DOV-001',
                 'barcode' => '8936010123456',
                 'description' => 'Sữa tắm Dove dưỡng ẩm, hương hoa hồng',
-                'category_id' => 10,
+                'category_id' => 4,
                 'unit_id' => 1, // Chai
                 'selling_price' => 120000,
+                'min_stock_level' => 30,
+                'max_stock_level' => 300,
+                'is_active' => true,
+                'image_url' => '/storage/piclumen-1747750187180.png'
+            ],
+            [
+                'name' => 'Khẩu trang cao cấp 5D Mask gói 10 chiếc',
+                'sku' => 'KT-001',
+                'barcode' => '8938555760013',
+                'description' => 'Khẩu trang cao cấp 5D Mask, bảo vệ sức khỏe',
+                'category_id' => 4,
+                'unit_id' => 2, // Gói
+                'selling_price' => 10000,
                 'min_stock_level' => 30,
                 'max_stock_level' => 300,
                 'is_active' => true,
@@ -280,7 +237,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'HNS-001',
                 'barcode' => '8936010123463',
                 'description' => 'Dầu gội Head & Shoulders sạch gàu',
-                'category_id' => 10,
+                'category_id' => 4,
                 'unit_id' => 1, // Chai
                 'selling_price' => 90000,
                 'min_stock_level' => 30,
@@ -295,7 +252,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'CCL-001',
                 'barcode' => '8935001234567',
                 'description' => 'Nước giải khát có ga Coca Cola lon 330ml',
-                'category_id' => 11,
+                'category_id' => 10,
                 'unit_id' => 7, // Lon
                 'selling_price' => 10000,
                 'min_stock_level' => 100,
@@ -308,7 +265,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'PBL-001',
                 'barcode' => '8935002345678',
                 'description' => 'Nước giải khát có ga Pepsi không đường hương chanh lon 330ml',
-                'category_id' => 11,
+                'category_id' => 10,
                 'unit_id' => 7, // Lon
                 'selling_price' => 10000,
                 'min_stock_level' => 100,
@@ -321,9 +278,9 @@ class ProductSeeder extends Seeder
             [
                 'name' => 'Nước khoáng LaVie 500ml',
                 'sku' => 'LV-001',
-                'barcode' => '8935008901234',
+                'barcode' => '8935005801029',
                 'description' => 'Nước khoáng thiên nhiên LaVie',
-                'category_id' => 12,
+                'category_id' => 11,
                 'unit_id' => 1, // Chai
                 'selling_price' => 5000,
                 'min_stock_level' => 200,
@@ -336,7 +293,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'AQF-001',
                 'barcode' => '8935008901241',
                 'description' => 'Nước suối tinh khiết Aquafina',
-                'category_id' => 12,
+                'category_id' => 11,
                 'unit_id' => 1, // Chai
                 'selling_price' => 6000,
                 'min_stock_level' => 200,
@@ -347,13 +304,13 @@ class ProductSeeder extends Seeder
 
             // Danh mục 13: Cà phê & Trà
             [
-                'name' => 'Cà phê Trung Nguyên Sáng tạo 2',
-                'sku' => 'TNST2-001',
-                'barcode' => '8935009012345',
-                'description' => 'Cà phê bột Trung Nguyên Sáng tạo 2 340g',
-                'category_id' => 13,
-                'unit_id' => 3, // Hộp
-                'selling_price' => 65000,
+                'name' => 'Cà phê lon Birdy sữa 170ml',
+                'sku' => 'BS-001',
+                'barcode' => '8935039570700',
+                'description' => 'Cà phê lon Birdy sữa 170ml',
+                'category_id' => 12,
+                'unit_id' => 7, // Hộp
+                'selling_price' => 15000,
                 'min_stock_level' => 30,
                 'max_stock_level' => 300,
                 'is_active' => true,
@@ -364,7 +321,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'C2T-001',
                 'barcode' => '8935009012352',
                 'description' => 'Trà xanh C2 vị tự nhiên, đóng chai tiện lợi',
-                'category_id' => 13,
+                'category_id' => 12,
                 'unit_id' => 1, // Chai
                 'selling_price' => 8000,
                 'min_stock_level' => 100,
@@ -379,7 +336,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'MHH-001',
                 'barcode' => '8934563138165',
                 'description' => 'Mì ăn liền Hảo Hảo hương vị tôm chua cay đặc trưng',
-                'category_id' => 14,
+                'category_id' => 13,
                 'unit_id' => 2, // Gói
                 'selling_price' => 4000,
                 'min_stock_level' => 100,
@@ -392,7 +349,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'PVF-001',
                 'barcode' => '8934563212458',
                 'description' => 'Phở ăn liền hương vị gà, kèm gói gia vị và rau thơm',
-                'category_id' => 14,
+                'category_id' => 13,
                 'unit_id' => 3, // Hộp
                 'selling_price' => 15000,
                 'min_stock_level' => 50,
@@ -407,7 +364,7 @@ class ProductSeeder extends Seeder
                 'sku' => '3CG-001',
                 'barcode' => '8935006789012',
                 'description' => 'Cá thu sốt cà chua đóng hộp',
-                'category_id' => 15,
+                'category_id' => 14,
                 'unit_id' => 3, // Hộp
                 'selling_price' => 32000,
                 'min_stock_level' => 50,
@@ -420,7 +377,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'SPM-001',
                 'barcode' => '8935006789029',
                 'description' => 'Thịt hộp Spam nhập khẩu, tiện lợi',
-                'category_id' => 15,
+                'category_id' => 14,
                 'unit_id' => 3, // Hộp
                 'selling_price' => 75000,
                 'min_stock_level' => 50,
@@ -435,7 +392,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'ST25-001',
                 'barcode' => '8935005678901',
                 'description' => 'Gạo ST25 - Gạo ngon nhất thế giới năm 2019',
-                'category_id' => 16,
+                'category_id' => 15,
                 'unit_id' => 4, // Kg
                 'selling_price' => 180000,
                 'min_stock_level' => 20,
@@ -448,7 +405,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'QKR-001',
                 'barcode' => '8935005678918',
                 'description' => 'Yến mạch Quaker nguyên cám, tốt cho sức khỏe',
-                'category_id' => 16,
+                'category_id' => 15,
                 'unit_id' => 2, // Gói
                 'selling_price' => 65000,
                 'min_stock_level' => 20,
@@ -491,7 +448,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'BBF-001',
                 'barcode' => '8935007890123',
                 'description' => 'Tã quần Bobby Fresh size L 54 miếng',
-                'category_id' => 18,
+                'category_id' => 9,
                 'unit_id' => 3, // Hộp
                 'selling_price' => 280000,
                 'min_stock_level' => 20,
@@ -504,7 +461,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'HGS-001',
                 'barcode' => '8935007890130',
                 'description' => 'Khăn ướt Huggies an toàn cho da bé',
-                'category_id' => 18,
+                'category_id' => 9,
                 'unit_id' => 2, // Gói
                 'selling_price' => 35000,
                 'min_stock_level' => 50,
@@ -519,7 +476,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'SNL-001',
                 'barcode' => '8936011234567',
                 'description' => 'Nước rửa chén Sunlight hương chanh sạch bóng',
-                'category_id' => 19,
+                'category_id' => 5,
                 'unit_id' => 1, // Chai
                 'selling_price' => 40000,
                 'min_stock_level' => 50,
@@ -532,7 +489,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'OMO-001',
                 'barcode' => '8936011234574',
                 'description' => 'Bột giặt Omo sạch sâu, thơm lâu',
-                'category_id' => 19,
+                'category_id' => 5,
                 'unit_id' => 2, // Gói
                 'selling_price' => 110000,
                 'min_stock_level' => 30,
@@ -547,7 +504,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'CTA-001',
                 'barcode' => '8935004567890',
                 'description' => 'Vitamin tổng hợp cho người trưởng thành',
-                'category_id' => 20,
+                'category_id' => 8,
                 'unit_id' => 3, // Hộp
                 'selling_price' => 220000,
                 'min_stock_level' => 20,
@@ -560,7 +517,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'FO3-001',
                 'barcode' => '8935004567906',
                 'description' => 'Dầu cá Omega-3 hỗ trợ sức khỏe tim mạch',
-                'category_id' => 20,
+                'category_id' => 8,
                 'unit_id' => 3, // Hộp
                 'selling_price' => 180000,
                 'min_stock_level' => 20,
@@ -575,7 +532,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'LNL-001',
                 'barcode' => '8936012345678',
                 'description' => 'Chổi quét nhà Lock&Lock bền, tiện dụng',
-                'category_id' => 21,
+                'category_id' => 3,
                 'unit_id' => 1, // Cái
                 'selling_price' => 65000,
                 'min_stock_level' => 20,
@@ -588,7 +545,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'TRC-001',
                 'barcode' => '8936012345685',
                 'description' => 'Thùng rác nhựa 20L có nắp tiện lợi',
-                'category_id' => 21,
+                'category_id' => 3,
                 'unit_id' => 1, // Cái
                 'selling_price' => 120000,
                 'min_stock_level' => 10,
@@ -603,7 +560,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'LGO-001',
                 'barcode' => '8936013456789',
                 'description' => 'Bộ xếp hình Lego phát triển trí tuệ cho bé',
-                'category_id' => 22,
+                'category_id' => 9,
                 'unit_id' => 3, // Hộp
                 'selling_price' => 250000,
                 'min_stock_level' => 20,
@@ -616,7 +573,7 @@ class ProductSeeder extends Seeder
                 'sku' => 'JSB-001',
                 'barcode' => '8936013456796',
                 'description' => 'Sữa tắm Johnson’s Baby dịu nhẹ cho bé',
-                'category_id' => 22,
+                'category_id' => 9,
                 'unit_id' => 1, // Chai
                 'selling_price' => 85000,
                 'min_stock_level' => 30,
@@ -626,13 +583,12 @@ class ProductSeeder extends Seeder
             ],
         ];
         foreach ($products as $product) {
-            $product['stock_quantity'] = rand($product['min_stock_level'], $product['max_stock_level']);
+            $product['stock_quantity'] = 0;
 
             $product['last_received_at'] = now()->subDays(rand(0, 30))->toDateString();
-            $product['last_sold_at'] = rand(0, 1) ? now()->subDays(rand(0, 15))->toDateString() : null;
 
             $product['is_trackable'] = true;
-            $product['reorder_point'] = intval($product['min_stock_level'] * rand(70, 90) / 100);
+
             Product::create($product);
         }
     }

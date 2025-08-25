@@ -29,9 +29,9 @@ return new class extends Migration
             $table->unsignedInteger('paid_amount')->default(0);
             $table->unsignedInteger('remaining_amount')->default(0);
 
-            $table->enum('receipt_status', ['partially_received', 'completed'])->default('completed');
+            $table->enum('receipt_status', ['pending','completed'])->default('completed');
 
-            $table->enum('status', ['draft', 'pending', 'completed'])->default('draft');
+            $table->enum('status', ['draft', 'completed'])->default('draft');
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users');
             $table->foreignId('updated_by')->nullable()->constrained('users');
