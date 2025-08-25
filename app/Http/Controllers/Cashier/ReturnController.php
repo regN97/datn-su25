@@ -2,21 +2,22 @@
 
 namespace App\Http\Controllers\Cashier;
 
-use App\Models\BatchItem;
+use Carbon\Carbon;
 use App\Models\Bill;
-use App\Models\ReturnBill;
-use App\Models\ReturnBillDetail;
-use App\Models\Product;
+use App\Models\User;
+use Inertia\Inertia;
 use App\Models\Batch;
+use App\Models\Product;
 use App\Models\Customer;
-use App\Http\Controllers\Controller;
+use App\Models\BatchItem;
+use App\Models\ReturnBill;
 use Illuminate\Http\Request;
+use App\Models\ReturnBillDetail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use App\Models\InventoryTransaction;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Carbon\Carbon;
-use Inertia\Inertia;
-use App\Models\User;
 
 class ReturnController extends Controller
 {
@@ -24,7 +25,7 @@ class ReturnController extends Controller
     {
         return Inertia::render('cashier/pos/ReturnOrder');
     }
-    
+
     public function list()
     {
         return Inertia::render('cashier/pos/ReturnList');
@@ -35,7 +36,7 @@ class ReturnController extends Controller
         $query = $request->input('query');
         $date = $request->input('date');
 
-        $returnBills = ReturnBill::with(['bill', 'details.product', 'cashier:id,name'])
+        $returnBills = ReturnBill::with(['bill', 'details.product', 'cashier:id,name', 'customer'])
             ->when($query, function ($q, $query) {
                 $q->where('return_bill_number', 'like', '%' . $query . '%')
                   ->orWhereHas('bill', function ($b) use ($query) {
@@ -50,13 +51,13 @@ class ReturnController extends Controller
 
         return response()->json($returnBills);
     }
-    
+
     public function search(Request $request)
     {
         $query = $request->input('query');
 
         if (!$query) {
-            return response()->json(['error' => 'Vui lòng nhập số hóa đơn hoặc số điện thoại.'], 400);
+            return response()->json(['error' => 'Vui lòng nhập số hóa đơn.'], 400);
         }
 
         $bill = Bill::with(['customer', 'details.product', 'details.batch', 'returnBills'])
@@ -79,14 +80,13 @@ class ReturnController extends Controller
             'has_been_returned' => $hasBeenReturned,
             'is_expired' => !$isWithin24Hours,
         ];
-        
+
         return response()->json($billData);
     }
 
 public function processReturn(Request $request)
     {
         try {
-            // Xác thực dữ liệu đầu vào. Frontend bây giờ sẽ gửi product_id và tổng số lượng trả
             $validated = $request->validate([
                 'bill_id' => 'required|exists:bills,id',
                 'return_items' => 'required|array',
@@ -96,17 +96,14 @@ public function processReturn(Request $request)
             ]);
 
             DB::transaction(function () use ($validated) {
-                // Tải hóa đơn kèm theo tất cả chi tiết
                 $bill = Bill::with('details')->findOrFail($validated['bill_id']);
                 $totalAmountReturned = 0;
 
-                // Kiểm tra trạng thái trả hàng
                 $isWithin24Hours = $bill->created_at->diffInHours(Carbon::now()) <= 24;
                 if (!$isWithin24Hours || $bill->returnBills->isNotEmpty()) {
                     throw new \Exception('Hóa đơn không đủ điều kiện để trả hàng.');
                 }
-                
-                // Tạo đơn trả hàng mới
+
                 $returnBill = ReturnBill::create([
                     'return_bill_number' => 'RT' . now()->format('YmdHis') . rand(100, 999),
                     'bill_id' => $bill->id,
@@ -114,81 +111,107 @@ public function processReturn(Request $request)
                     'cashier_id' => auth()->user()->id,
                     'total_amount_returned' => 0,
                     'reason' => $validated['reason'],
+                    'payment_status' => 'unpaid',
                 ]);
-                
-                // Duyệt qua từng sản phẩm được trả lại từ frontend
+
                 foreach ($validated['return_items'] as $item) {
                     $productId = $item['product_id'];
                     $quantityToReturn = $item['quantity'];
 
-                    // Tìm tất cả các chi tiết hóa đơn gốc cho sản phẩm này
                     $billDetailsForProduct = $bill->details->where('product_id', $productId);
-                    
                     if ($billDetailsForProduct->isEmpty()) {
                         Log::warning("Sản phẩm có ID {$productId} không tồn tại trong hóa đơn #{$bill->id}.");
                         continue;
                     }
-                    
-                    // Kiểm tra tổng số lượng trả có hợp lệ không
+
                     $totalQuantityInBill = $billDetailsForProduct->sum('quantity');
                     if ($quantityToReturn > $totalQuantityInBill) {
-                         throw new \Exception("Số lượng trả lại của sản phẩm {$billDetailsForProduct->first()->p_name} vượt quá tổng số lượng đã mua.");
+                        throw new \Exception("Số lượng trả lại của sản phẩm {$billDetailsForProduct->first()->p_name} vượt quá tổng số lượng đã mua.");
                     }
 
-                    // Lặp qua từng chi tiết hóa đơn và phân bổ số lượng trả lại
                     $remainingToReturn = $quantityToReturn;
                     foreach ($billDetailsForProduct as $billDetail) {
                         if ($remainingToReturn <= 0) {
                             break;
                         }
 
-                        // Số lượng thực tế có thể trả trong chi tiết hóa đơn này
                         $quantityInThisDetail = $billDetail->quantity;
-                        $actualReturnQuantity = min($remainingToReturn, $quantityInThisDetail);
-                        
-                        if ($actualReturnQuantity > 0) {
-                            // Tạo chi tiết đơn trả hàng
-                            $subtotal = $actualReturnQuantity * $billDetail->unit_price;
-                            $totalAmountReturned += $subtotal;
-
-                            ReturnBillDetail::create([
-                                'return_bill_id' => $returnBill->id,
-                                'product_id' => $billDetail->product_id,
-                                'p_name' => $billDetail->p_name,
-                                'returned_quantity' => $actualReturnQuantity,
-                                'unit_price' => $billDetail->unit_price,
-                                'subtotal' => $subtotal,
-                            ]);
-
-                            // Tăng số lượng trong kho tổng của sản phẩm
-                            $product = Product::findOrFail($billDetail->product_id);
-                            $product->increment('stock_quantity', $actualReturnQuantity);
-
-                            // Tăng số lượng trong lô hàng tương ứng
-                            $batchItem = BatchItem::where('batch_id', $billDetail->batch_id)
-                                ->where('product_id', $billDetail->product_id)
-                                ->first();
-                                
-                            if ($batchItem) {
-                                $batchItem->increment('current_quantity', $actualReturnQuantity);
-                            }
-
-                            // Giảm số lượng còn lại cần trả
-                            $remainingToReturn -= $actualReturnQuantity;
+                        if ($quantityInThisDetail <= 0) {
+                            continue;
                         }
+
+                        $actualReturnQuantity = min($remainingToReturn, $quantityInThisDetail);
+                        $subtotal = $actualReturnQuantity * $billDetail->unit_price;
+                        $totalAmountReturned += $subtotal;
+
+                        ReturnBillDetail::create([
+                            'return_bill_id' => $returnBill->id,
+                            'product_id' => $billDetail->product_id,
+                            'p_name' => $billDetail->p_name,
+                            'returned_quantity' => $actualReturnQuantity,
+                            'unit_price' => number_format($billDetail->unit_price, 2, '.', ''),
+                            'subtotal' => $subtotal,
+                        ]);
+
+                        $product = Product::findOrFail($billDetail->product_id);
+                        if (!$product->is_active) {
+                            throw new \Exception("Sản phẩm {$billDetail->p_name} đã ngừng kinh doanh.");
+                        }
+                        $product->increment('stock_quantity', $actualReturnQuantity);
+
+                        $batchItem = BatchItem::where('batch_id', $billDetail->batch_id)
+                            ->where('product_id', $billDetail->product_id)
+                            ->first();
+
+                        if (!$batchItem) {
+                            Log::error("Không tìm thấy batch_item cho product_id {$billDetail->product_id} và batch_id {$billDetail->batch_id}");
+                            throw new \Exception("Không tìm thấy lô hàng cho sản phẩm {$billDetail->p_name}.");
+                        }
+                        if ($batchItem->inventory_status === 'expired' || $batchItem->inventory_status === 'damaged') {
+                            throw new \Exception("Lô hàng của sản phẩm {$billDetail->p_name} không hợp lệ để trả hàng.");
+                        }
+                        
+                        // Cập nhật số lượng và trạng thái của lô hàng
+                        $batchItem->increment('current_quantity', $actualReturnQuantity);
+                        
+                        // Sửa lỗi ở đây: Cập nhật inventory_status của batchItem
+                        $batchItem->inventory_status = 'active'; 
+                        $batchItem->save();
+
+                        InventoryTransaction::create([
+                            'transaction_type_id' => 4,
+                            'product_id' => $billDetail->product_id,
+                            'quantity_change' => $actualReturnQuantity,
+                            'stock_after' => $product->stock_quantity,
+                            'unit_price' => $billDetail->unit_price,
+                            'total_value' => $actualReturnQuantity * $billDetail->unit_price,
+                            'transaction_date' => now(),
+                            'related_bill_id' => $bill->id,
+                            'related_purchase_return_id' => null,
+                            'related_batch_id' => $billDetail->batch_id,
+                            'user_id' => auth()->user()->id,
+                            'note' => $validated['reason'] ?? 'Trả hàng từ hóa đơn ' . $bill->bill_number,
+                        ]);
+
+                        $remainingToReturn -= $actualReturnQuantity;
                     }
                 }
-                
-                // Cập nhật lại tổng số tiền hoàn trả
-                $returnBill->update(['total_amount_returned' => $totalAmountReturned]);
+
+                $returnBill->update([
+                    'total_amount_returned' => $totalAmountReturned,
+                    'payment_status' => 'paid',
+                ]);
             });
 
-            return response()->json(['message' => 'Xử lý trả hàng thành công!'], 200);
+            Log::info("Xử lý trả hàng thành công cho hóa đơn ID {$validated['bill_id']}.");
+            return redirect()->route('cashier.returns.list')->with('success', 'Xử lý trả hàng thành công!');
+
         } catch (ModelNotFoundException $e) {
-            return response()->json(['error' => 'Hóa đơn hoặc sản phẩm không tồn tại.'], 404);
+            Log::error("Lỗi khi xử lý trả hàng: Hóa đơn hoặc sản phẩm không tồn tại. " . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'Hóa đơn hoặc sản phẩm không tồn tại.']);
         } catch (\Exception $e) {
             Log::error("Lỗi khi xử lý trả hàng: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 422);
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 }
