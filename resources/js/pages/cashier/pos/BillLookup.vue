@@ -2,7 +2,8 @@
 import CashierLayout from '@/layouts/CashierLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
-import { Search, ChevronLeft, ChevronRight, Eye, UploadCloud, Image, Printer, X } from 'lucide-vue-next';
+import { Search, ChevronLeft, ChevronRight, Eye, UploadCloud, Image, Printer, X, CheckCircle } from 'lucide-vue-next';
+
 const props = defineProps({
     bills: {
         type: Object,
@@ -25,11 +26,12 @@ const props = defineProps({
 
 const query = ref(props.query || '');
 const previewUrls = ref({});
-
 const isModalOpen = ref(false);
 const selectedBill = ref(null);
+const isPaymentModalOpen = ref(false);
+const selectedPaymentMethod = ref('cash'); // Phương thức thanh toán được chọn trong modal
+const paymentBill = ref(null); // Hóa đơn được chọn để đánh dấu thanh toán
 
-// --- Computed property mới để gộp các sản phẩm giống nhau ---
 const groupedBillDetails = computed(() => {
     if (!selectedBill.value || !selectedBill.value.details) return [];
 
@@ -50,7 +52,6 @@ const groupedBillDetails = computed(() => {
     return Object.values(groups);
 });
 
-// --- Computed property để tính tổng tiền hàng từ dữ liệu đã gộp ---
 const subtotal_amount = computed(() => {
     if (!selectedBill.value || !selectedBill.value.details) return 0;
     return groupedBillDetails.value.reduce((sum, item) => sum + item.subtotal, 0);
@@ -68,6 +69,42 @@ const openBillDetailsModal = (bill) => {
 const closeModal = () => {
     isModalOpen.value = false;
     selectedBill.value = null;
+};
+
+const openPaymentModal = (bill) => {
+    if (bill.payment_status_id !== 1) {
+        alert(`Hóa đơn không thể đánh dấu là đã thanh toán vì trạng thái hiện tại là "${bill.payment_status_name || 'Không xác định'}".`);
+        return;
+    }
+    paymentBill.value = bill;
+    selectedPaymentMethod.value = bill.payment_method || 'cash';
+    isPaymentModalOpen.value = true;
+};
+
+const closePaymentModal = () => {
+    isPaymentModalOpen.value = false;
+    paymentBill.value = null;
+    selectedPaymentMethod.value = 'cash';
+};
+
+const confirmPayment = () => {
+    if (!paymentBill.value) return;
+
+    router.post(
+        route('cashier.bill.mark-as-paid', { bill: paymentBill.value.id }),
+        { payment_method: selectedPaymentMethod.value },
+        {
+            onSuccess: () => {
+                router.reload();
+                alert('Hóa đơn đã được đánh dấu là đã thanh toán.');
+                closePaymentModal();
+            },
+            onError: (errors) => {
+                console.error('Mark as paid error:', errors);
+                alert('Có lỗi xảy ra khi đánh dấu thanh toán: ' + Object.values(errors).join(', '));
+            },
+        }
+    );
 };
 
 const printBill = () => {
@@ -116,9 +153,8 @@ const handleInlineUpload = (event, bill) => {
 
 const formatDateTime = (val) => {
     if (!val) return '-';
-    // xử lý cả chuỗi "YYYY-MM-DD HH:mm:ss"
     const d = typeof val === 'string' ? new Date(val.replace(' ', 'T')) : new Date(val);
-    if (isNaN(d)) return val; // nếu vẫn không parse được thì trả về nguyên gốc
+    if (isNaN(d)) return val;
     return d.toLocaleString('vi-VN');
 };
 
@@ -130,11 +166,33 @@ const translatePaymentMethod = (method) => {
             return 'Chuyển khoản';
         case 'cash':
             return 'Tiền mặt';
+        case 'card':
+            return 'Thẻ';
+        case 'vnpay':
+            return 'VNPay';
         default:
             return method || '-';
     }
 };
+
+const getPaymentStatusClass = (statusId) => {
+    switch (statusId) {
+        case 1: // UNPAID
+            return 'text-red-600';
+        case 2: // PAID
+            return 'text-green-600';
+        case 3: // REFUNDED
+            return 'text-yellow-600';
+        default:
+            return 'text-gray-600';
+    }
+};
+
+const isMarkAsPaidDisabled = (bill) => {
+    return bill.payment_status_id !== 1; // Vô hiệu hóa nếu không phải trạng thái "Chưa thanh toán"
+};
 </script>
+
 <template>
     <Head title="Tra cứu hóa đơn" />
     <CashierLayout>
@@ -164,6 +222,8 @@ const translatePaymentMethod = (method) => {
                             <th class="p-4 text-left text-sm font-semibold text-gray-600">Phương thức</th>
                             <th class="p-4 text-left text-sm font-semibold text-gray-600">Ngày tạo</th>
                             <th class="p-4 text-left text-sm font-semibold text-gray-600">Minh chứng</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-600">Trạng thái</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-600">Hành động</th>
                             <th class="p-4 text-left text-sm font-semibold text-gray-600">Chi tiết</th>
                         </tr>
                     </thead>
@@ -173,7 +233,7 @@ const translatePaymentMethod = (method) => {
                             <td class="p-4">{{ bill.customer_name || 'Khách lẻ' }}</td>
                             <td class="p-4">{{ formatCurrency(bill.total_amount) }}</td>
                             <td class="p-4">{{ translatePaymentMethod(bill.payment_method) }}</td>
-                            <td class="p-4">{{ bill.created_at }}</td>
+                            <td class="p-4">{{ formatDateTime(bill.created_at) }}</td>
                             <td class="p-4">
                                 <div class="flex flex-col gap-2">
                                     <div class="flex items-center gap-2">
@@ -186,8 +246,23 @@ const translatePaymentMethod = (method) => {
                                     <input type="file" :id="'proof-' + bill.id"
                                         class="text-sm file:text-sm file:rounded file:border-0 file:bg-blue-100 file:text-blue-700"
                                         accept="image/*" @change="handleInlineUpload($event, bill)" />
-
                                 </div>
+                            </td>
+                            <td class="p-4">
+                                <span :class="getPaymentStatusClass(bill.payment_status_id)">
+                                    {{ bill.payment_status_name || 'Không xác định' }}
+                                </span>
+                            </td>
+                            <td class="p-4">
+                                <button
+                                    @click="openPaymentModal(bill)"
+                                    :disabled="isMarkAsPaidDisabled(bill)"
+                                    class="flex items-center gap-1 rounded-md px-4 py-2 text-white"
+                                    :class="isMarkAsPaidDisabled(bill) ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'"
+                                >
+                                    <CheckCircle class="w-5 h-5" />
+                                    <span>Đánh dấu thanh toán</span>
+                                </button>
                             </td>
                             <td class="p-4">
                                 <button @click="openBillDetailsModal(bill)"
@@ -220,7 +295,8 @@ const translatePaymentMethod = (method) => {
                 </div>
             </div>
         </div>
-        
+
+        <!-- Modal chi tiết hóa đơn -->
         <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="fixed inset-0 z-40 bg-gray-900 bg-opacity-70 backdrop-blur-sm no-print-bg" @click.self="closeModal"></div>
             <div id="invoice-modal-content" class="relative z-50 flex flex-col max-h-screen-90 overflow-y-auto w-full max-w-xl mx-4 my-4 rounded-lg shadow-xl print-container">
@@ -247,8 +323,9 @@ const translatePaymentMethod = (method) => {
                         <div class="mb-4">
                             <p>Mã hóa đơn: <span class="font-semibold">{{ selectedBill.bill_number }}</span></p>
                             <p>Ngày giờ: <span class="font-semibold">{{ formatDateTime(selectedBill.created_at) }}</span></p>
-                            <p>Nhân viên: <span class="font-semibold"><td>{{ selectedBill.cashier_name ?? 'N/A' }}</td></span></p>
+                            <p>Nhân viên: <span class="font-semibold">{{ selectedBill.cashier_name ?? 'N/A' }}</span></p>
                             <p>Khách hàng: <span class="font-semibold">{{ selectedBill.customer_name ?? 'Khách lẻ' }}</span></p>
+                            <p>Trạng thái: <span class="font-semibold">{{ selectedBill.payment_status_name ?? 'Không xác định' }}</span></p>
                         </div>
                         <hr class="border-t-2 border-dashed border-gray-400 my-4">
                         <div class="mb-4">
@@ -280,9 +357,9 @@ const translatePaymentMethod = (method) => {
                         <hr class="border-t-2 border-dashed border-gray-400 my-4">
                         <div class="text-right mb-4">
                             <p>Phương thức: <span class="font-semibold">{{ translatePaymentMethod(selectedBill.payment_method) }}</span></p>
-                            <p>Khách đưa: <span class="font-semibold">{{ formatCurrency(selectedBill.customer_paid ?? selectedBill.total_amount) }}</span></p>
-                            <p>Tiền thối: <span class="font-semibold">{{ formatCurrency(selectedBill.change_due ?? 0) }}</span></p>
-                            <p>Ghi chú: <span class="font-semibold">{{ selectedBill.note ?? 'Không có' }}</span></p>
+                            <p>Khách đưa: <span class="font-semibold">{{ formatCurrency(selectedBill.received_money ?? selectedBill.total_amount) }}</span></p>
+                            <p>Tiền thối: <span class="font-semibold">{{ formatCurrency(selectedBill.change_money ?? 0) }}</span></p>
+                            <p>Ghi chú: <span class="font-semibold">{{ selectedBill.notes ?? 'Không có' }}</span></p>
                         </div>
                         <hr class="border-t-2 border-dashed border-gray-400 my-4">
                         <div class="text-center text-xs">
@@ -293,67 +370,84 @@ const translatePaymentMethod = (method) => {
                 </div>
             </div>
         </div>
+
+        <!-- Modal chọn phương thức thanh toán -->
+        <div v-if="isPaymentModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="fixed inset-0 z-40 bg-gray-900 bg-opacity-70 backdrop-blur-sm" @click.self="closePaymentModal"></div>
+            <div class="relative z-50 bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Chọn phương thức thanh toán</h2>
+                    <button @click="closePaymentModal" class="text-gray-600 hover:text-gray-800">
+                        <X class="w-5 h-5" />
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Phương thức thanh toán</label>
+                    <select
+                        v-model="selectedPaymentMethod"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="cash">Tiền mặt</option>
+                        <option value="card">Thẻ</option>
+                        <option value="bank_transfer">Chuyển khoản</option>
+                        <option value="vnpay">VNPay</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button @click="closePaymentModal" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                        Hủy
+                    </button>
+                    <button @click="confirmPayment" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        Xác nhận
+                    </button>
+                </div>
+            </div>
+        </div>
     </CashierLayout>
 </template>
 
 <style>
-/* Đặt khối <style> ra ngoài phần <template> */
 @media (min-height: 500px) {
     .max-h-screen-90 {
         max-height: 90vh;
     }
 }
 @media print {
-/* Ẩn tất cả phần không cần in */
-.no-print, .no-print-bg { display: none !important; }
-body * { visibility: hidden !important; }
-
-/* Chỉ hiện phần hóa đơn */
-#printable-invoice, #printable-invoice * { visibility: visible !important; }
-
-/* Đặt hóa đơn ra khỏi khung modal, phủ đúng vùng trang in */
-#printable-invoice {
-    position: fixed !important; /* quan trọng: không còn bám theo modal */
-    top: 0 !important; left: 0 !important; right: 0 !important;
-    margin: 0 auto !important; /* Căn giữa trên trang in */
-    padding: 0 !important;
-    width: 100% !important; /* chiếm toàn bộ bề ngang vùng in */
-    background: #fff !important;
-    font-family: Arial, Helvetica, sans-serif !important;
-    font-size: 12pt !important;
-    -webkit-print-color-adjust: exact;/* giữ màu border/dashed nếu có */
-    print-color-adjust: exact;
-}
-
-body {
-    margin: 0 !important;
-    font-size: 12px !important;
-    transform: scale(0.95); /* nếu muốn co nhỏ */
-    transform-origin: top center !important; /* căn giữa theo trục ngang */
-}
-
-#printable-invoice {
-    width: 80mm !important;/* khổ giấy hóa đơn (80mm ~ A4 co nhỏ) */
-    margin: 0 auto !important;/* căn giữa */
-    background: #fff !important;
-    padding: 0 !important;
-}
-
-/* Bảng gọn gàng, căng đủ chiều ngang */
-table { width: 100% !important; border-collapse: collapse !important; }
-th, td { padding: 4px 6px !important; }
-
-/* Khổ giấy & lề in */
+    .no-print, .no-print-bg { display: none !important; }
+    body * { visibility: hidden !important; }
+    #printable-invoice, #printable-invoice * { visibility: visible !important; }
+    #printable-invoice {
+        position: fixed !important;
+        top: 0 !important; left: 0 !important; right: 0 !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        width: 100% !important;
+        background: #fff !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 12pt !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    body {
+        margin: 0 !important;
+        font-size: 12px !important;
+        transform: scale(0.95);
+        transform-origin: top center !important;
+    }
+    #printable-invoice {
+        width: 80mm !important;
+        margin: 0 auto !important;
+        background: #fff !important;
+        padding: 0 !important;
+    }
+    table { width: 100% !important; border-collapse: collapse !important; }
+    th, td { padding: 4px 6px !important; }
     @page {
         size: auto;
         margin: 5mm;
     }
-
-    /* Ẩn những phần không cần in */
-    header, footer, .no-print, 
-    #header, #footer {
+    header, footer, .no-print, #header, #footer {
         display: none !important;
     }
-
 }
 </style>

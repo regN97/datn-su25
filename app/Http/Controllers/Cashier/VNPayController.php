@@ -116,7 +116,6 @@ class VNPayController
                 return response()->json(['errors' => ['server' => 'Không có quyền truy cập.']], 403);
             }
 
-            // Cập nhật xác thực để bao gồm walletAmount
             $validator = Validator::make($request->all(), [
                 'cart' => 'required|array|min:1',
                 'cart.*.id' => 'required|integer|exists:products,id,deleted_at,NULL,is_active,1',
@@ -126,7 +125,7 @@ class VNPayController
                 'orderNotes' => 'nullable|string|max:255',
                 'bank_code' => 'nullable|string|max:50',
                 'couponCode' => 'nullable|string|exists:promotions,coupon_code',
-                'walletAmount' => 'nullable|numeric|min:0', // Thêm xác thực walletAmount
+                'walletAmount' => 'nullable|numeric|min:0',
             ]);
 
             if ($validator->fails()) {
@@ -135,7 +134,6 @@ class VNPayController
 
             $data = $validator->validated();
 
-            // Kiểm tra số dư ví nếu có customer_id và walletAmount
             if ($data['customer_id'] && isset($data['walletAmount']) && $data['walletAmount'] > 0) {
                 $customer = Customer::lockForUpdate()->find($data['customer_id']);
                 if (!$customer) {
@@ -162,7 +160,6 @@ class VNPayController
                 $freeItems = [];
                 $updatedProducts = [];
 
-                // Xử lý khuyến mãi
                 if (!empty($data['couponCode'])) {
                     $promotion = Promotion::where('coupon_code', $data['couponCode'])
                         ->where('is_active', true)
@@ -179,7 +176,6 @@ class VNPayController
                     }
                 }
 
-                // Kiểm tra tồn kho
                 $productIds = array_column($data['cart'], 'id');
                 $stocks = $this->calculateAvailableStock($productIds);
 
@@ -197,7 +193,6 @@ class VNPayController
                     $subTotal += $item['quantity'] * $product->selling_price;
                 }
 
-                // Áp dụng khuyến mãi
                 if ($promotion) {
                     if ($promotion->type_id == 1) {
                         $discountAmount = $promotion->discount_value;
@@ -228,30 +223,33 @@ class VNPayController
                     }
                 }
 
-                // Tính tổng cần thanh toán (bao gồm trừ ví)
                 $walletAmount = $data['walletAmount'] ?? 0;
                 $totalAmount = $subTotal - $discountAmount - $walletAmount;
                 if ($totalAmount != $data['amount']) {
                     return response()->json(['errors' => ['amount' => 'Số tiền không khớp với giỏ hàng sau khi trừ ví và khuyến mãi.']], 422);
                 }
 
-                // Trừ tạm thời số dư ví
                 if ($data['customer_id'] && $walletAmount > 0) {
                     $customer = Customer::lockForUpdate()->find($data['customer_id']);
                     $customer->wallet -= $walletAmount;
                     $customer->save();
+
+                    Log::info('Trừ số dư ví khách hàng khi tạo hóa đơn', [
+                        'customer_id' => $data['customer_id'],
+                        'wallet_amount_deducted' => $walletAmount,
+                        'new_wallet_balance' => $customer->wallet,
+                    ]);
                 }
 
-                // Tạo hóa đơn
                 $billNumber = 'BILL-' . Carbon::now('Asia/Ho_Chi_Minh')->format('YmdHis') . '-' . rand(1000, 9999);
-                $txnRef =  $billNumber;
+                $txnRef = $billNumber;
 
                 $bill = Bill::create([
                     'bill_number' => $billNumber,
                     'customer_id' => $data['customer_id'] ?? null,
                     'sub_total' => $subTotal,
                     'discount_amount' => $discountAmount,
-                    'wallet_amount' => $walletAmount, // Lưu walletAmount vào hóa đơn
+                    'wallet_amount' => $walletAmount,
                     'total_amount' => $totalAmount,
                     'received_money' => 0,
                     'change_money' => 0,
@@ -265,10 +263,25 @@ class VNPayController
                     'updated_at' => now('Asia/Ho_Chi_Minh'),
                 ]);
 
-                // Xử lý các mặt hàng trong giỏ
+                Log::info('Tạo hóa đơn mới', [
+                    'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
+                    'txn_ref' => $txnRef,
+                    'total_amount' => $bill->total_amount,
+                    'wallet_amount' => $walletAmount,
+                    'customer_id' => $bill->customer_id,
+                ]);
+
                 foreach ($data['cart'] as $item) {
                     $product = Product::lockForUpdate()->find($item['id']);
                     $remainingQuantity = $item['quantity'];
+
+                    Log::info('Xử lý sản phẩm trong giỏ hàng', [
+                        'product_id' => $item['id'],
+                        'product_name' => $product->name,
+                        'quantity' => $item['quantity'],
+                        'bill_number' => $bill->bill_number,
+                    ]);
 
                     $batchItems = BatchItem::where('product_id', $item['id'])
                         ->whereIn('inventory_status', ['active', 'low_stock'])
@@ -286,6 +299,12 @@ class VNPayController
                         ->get();
 
                     if ($batchItems->isEmpty()) {
+                        Log::error('Không tìm thấy lô hàng hợp lệ khi tạo hóa đơn', [
+                            'product_id' => $item['id'],
+                            'product_name' => $product->name,
+                            'quantity' => $item['quantity'],
+                            'bill_number' => $bill->bill_number,
+                        ]);
                         throw new \Exception("Không tìm thấy lô hàng hợp lệ cho sản phẩm {$product->name}.");
                     }
 
@@ -298,6 +317,16 @@ class VNPayController
                         if ($quantityToDeduct > 0) {
                             $newQuantity = $batchItem->current_quantity - $quantityToDeduct;
                             $inventoryStatus = $newQuantity <= 0 ? 'out_of_stock' : ($newQuantity <= ($batchItem->min_stock_level ?? 0) ? 'low_stock' : 'active');
+
+                            Log::info('Trừ tồn kho lô hàng', [
+                                'batch_id' => $batchItem->batch_id,
+                                'product_id' => $product->id,
+                                'quantity_deducted' => $quantityToDeduct,
+                                'previous_quantity' => $batchItem->current_quantity,
+                                'new_quantity' => $newQuantity,
+                                'inventory_status' => $inventoryStatus,
+                                'bill_number' => $bill->bill_number,
+                            ]);
 
                             $batchItem->update([
                                 'current_quantity' => $newQuantity,
@@ -341,12 +370,26 @@ class VNPayController
                     }
 
                     if ($remainingQuantity > 0) {
+                        Log::error('Không đủ hàng trong kho khi tạo hóa đơn', [
+                            'product_id' => $product->id,
+                            'product_name' => $product->name,
+                            'remaining_quantity' => $remainingQuantity,
+                            'bill_number' => $bill->bill_number,
+                        ]);
                         throw new \Exception("Không đủ hàng trong kho cho sản phẩm {$product->name}.");
                     }
 
                     $product->stock_quantity -= $item['quantity'];
                     $product->last_sold_at = now('Asia/Ho_Chi_Minh');
                     $product->save();
+
+                    Log::info('Cập nhật tồn kho sản phẩm', [
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'quantity_deducted' => $item['quantity'],
+                        'new_stock_quantity' => $product->stock_quantity,
+                        'bill_number' => $bill->bill_number,
+                    ]);
 
                     $updatedProducts[] = [
                         'id' => $product->id,
@@ -360,10 +403,16 @@ class VNPayController
                     ];
                 }
 
-                // Xử lý mặt hàng miễn phí từ khuyến mãi
                 foreach ($freeItems as $freeItem) {
                     $product = Product::lockForUpdate()->find($freeItem['product_id']);
                     $remainingQuantity = $freeItem['quantity'];
+
+                    Log::info('Xử lý sản phẩm miễn phí từ khuyến mãi', [
+                        'product_id' => $freeItem['product_id'],
+                        'product_name' => $product->name,
+                        'quantity' => $freeItem['quantity'],
+                        'bill_number' => $bill->bill_number,
+                    ]);
 
                     $batchItems = BatchItem::where('product_id', $freeItem['product_id'])
                         ->whereIn('inventory_status', ['active', 'low_stock'])
@@ -381,6 +430,12 @@ class VNPayController
                         ->get();
 
                     if ($batchItems->isEmpty()) {
+                        Log::error('Không tìm thấy lô hàng hợp lệ cho sản phẩm miễn phí', [
+                            'product_id' => $freeItem['product_id'],
+                            'product_name' => $product->name,
+                            'quantity' => $freeItem['quantity'],
+                            'bill_number' => $bill->bill_number,
+                        ]);
                         throw new \Exception("Không tìm thấy lô hàng hợp lệ cho sản phẩm miễn phí {$product->name}.");
                     }
 
@@ -393,6 +448,16 @@ class VNPayController
                         if ($quantityToDeduct > 0) {
                             $newQuantity = $batchItem->current_quantity - $quantityToDeduct;
                             $inventoryStatus = $newQuantity <= 0 ? 'out_of_stock' : ($newQuantity <= ($batchItem->min_stock_level ?? 0) ? 'low_stock' : 'active');
+
+                            Log::info('Trừ tồn kho lô hàng cho sản phẩm miễn phí', [
+                                'batch_id' => $batchItem->batch_id,
+                                'product_id' => $product->id,
+                                'quantity_deducted' => $quantityToDeduct,
+                                'previous_quantity' => $batchItem->current_quantity,
+                                'new_quantity' => $newQuantity,
+                                'inventory_status' => $inventoryStatus,
+                                'bill_number' => $bill->bill_number,
+                            ]);
 
                             $batchItem->update([
                                 'current_quantity' => $newQuantity,
@@ -439,6 +504,14 @@ class VNPayController
                     $product->last_sold_at = now('Asia/Ho_Chi_Minh');
                     $product->save();
 
+                    Log::info('Cập nhật tồn kho sản phẩm miễn phí', [
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'quantity_deducted' => $freeItem['quantity'],
+                        'new_stock_quantity' => $product->stock_quantity,
+                        'bill_number' => $bill->bill_number,
+                    ]);
+
                     $updatedProducts[] = [
                         'id' => $product->id,
                         'name' => $product->name,
@@ -451,10 +524,9 @@ class VNPayController
                     ];
                 }
 
-                // Tạo URL thanh toán VNPay
                 $vnpayUrl = $this->vnpayService->createPaymentUrl(
                     $txnRef,
-                    $bill->total_amount, // Sử dụng total_amount từ bill
+                    $bill->total_amount,
                     'Thanh toán hóa đơn ' . $bill->bill_number,
                     $request->ip(),
                     $data['bank_code'] ?? null
@@ -487,16 +559,23 @@ class VNPayController
                 ], 200);
             });
         } catch (\Exception $e) {
-            // Hoàn lại số dư ví nếu có lỗi
             if (isset($data['customer_id']) && isset($data['walletAmount']) && $data['walletAmount'] > 0) {
                 $customer = Customer::lockForUpdate()->find($data['customer_id']);
                 if ($customer) {
+                    $previousWallet = $customer->wallet;
                     $customer->wallet += $data['walletAmount'];
                     $customer->save();
+
+                    Log::info('Hoàn lại số dư ví do lỗi tạo hóa đơn', [
+                        'customer_id' => $data['customer_id'],
+                        'wallet_amount_restored' => $data['walletAmount'],
+                        'previous_wallet_balance' => $previousWallet,
+                        'new_wallet_balance' => $customer->wallet,
+                        'bill_number' => $bill->bill_number ?? 'N/A',
+                    ]);
                 }
             }
 
-            // Hoàn lại tồn kho
             foreach ($data['cart'] as $item) {
                 $batchItems = BatchItem::where('product_id', $item['id'])
                     ->whereIn('inventory_status', ['active', 'low_stock'])
@@ -512,13 +591,17 @@ class VNPayController
                     ->get();
 
                 foreach ($batchItems as $batch) {
+                    $previousQuantity = $batch->current_quantity;
                     $batch->current_quantity += $item['quantity'];
                     $batch->save();
 
-                    Log::info('Rollback inventory', [
+                    Log::info('Hoàn lại tồn kho do lỗi tạo hóa đơn', [
                         'batch_id' => $batch->id,
                         'product_id' => $item['id'],
                         'quantity_restored' => $item['quantity'],
+                        'previous_quantity' => $previousQuantity,
+                        'new_quantity' => $batch->current_quantity,
+                        'bill_number' => $bill->bill_number ?? 'N/A',
                     ]);
 
                     InventoryTransaction::create([
@@ -540,6 +623,7 @@ class VNPayController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'user_id' => $user->id ?? null,
+                'bill_number' => $bill->bill_number ?? 'N/A',
             ]);
             return response()->json(['errors' => ['server' => 'Lỗi khi tạo thanh toán VNPay: ' . $e->getMessage()]], 500);
         }
@@ -553,9 +637,16 @@ class VNPayController
         try {
             $inputData = $request->query();
 
+            Log::info('Nhận callback từ VNPay', [
+                'txn_ref' => $inputData['vnp_TxnRef'] ?? 'N/A',
+                'response_code' => $inputData['vnp_ResponseCode'] ?? 'N/A',
+                'amount' => ($inputData['vnp_Amount'] ?? 0) / 100,
+            ]);
+
             if (!$this->vnpayService->verifyCallback($inputData)) {
                 Log::warning('Chữ ký VNPay không hợp lệ trong callback', [
                     'txn_ref' => $inputData['vnp_TxnRef'] ?? '',
+                    'input_data' => $inputData,
                 ]);
                 return redirect()->away(config('vnpay.frontend_failed_url') . '?status=failed&message=' . urlencode('Chữ ký VNPay không hợp lệ'));
             }
@@ -568,9 +659,19 @@ class VNPayController
                 return redirect()->away(config('vnpay.frontend_failed_url') . '?status=failed&message=' . urlencode('Không tìm thấy hóa đơn'));
             }
 
+            Log::info('Tìm thấy hóa đơn', [
+                'bill_id' => $bill->id,
+                'bill_number' => $bill->bill_number,
+                'txn_ref' => $txnRef,
+                'payment_status_id' => $bill->payment_status_id,
+                'total_amount' => $bill->total_amount,
+                'wallet_amount' => $bill->wallet_amount,
+            ]);
+
             if ($bill->payment_status_id !== self::PAYMENT_STATUS_PENDING) {
                 Log::warning('Hóa đơn đã được xử lý trước đó', [
                     'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
                     'txn_ref' => $txnRef,
                     'payment_status_id' => $bill->payment_status_id,
                 ]);
@@ -580,6 +681,7 @@ class VNPayController
             if ($inputData['vnp_Amount'] / 100 !== $bill->total_amount) {
                 Log::warning('Số tiền VNPay không khớp với hóa đơn', [
                     'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
                     'txn_ref' => $txnRef,
                     'vnp_amount' => $inputData['vnp_Amount'] / 100,
                     'bill_amount' => $bill->total_amount,
@@ -596,83 +698,331 @@ class VNPayController
                         'updated_at' => now('Asia/Ho_Chi_Minh'),
                     ]);
 
-                    // Update customer wallet
+                    Log::info('Cập nhật trạng thái hóa đơn thành công', [
+                        'bill_id' => $bill->id,
+                        'bill_number' => $bill->bill_number,
+                        'txn_ref' => $txnRef,
+                        'payment_status_id' => self::PAYMENT_STATUS_SUCCESS,
+                    ]);
+
                     if ($bill->customer_id) {
                         $customer = Customer::lockForUpdate()->find($bill->customer_id);
                         if ($customer) {
+                            $previousWallet = $customer->wallet;
                             $walletBonus = $bill->total_amount * 0.001;
                             $customer->wallet += $walletBonus;
                             $customer->save();
 
-                            // Send receipt email
+                            Log::info('Thêm tiền thưởng vào ví khách hàng', [
+                                'customer_id' => $bill->customer_id,
+                                'wallet_bonus' => $walletBonus,
+                                'previous_wallet_balance' => $previousWallet,
+                                'new_wallet_balance' => $customer->wallet,
+                                'bill_number' => $bill->bill_number,
+                            ]);
+
                             if ($customer->email) {
                                 try {
                                     Mail::to($customer->email)->queue(new ReceiptEmail($bill));
+                                    Log::info('Gửi email hóa đơn thành công', [
+                                        'bill_id' => $bill->id,
+                                        'bill_number' => $bill->bill_number,
+                                        'customer_id' => $customer->id,
+                                    ]);
                                 } catch (\Exception $e) {
                                     Log::warning('Không thể gửi email hóa đơn', [
                                         'bill_id' => $bill->id,
+                                        'bill_number' => $bill->bill_number,
                                         'customer_id' => $customer->id,
                                         'error' => $e->getMessage(),
                                     ]);
                                 }
                             }
+                        } else {
+                            Log::warning('Không tìm thấy khách hàng', [
+                                'customer_id' => $bill->customer_id,
+                                'bill_id' => $bill->id,
+                                'bill_number' => $bill->bill_number,
+                            ]);
                         }
                     }
 
-                    // Update session actual amount
                     $session = CashRegisterSession::find($bill->session_id);
                     if ($session) {
-                        $session->actual_amount = ($session->actual_amount ?? 0) + $bill->total_amount;
+                        $previousAmount = $session->actual_amount ?? 0;
+                        $session->actual_amount = $previousAmount + $bill->total_amount;
                         $session->save();
+
+                        Log::info('Cập nhật phiên thu ngân', [
+                            'session_id' => $session->id,
+                            'amount_added' => $bill->total_amount,
+                            'new_actual_amount' => $session->actual_amount,
+                            'bill_number' => $bill->bill_number,
+                        ]);
                     }
 
                     Log::info('Thanh toán VNPay thành công qua callback', [
                         'bill_id' => $bill->id,
+                        'bill_number' => $bill->bill_number,
                         'txn_ref' => $txnRef,
                     ]);
                     return redirect()->away(config('vnpay.frontend_success_url') . '?status=success&bill_id=' . $bill->id . '&txn_ref=' . $txnRef);
                 }
 
+                // Khi thanh toán thất bại, đặt lại trạng thái là PENDING và không xóa hóa đơn
                 $bill->update([
-                    'payment_status_id' => self::PAYMENT_STATUS_FAILED,
-                    'deleted_at' => now('Asia/Ho_Chi_Minh'),
+                    'payment_status_id' => self::PAYMENT_STATUS_PENDING,
                     'updated_at' => now('Asia/Ho_Chi_Minh'),
                 ]);
 
-                // Rollback inventory
+                Log::info('Cập nhật trạng thái hóa đơn thành PENDING do thanh toán thất bại', [
+                    'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
+                    'txn_ref' => $txnRef,
+                    'payment_status_id' => self::PAYMENT_STATUS_PENDING,
+                ]);
+
+                // Hoàn lại tồn kho dựa trên bill_number và batch_id
                 $billDetails = BillDetail::where('bill_id', $bill->id)->get();
+                $restoredQuantities = [];
+
+                Log::info('Danh sách chi tiết hóa đơn cần hoàn lại', [
+                    'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
+                    'bill_details' => $billDetails->map(function ($detail) {
+                        return [
+                            'product_id' => $detail->product_id,
+                            'batch_id' => $detail->batch_id,
+                            'quantity' => $detail->quantity,
+                            'p_name' => $detail->p_name,
+                        ];
+                    })->toArray(),
+                ]);
+
                 foreach ($billDetails as $detail) {
-                    $batch = BatchItem::where('id', $detail->batch_id)->first();
+                    // Kiểm tra BatchItem với điều kiện bổ sung
+                    $batch = BatchItem::where('id', $detail->batch_id)
+                        ->where('product_id', $detail->product_id)
+                        ->whereHas('batch', function ($query) {
+                            $query->whereNull('deleted_at')
+                                ->whereIn('receipt_status', ['completed', 'partially_received']);
+                        })
+                        ->lockForUpdate()
+                        ->first();
+
+                    Log::info('Kiểm tra BatchItem', [
+                        'batch_id' => $detail->batch_id,
+                        'product_id' => $detail->product_id,
+                        'quantity' => $detail->quantity,
+                        'bill_number' => $bill->bill_number,
+                        'batch_found' => $batch ? 'yes' : 'no',
+                        'batch_details' => $batch ? [
+                            'current_quantity' => $batch->current_quantity,
+                            'inventory_status' => $batch->inventory_status,
+                            'deleted_at' => $batch->deleted_at,
+                        ] : null,
+                    ]);
+
                     if ($batch) {
-                        $batch->current_quantity += $detail->quantity;
-                        $batch->save();
+                        $previousQuantity = $batch->current_quantity;
+                        $newQuantity = $batch->current_quantity + $detail->quantity;
+                        $inventoryStatus = $newQuantity <= 0 ? 'out_of_stock' : ($newQuantity <= ($batch->min_stock_level ?? 0) ? 'low_stock' : 'active');
+
+                        Log::info('Trước khi hoàn lại tồn kho lô hàng', [
+                            'batch_id' => $batch->id,
+                            'product_id' => $detail->product_id,
+                            'quantity_to_restore' => $detail->quantity,
+                            'previous_quantity' => $previousQuantity,
+                            'bill_number' => $bill->bill_number,
+                        ]);
+
+                        $batch->update([
+                            'current_quantity' => $newQuantity,
+                            'inventory_status' => $inventoryStatus,
+                            'updated_at' => now('Asia/Ho_Chi_Minh'),
+                        ]);
+
+                        Log::info('Hoàn lại tồn kho cho lô hàng', [
+                            'batch_id' => $batch->id,
+                            'product_id' => $detail->product_id,
+                            'quantity_restored' => $detail->quantity,
+                            'new_quantity' => $newQuantity,
+                            'inventory_status' => $inventoryStatus,
+                            'bill_number' => $bill->bill_number,
+                        ]);
 
                         InventoryTransaction::create([
                             'transaction_type_id' => 3,
                             'product_id' => $detail->product_id,
                             'quantity_change' => $detail->quantity,
-                            'stock_after' => $batch->current_quantity,
+                            'stock_after' => $newQuantity,
                             'unit_price' => $batch->purchase_price,
                             'total_value' => $detail->quantity * $batch->purchase_price,
                             'transaction_date' => now('Asia/Ho_Chi_Minh'),
                             'related_bill_id' => $bill->id,
+                            'related_batch_id' => $batch->id,
                             'user_id' => Auth::id() ?? 1,
-                            'note' => 'Hoàn lại tồn kho do thanh toán VNPay thất bại',
+                            'note' => 'Hoàn lại tồn kho do thanh toán VNPay thất bại cho hóa đơn ' . $bill->bill_number,
+                        ]);
+
+                        $restoredQuantities[$detail->product_id] = ($restoredQuantities[$detail->product_id] ?? 0) + $detail->quantity;
+                    } else {
+                        Log::warning('Không tìm thấy lô hàng để hoàn lại tồn kho, thử tìm lô khác', [
+                            'batch_id' => $detail->batch_id,
+                            'product_id' => $detail->product_id,
+                            'quantity' => $detail->quantity,
+                            'bill_id' => $bill->id,
+                            'bill_number' => $bill->bill_number,
+                        ]);
+
+                        // Thử tìm lô khác cho sản phẩm
+                        $alternativeBatch = BatchItem::where('product_id', $detail->product_id)
+                            ->whereIn('inventory_status', ['active', 'low_stock'])
+                            ->where('current_quantity', '>=', 0)
+                            ->whereHas('batch', function ($query) {
+                                $query->whereNull('deleted_at')
+                                    ->whereIn('receipt_status', ['completed', 'partially_received']);
+                            })
+                            ->where(function ($query) {
+                                $query->whereNull('expiry_date')
+                                    ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
+                            })
+                            ->orderBy('created_at', 'asc')
+                            ->lockForUpdate()
+                            ->first();
+
+                        if ($alternativeBatch) {
+                            $previousQuantity = $alternativeBatch->current_quantity;
+                            $newQuantity = $alternativeBatch->current_quantity + $detail->quantity;
+                            $inventoryStatus = $newQuantity <= 0 ? 'out_of_stock' : ($newQuantity <= ($alternativeBatch->min_stock_level ?? 0) ? 'low_stock' : 'active');
+
+                            Log::info('Tìm thấy lô thay thế để hoàn lại tồn kho', [
+                                'batch_id' => $alternativeBatch->id,
+                                'product_id' => $detail->product_id,
+                                'quantity_to_restore' => $detail->quantity,
+                                'previous_quantity' => $previousQuantity,
+                                'bill_number' => $bill->bill_number,
+                            ]);
+
+                            $alternativeBatch->update([
+                                'current_quantity' => $newQuantity,
+                                'inventory_status' => $inventoryStatus,
+                                'updated_at' => now('Asia/Ho_Chi_Minh'),
+                            ]);
+
+                            InventoryTransaction::create([
+                                'transaction_type_id' => 3,
+                                'product_id' => $detail->product_id,
+                                'quantity_change' => $detail->quantity,
+                                'stock_after' => $newQuantity,
+                                'unit_price' => $alternativeBatch->purchase_price,
+                                'total_value' => $detail->quantity * $alternativeBatch->purchase_price,
+                                'transaction_date' => now('Asia/Ho_Chi_Minh'),
+                                'related_bill_id' => $bill->id,
+                                'related_batch_id' => $alternativeBatch->id,
+                                'user_id' => Auth::id() ?? 1,
+                                'note' => 'Hoàn lại tồn kho (lô thay thế) do thanh toán VNPay thất bại cho hóa đơn ' . $bill->bill_number,
+                            ]);
+
+                            $restoredQuantities[$detail->product_id] = ($restoredQuantities[$detail->product_id] ?? 0) + $detail->quantity;
+                        } else {
+                            Log::error('Không tìm thấy lô thay thế, cập nhật trực tiếp Product::stock_quantity', [
+                                'product_id' => $detail->product_id,
+                                'quantity' => $detail->quantity,
+                                'bill_id' => $bill->id,
+                                'bill_number' => $bill->bill_number,
+                            ]);
+
+                            // Cập nhật trực tiếp Product::stock_quantity
+                            $product = Product::lockForUpdate()->find($detail->product_id);
+                            if ($product) {
+                                $previousStock = $product->stock_quantity;
+                                $product->stock_quantity += $detail->quantity;
+                                $product->save();
+
+                                Log::info('Cập nhật tồn kho sản phẩm trực tiếp do không tìm thấy lô', [
+                                    'product_id' => $product->id,
+                                    'product_name' => $product->name,
+                                    'quantity_restored' => $detail->quantity,
+                                    'previous_stock_quantity' => $previousStock,
+                                    'new_stock_quantity' => $product->stock_quantity,
+                                    'bill_number' => $bill->bill_number,
+                                ]);
+
+                                $restoredQuantities[$detail->product_id] = ($restoredQuantities[$detail->product_id] ?? 0) + $detail->quantity;
+                            }
+                        }
+                    }
+                }
+
+                // Cập nhật tồn kho sản phẩm dựa trên số lượng đã hoàn lại
+                foreach ($restoredQuantities as $productId => $quantity) {
+                    $product = Product::lockForUpdate()->find($productId);
+                    if ($product) {
+                        $previousStock = $product->stock_quantity;
+                        $product->stock_quantity += $quantity;
+                        $product->save();
+
+                        Log::info('Cập nhật tồn kho sản phẩm', [
+                            'product_id' => $product->id,
+                            'product_name' => $product->name,
+                            'quantity_restored' => $quantity,
+                            'previous_stock_quantity' => $previousStock,
+                            'new_stock_quantity' => $product->stock_quantity,
+                            'bill_number' => $bill->bill_number,
+                        ]);
+                    } else {
+                        Log::warning('Không tìm thấy sản phẩm để cập nhật tồn kho', [
+                            'product_id' => $productId,
+                            'quantity' => $quantity,
+                            'bill_id' => $bill->id,
+                            'bill_number' => $bill->bill_number,
                         ]);
                     }
                 }
 
-                Log::warning('Thanh toán VNPay thất bại qua callback', [
+                // Hoàn lại số dư ví nếu có
+                if ($bill->customer_id && $bill->wallet_amount > 0) {
+                    $customer = Customer::lockForUpdate()->find($bill->customer_id);
+                    if ($customer) {
+                        $previousWallet = $customer->wallet;
+                        $customer->wallet += $bill->wallet_amount;
+                        $customer->save();
+
+                        Log::info('Hoàn lại số dư ví khách hàng', [
+                            'customer_id' => $bill->customer_id,
+                            'wallet_amount_restored' => $bill->wallet_amount,
+                            'previous_wallet_balance' => $previousWallet,
+                            'new_wallet_balance' => $customer->wallet,
+                            'bill_number' => $bill->bill_number,
+                        ]);
+                    } else {
+                        Log::warning('Không tìm thấy khách hàng để hoàn lại ví', [
+                            'customer_id' => $bill->customer_id,
+                            'wallet_amount' => $bill->wallet_amount,
+                            'bill_id' => $bill->id,
+                            'bill_number' => $bill->bill_number,
+                        ]);
+                    }
+                }
+
+                Log::warning('Thanh toán VNPay thất bại qua callback, hoàn lại tồn kho và ví', [
                     'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
                     'txn_ref' => $txnRef,
                     'response_code' => $inputData['vnp_ResponseCode'],
+                    'restored_quantities' => $restoredQuantities,
+                    'wallet_amount_restored' => $bill->wallet_amount ?? 0,
                 ]);
+
                 return redirect()->away(config('vnpay.frontend_failed_url') . '?status=failed&message=' . urlencode('Thanh toán thất bại') . '&response_code=' . $inputData['vnp_ResponseCode']);
             });
         } catch (\Exception $e) {
             Log::error('Lỗi khi xử lý callback VNPay', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'txn_ref' => $inputData['vnp_TxnRef'] ?? null,
+                'bill_number' => $bill->bill_number ?? 'N/A',
             ]);
             return redirect()->away(config('vnpay.frontend_failed_url') . '?status=failed&message=' . urlencode('Lỗi khi xử lý callback: ' . $e->getMessage()));
         }
@@ -685,9 +1035,17 @@ class VNPayController
     {
         try {
             $inputData = $request->all();
+
+            Log::info('Nhận IPN từ VNPay', [
+                'txn_ref' => $inputData['vnp_TxnRef'] ?? 'N/A',
+                'response_code' => $inputData['vnp_ResponseCode'] ?? 'N/A',
+                'amount' => ($inputData['vnp_Amount'] ?? 0) / 100,
+            ]);
+
             if (!$this->vnpayService->verifyCallback($inputData)) {
                 Log::warning('Chữ ký VNPay không hợp lệ trong IPN', [
                     'txn_ref' => $inputData['vnp_TxnRef'] ?? '',
+                    'input_data' => $inputData,
                 ]);
                 return response()->json([
                     'RspCode' => '97',
@@ -706,9 +1064,19 @@ class VNPayController
                 ], 404);
             }
 
+            Log::info('Tìm thấy hóa đơn', [
+                'bill_id' => $bill->id,
+                'bill_number' => $bill->bill_number,
+                'txn_ref' => $txnRef,
+                'payment_status_id' => $bill->payment_status_id,
+                'total_amount' => $bill->total_amount,
+                'wallet_amount' => $bill->wallet_amount,
+            ]);
+
             if ($bill->payment_status_id !== self::PAYMENT_STATUS_PENDING) {
                 Log::warning('Hóa đơn đã được xử lý trước đó trong IPN', [
                     'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
                     'txn_ref' => $txnRef,
                     'payment_status_id' => $bill->payment_status_id,
                 ]);
@@ -721,6 +1089,7 @@ class VNPayController
             if ($inputData['vnp_Amount'] / 100 !== $bill->total_amount) {
                 Log::warning('Số tiền VNPay không khớp với hóa đơn', [
                     'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
                     'txn_ref' => $txnRef,
                     'vnp_amount' => $inputData['vnp_Amount'] / 100,
                     'bill_amount' => $bill->total_amount,
@@ -740,38 +1109,72 @@ class VNPayController
                         'updated_at' => now('Asia/Ho_Chi_Minh'),
                     ]);
 
-                    // Update customer wallet
+                    Log::info('Cập nhật trạng thái hóa đơn thành công', [
+                        'bill_id' => $bill->id,
+                        'bill_number' => $bill->bill_number,
+                        'txn_ref' => $txnRef,
+                        'payment_status_id' => self::PAYMENT_STATUS_SUCCESS,
+                    ]);
+
                     if ($bill->customer_id) {
                         $customer = Customer::lockForUpdate()->find($bill->customer_id);
                         if ($customer) {
+                            $previousWallet = $customer->wallet;
                             $walletBonus = $bill->total_amount * 0.001;
                             $customer->wallet += $walletBonus;
                             $customer->save();
 
-                            // Send receipt email
+                            Log::info('Thêm tiền thưởng vào ví khách hàng', [
+                                'customer_id' => $bill->customer_id,
+                                'wallet_bonus' => $walletBonus,
+                                'previous_wallet_balance' => $previousWallet,
+                                'new_wallet_balance' => $customer->wallet,
+                                'bill_number' => $bill->bill_number,
+                            ]);
+
                             if ($customer->email) {
                                 try {
                                     Mail::to($customer->email)->queue(new ReceiptEmail($bill));
+                                    Log::info('Gửi email hóa đơn thành công', [
+                                        'bill_id' => $bill->id,
+                                        'bill_number' => $bill->bill_number,
+                                        'customer_id' => $customer->id,
+                                    ]);
                                 } catch (\Exception $e) {
                                     Log::warning('Không thể gửi email hóa đơn', [
                                         'bill_id' => $bill->id,
+                                        'bill_number' => $bill->bill_number,
                                         'customer_id' => $customer->id,
                                         'error' => $e->getMessage(),
                                     ]);
                                 }
                             }
+                        } else {
+                            Log::warning('Không tìm thấy khách hàng', [
+                                'customer_id' => $bill->customer_id,
+                                'bill_id' => $bill->id,
+                                'bill_number' => $bill->bill_number,
+                            ]);
                         }
                     }
 
-                    // Update session actual amount
                     $session = CashRegisterSession::find($bill->session_id);
                     if ($session) {
-                        $session->actual_amount = ($session->actual_amount ?? 0) + $bill->total_amount;
+                        $previousAmount = $session->actual_amount ?? 0;
+                        $session->actual_amount = $previousAmount + $bill->total_amount;
                         $session->save();
+
+                        Log::info('Cập nhật phiên thu ngân', [
+                            'session_id' => $session->id,
+                            'amount_added' => $bill->total_amount,
+                            'new_actual_amount' => $session->actual_amount,
+                            'bill_number' => $bill->bill_number,
+                        ]);
                     }
 
                     Log::info('Thanh toán VNPay được xác nhận qua IPN', [
                         'bill_id' => $bill->id,
+                        'bill_number' => $bill->bill_number,
                         'txn_ref' => $txnRef,
                     ]);
                     return response()->json([
@@ -780,40 +1183,252 @@ class VNPayController
                     ], 200);
                 }
 
+                // Khi thanh toán thất bại, đặt lại trạng thái là PENDING và không xóa hóa đơn
                 $bill->update([
-                    'payment_status_id' => self::PAYMENT_STATUS_FAILED,
-                    'deleted_at' => now('Asia/Ho_Chi_Minh'),
+                    'payment_status_id' => self::PAYMENT_STATUS_PENDING,
                     'updated_at' => now('Asia/Ho_Chi_Minh'),
                 ]);
 
-                // Rollback inventory
+                Log::info('Cập nhật trạng thái hóa đơn thành PENDING do thanh toán thất bại', [
+                    'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
+                    'txn_ref' => $txnRef,
+                    'payment_status_id' => self::PAYMENT_STATUS_PENDING,
+                ]);
+
+                // Hoàn lại tồn kho dựa trên bill_number và batch_id
                 $billDetails = BillDetail::where('bill_id', $bill->id)->get();
+                $restoredQuantities = [];
+
+                Log::info('Danh sách chi tiết hóa đơn cần hoàn lại', [
+                    'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
+                    'bill_details' => $billDetails->map(function ($detail) {
+                        return [
+                            'product_id' => $detail->product_id,
+                            'batch_id' => $detail->batch_id,
+                            'quantity' => $detail->quantity,
+                            'p_name' => $detail->p_name,
+                        ];
+                    })->toArray(),
+                ]);
+
                 foreach ($billDetails as $detail) {
-                    $batch = BatchItem::where('id', $detail->batch_id)->first();
+                    // Kiểm tra BatchItem với điều kiện bổ sung
+                    $batch = BatchItem::where('id', $detail->batch_id)
+                        ->where('product_id', $detail->product_id)
+                        ->whereHas('batch', function ($query) {
+                            $query->whereNull('deleted_at')
+                                ->whereIn('receipt_status', ['completed', 'partially_received']);
+                        })
+                        ->lockForUpdate()
+                        ->first();
+
+                    Log::info('Kiểm tra BatchItem', [
+                        'batch_id' => $detail->batch_id,
+                        'product_id' => $detail->product_id,
+                        'quantity' => $detail->quantity,
+                        'bill_number' => $bill->bill_number,
+                        'batch_found' => $batch ? 'yes' : 'no',
+                        'batch_details' => $batch ? [
+                            'current_quantity' => $batch->current_quantity,
+                            'inventory_status' => $batch->inventory_status,
+                            'deleted_at' => $batch->deleted_at,
+                        ] : null,
+                    ]);
+
                     if ($batch) {
-                        $batch->current_quantity += $detail->quantity;
-                        $batch->save();
+                        $previousQuantity = $batch->current_quantity;
+                        $newQuantity = $batch->current_quantity + $detail->quantity;
+                        $inventoryStatus = $newQuantity <= 0 ? 'out_of_stock' : ($newQuantity <= ($batch->min_stock_level ?? 0) ? 'low_stock' : 'active');
+
+                        Log::info('Trước khi hoàn lại tồn kho lô hàng', [
+                            'batch_id' => $batch->id,
+                            'product_id' => $detail->product_id,
+                            'quantity_to_restore' => $detail->quantity,
+                            'previous_quantity' => $previousQuantity,
+                            'bill_number' => $bill->bill_number,
+                        ]);
+
+                        $batch->update([
+                            'current_quantity' => $newQuantity,
+                            'inventory_status' => $inventoryStatus,
+                            'updated_at' => now('Asia/Ho_Chi_Minh'),
+                        ]);
+
+                        Log::info('Hoàn lại tồn kho cho lô hàng', [
+                            'batch_id' => $batch->id,
+                            'product_id' => $detail->product_id,
+                            'quantity_restored' => $detail->quantity,
+                            'new_quantity' => $newQuantity,
+                            'inventory_status' => $inventoryStatus,
+                            'bill_number' => $bill->bill_number,
+                        ]);
 
                         InventoryTransaction::create([
                             'transaction_type_id' => 3,
                             'product_id' => $detail->product_id,
                             'quantity_change' => $detail->quantity,
-                            'stock_after' => $batch->current_quantity,
+                            'stock_after' => $newQuantity,
                             'unit_price' => $batch->purchase_price,
                             'total_value' => $detail->quantity * $batch->purchase_price,
                             'transaction_date' => now('Asia/Ho_Chi_Minh'),
                             'related_bill_id' => $bill->id,
+                            'related_batch_id' => $batch->id,
                             'user_id' => Auth::id() ?? 1,
-                            'note' => 'Hoàn lại tồn kho do thanh toán VNPay thất bại',
+                            'note' => 'Hoàn lại tồn kho do thanh toán VNPay thất bại cho hóa đơn ' . $bill->bill_number,
+                        ]);
+
+                        $restoredQuantities[$detail->product_id] = ($restoredQuantities[$detail->product_id] ?? 0) + $detail->quantity;
+                    } else {
+                        Log::warning('Không tìm thấy lô hàng để hoàn lại tồn kho, thử tìm lô khác', [
+                            'batch_id' => $detail->batch_id,
+                            'product_id' => $detail->product_id,
+                            'quantity' => $detail->quantity,
+                            'bill_id' => $bill->id,
+                            'bill_number' => $bill->bill_number,
+                        ]);
+
+                        // Thử tìm lô khác cho sản phẩm
+                        $alternativeBatch = BatchItem::where('product_id', $detail->product_id)
+                            ->whereIn('inventory_status', ['active', 'low_stock'])
+                            ->where('current_quantity', '>=', 0)
+                            ->whereHas('batch', function ($query) {
+                                $query->whereNull('deleted_at')
+                                    ->whereIn('receipt_status', ['completed', 'partially_received']);
+                            })
+                            ->where(function ($query) {
+                                $query->whereNull('expiry_date')
+                                    ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
+                            })
+                            ->orderBy('created_at', 'asc')
+                            ->lockForUpdate()
+                            ->first();
+
+                        if ($alternativeBatch) {
+                            $previousQuantity = $alternativeBatch->current_quantity;
+                            $newQuantity = $alternativeBatch->current_quantity + $detail->quantity;
+                            $inventoryStatus = $newQuantity <= 0 ? 'out_of_stock' : ($newQuantity <= ($alternativeBatch->min_stock_level ?? 0) ? 'low_stock' : 'active');
+
+                            Log::info('Tìm thấy lô thay thế để hoàn lại tồn kho', [
+                                'batch_id' => $alternativeBatch->id,
+                                'product_id' => $detail->product_id,
+                                'quantity_to_restore' => $detail->quantity,
+                                'previous_quantity' => $previousQuantity,
+                                'bill_number' => $bill->bill_number,
+                            ]);
+
+                            $alternativeBatch->update([
+                                'current_quantity' => $newQuantity,
+                                'inventory_status' => $inventoryStatus,
+                                'updated_at' => now('Asia/Ho_Chi_Minh'),
+                            ]);
+
+                            InventoryTransaction::create([
+                                'transaction_type_id' => 3,
+                                'product_id' => $detail->product_id,
+                                'quantity_change' => $detail->quantity,
+                                'stock_after' => $newQuantity,
+                                'unit_price' => $alternativeBatch->purchase_price,
+                                'total_value' => $detail->quantity * $alternativeBatch->purchase_price,
+                                'transaction_date' => now('Asia/Ho_Chi_Minh'),
+                                'related_bill_id' => $bill->id,
+                                'related_batch_id' => $alternativeBatch->id,
+                                'user_id' => Auth::id() ?? 1,
+                                'note' => 'Hoàn lại tồn kho (lô thay thế) do thanh toán VNPay thất bại cho hóa đơn ' . $bill->bill_number,
+                            ]);
+
+                            $restoredQuantities[$detail->product_id] = ($restoredQuantities[$detail->product_id] ?? 0) + $detail->quantity;
+                        } else {
+                            Log::error('Không tìm thấy lô thay thế, cập nhật trực tiếp Product::stock_quantity', [
+                                'product_id' => $detail->product_id,
+                                'quantity' => $detail->quantity,
+                                'bill_id' => $bill->id,
+                                'bill_number' => $bill->bill_number,
+                            ]);
+
+                            // Cập nhật trực tiếp Product::stock_quantity
+                            $product = Product::lockForUpdate()->find($detail->product_id);
+                            if ($product) {
+                                $previousStock = $product->stock_quantity;
+                                $product->stock_quantity += $detail->quantity;
+                                $product->save();
+
+                                Log::info('Cập nhật tồn kho sản phẩm trực tiếp do không tìm thấy lô', [
+                                    'product_id' => $product->id,
+                                    'product_name' => $product->name,
+                                    'quantity_restored' => $detail->quantity,
+                                    'previous_stock_quantity' => $previousStock,
+                                    'new_stock_quantity' => $product->stock_quantity,
+                                    'bill_number' => $bill->bill_number,
+                                ]);
+
+                                $restoredQuantities[$detail->product_id] = ($restoredQuantities[$detail->product_id] ?? 0) + $detail->quantity;
+                            }
+                        }
+                    }
+                }
+
+                // Cập nhật tồn kho sản phẩm dựa trên số lượng đã hoàn lại
+                foreach ($restoredQuantities as $productId => $quantity) {
+                    $product = Product::lockForUpdate()->find($productId);
+                    if ($product) {
+                        $previousStock = $product->stock_quantity;
+                        $product->stock_quantity += $quantity;
+                        $product->save();
+
+                        Log::info('Cập nhật tồn kho sản phẩm', [
+                            'product_id' => $product->id,
+                            'product_name' => $product->name,
+                            'quantity_restored' => $quantity,
+                            'previous_stock_quantity' => $previousStock,
+                            'new_stock_quantity' => $product->stock_quantity,
+                            'bill_number' => $bill->bill_number,
+                        ]);
+                    } else {
+                        Log::warning('Không tìm thấy sản phẩm để cập nhật tồn kho', [
+                            'product_id' => $productId,
+                            'quantity' => $quantity,
+                            'bill_id' => $bill->id,
+                            'bill_number' => $bill->bill_number,
                         ]);
                     }
                 }
 
-                Log::warning('Thanh toán VNPay thất bại qua IPN', [
+                // Hoàn lại số dư ví nếu có
+                if ($bill->customer_id && $bill->wallet_amount > 0) {
+                    $customer = Customer::lockForUpdate()->find($bill->customer_id);
+                    if ($customer) {
+                        $previousWallet = $customer->wallet;
+                        $customer->wallet += $bill->wallet_amount;
+                        $customer->save();
+
+                        Log::info('Hoàn lại số dư ví khách hàng', [
+                            'customer_id' => $bill->customer_id,
+                            'wallet_amount_restored' => $bill->wallet_amount,
+                            'previous_wallet_balance' => $previousWallet,
+                            'new_wallet_balance' => $customer->wallet,
+                            'bill_number' => $bill->bill_number,
+                        ]);
+                    } else {
+                        Log::warning('Không tìm thấy khách hàng để hoàn lại ví', [
+                            'customer_id' => $bill->customer_id,
+                            'wallet_amount' => $bill->wallet_amount,
+                            'bill_id' => $bill->id,
+                            'bill_number' => $bill->bill_number,
+                        ]);
+                    }
+                }
+
+                Log::warning('Thanh toán VNPay thất bại qua IPN, hoàn lại tồn kho và ví', [
                     'bill_id' => $bill->id,
+                    'bill_number' => $bill->bill_number,
                     'txn_ref' => $txnRef,
                     'response_code' => $inputData['vnp_ResponseCode'],
+                    'restored_quantities' => $restoredQuantities,
+                    'wallet_amount_restored' => $bill->wallet_amount ?? 0,
                 ]);
+
                 return response()->json([
                     'RspCode' => '00',
                     'Message' => 'Xác nhận thành công (thanh toán thất bại)',
@@ -823,6 +1438,8 @@ class VNPayController
             Log::error('Lỗi khi xử lý IPN VNPay', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'txn_ref' => $inputData['vnp_TxnRef'] ?? null,
+                'bill_number' => $bill->bill_number ?? 'N/A',
             ]);
             return response()->json([
                 'RspCode' => '99',
@@ -844,6 +1461,10 @@ class VNPayController
                 'success' => 'Danh sách sản phẩm đã được tải thành công.',
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Lỗi khi tải danh sách sản phẩm', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['errors' => ['server' => 'Lỗi tải danh sách sản phẩm: ' . $e->getMessage()]], 500);
         }
     }

@@ -200,12 +200,6 @@ const expandedRows = ref([]);
               </p>
               <p class="text-lg font-bold text-red-600">{{ shiftData.summary.refunded_transactions }}</p>
             </div>
-            <!-- <div class="p-4 bg-orange-50 rounded shadow-sm">
-              <p class="text-gray-600 flex items-center gap-1">
-                <Package class="w-4 h-4" /> Số lượng sản phẩm trả hàng
-              </p>
-              <p class="text-lg font-bold text-orange-600">{{ shiftData.summary.total_returned_quantity || 0 }}</p>
-            </div> -->
           </div>
         </div>
 

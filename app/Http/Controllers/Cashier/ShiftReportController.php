@@ -45,6 +45,9 @@ class ShiftReportController extends Controller
 
             $returnBills = ReturnBill::where('cashier_id', $user->id)
                 ->whereBetween('created_at', [$currentUserShift->check_in, $endTime])
+                ->whereHas('bill', function ($query) {
+                    $query->where('payment_status_id', 2); // Chỉ lấy return bills liên quan đến bills có payment_status_id = 2
+                })
                 ->with(['details', 'details.product', 'bill', 'customer'])
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -339,6 +342,9 @@ class ShiftReportController extends Controller
 
                 $returnBills = ReturnBill::where('cashier_id', $userShift->user_id)
                     ->whereBetween('created_at', [$userShift->check_in, $userShift->check_out])
+                    ->whereHas('bill', function ($query) {
+                        $query->where('payment_status_id', 2); // Chỉ lấy return bills liên quan đến bills có payment_status_id = 2
+                    })
                     ->get();
 
                 $totalRevenue = $bills->where('payment_status_id', 2)->sum('total_amount');
