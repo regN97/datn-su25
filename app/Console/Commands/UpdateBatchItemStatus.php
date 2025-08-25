@@ -5,53 +5,65 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\BatchItem;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class UpdateBatchItemStatus extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'app:update-batch-item-status';
+    protected $description = 'Cập nhật trạng thái cho tất cả batch items';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Command description';
-
-    /**
-     * Execute the console command.
-     */
     public function handle()
     {
-        $today = Carbon::today();
-        $items = BatchItem::all();
+        try {
+            DB::beginTransaction();
+            
+            $now = Carbon::now();
+            
+            // Cập nhật tất cả batch items không phân biệt nguồn
+            BatchItem::query()
+                ->where('current_quantity', '>', 0)
+                ->chunk(100, function($items) use ($now) {
+                    foreach ($items as $item) {
+                        $newStatus = $this->determineStatus($item, $now);
+                        if ($item->inventory_status !== $newStatus) {
+                            $item->update(['inventory_status' => $newStatus]);
+                        }
+                    }
+                });
 
-        foreach ($items as $item) {
-            // Kiểm tra tồn kho
-            if ($item->current_quantity <= 0) {
-                $item->inventory_status = 'out_of_stock';
-            }
-            // Kiểm tra hết hạn
-            elseif ($item->expiry_date && Carbon::parse($item->expiry_date)->lt($today)) {
-                $item->inventory_status = 'expired';
-            }
-            // Kiểm tra gần hết (low stock)
-            elseif ($item->current_quantity <= $item->product->min_stock_level) { 
-                // Có thể thay 5 bằng min_stock_level của sản phẩm
-                $item->inventory_status = 'low_stock';
-            }
-            // Nếu còn hàng bình thường
-            else {
-                $item->inventory_status = 'active';
-            }
+            DB::commit();
+            $this->info('Đã cập nhật trạng thái batch items thành công.');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->error('Lỗi: ' . $e->getMessage());
+        }
+    }
 
-            $item->save();
+    private function determineStatus(BatchItem $item, Carbon $now): string 
+    {
+        // Check out of stock
+        if ($item->current_quantity <= 0) {
+            return 'out_of_stock';
         }
 
-        $this->info('Batch item statuses updated successfully.');
+        // Check expired
+        if ($item->expiry_date && Carbon::parse($item->expiry_date)->lt($now)) {
+            return 'expired';
+        }
+
+        // Check expiring soon (15 days)
+        if ($item->expiry_date && 
+            Carbon::parse($item->expiry_date)->between($now, $now->copy()->addDays(30))) {
+            return 'expiring_soon';
+        }
+
+        // Check low stock
+        if ($item->product && 
+            $item->current_quantity <= $item->product->min_stock_level) {
+            return 'low_stock';
+        }
+
+        return 'active';
     }
 }

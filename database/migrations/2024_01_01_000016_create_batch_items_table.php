@@ -35,6 +35,7 @@ return new class extends Migration {
                 'active',
                 'low_stock',
                 'out_of_stock',
+                'expiring_soon',
                 'expired',
                 'damaged'
             ])->default('active');
