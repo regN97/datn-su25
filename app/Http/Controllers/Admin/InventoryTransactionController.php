@@ -97,82 +97,89 @@ class InventoryTransactionController extends Controller
 }
 
     private function updateExpiredBatches($productId)
-    {
-        $currentTime = Carbon::today('Asia/Ho_Chi_Minh');
+{
+    $currentTime = Carbon::today('Asia/Ho_Chi_Minh');
 
-        // Tìm các lô hàng hết hạn
-        $expiredBatches = BatchItem::where('product_id', $productId)
-            ->whereNotNull('expiry_date')
-            ->where('expiry_date', '<', $currentTime)
-            ->whereIn('inventory_status', ['active', 'low_stock'])
-            ->where('current_quantity', '>', 0)
-            ->whereHas('batch', function ($query) {
-                $query->whereNull('deleted_at')
-                    ->whereIn('receipt_status', ['completed', 'partially_received']);
-            })
-            ->lockForUpdate()
-            ->get();
+    // Tìm các lô hàng hết hạn
+    $expiredBatches = BatchItem::where('product_id', $productId)
+        ->whereNotNull('expiry_date')
+        ->where('expiry_date', '<', $currentTime)
+        ->whereIn('inventory_status', ['active', 'low_stock'])
+        ->whereHas('batch', function ($query) {
+            $query->whereNull('deleted_at')
+                ->whereIn('receipt_status', ['completed', 'partially_received']);
+        })
+        ->lockForUpdate()
+        ->get();
 
-        if ($expiredBatches->isEmpty()) {
-            return;
-        }
-
-        // Cập nhật tồn kho và ghi giao dịch
-        DB::transaction(function () use ($expiredBatches, $productId, $currentTime) {
-            $product = Product::lockForUpdate()->findOrFail($productId);
-
-            // Lấy giao dịch gần nhất để lấy stock_after
-            $latestTransaction = InventoryTransaction::where('product_id', $productId)
-                ->orderBy('transaction_date', 'desc')
-                ->orderBy('id', 'desc')
-                ->lockForUpdate()
-                ->first();
-
-            // Sử dụng stock_after từ giao dịch gần nhất, hoặc stock_quantity nếu không có giao dịch
-            $currentStock = $latestTransaction ? $latestTransaction->stock_after : $product->stock_quantity;
-
-            foreach ($expiredBatches as $batchItem) {
-                $quantityToDeduct = $batchItem->current_quantity;
-
-                // Đảm bảo không trừ quá số lượng hiện có
-                if ($quantityToDeduct > $currentStock) {
-                    $quantityToDeduct = $currentStock;
-                }
-
-                $newStock = $currentStock - $quantityToDeduct;
-
-                // Cập nhật BatchItem
-                $batchItem->update([
-                    'current_quantity' => 0,
-                    'inventory_status' => 'expired',
-                    'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-                ]);
-
-                // Ghi giao dịch trong InventoryTransaction nếu có số lượng để trừ
-                if ($quantityToDeduct > 0) {
-                    InventoryTransaction::create([
-                        'transaction_type_id' => 3, // Giả sử 3 là loại giao dịch cho hàng hết hạn
-                        'product_id' => $batchItem->product_id,
-                        'quantity_change' => -$quantityToDeduct,
-                        'stock_after' => $newStock,
-                        'unit_price' => $batchItem->purchase_price,
-                        'total_value' => $quantityToDeduct * $batchItem->purchase_price,
-                        'transaction_date' => Carbon::now('Asia/Ho_Chi_Minh'),
-                        'related_batch_id' => $batchItem->batch_id,
-                        'user_id' => auth()->id() ?? null,
-                        'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-                        'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
-                        'note' => 'Hàng hóa hết hạn được tự động cập nhật',
-                    ]);
-                }
-
-                // Cập nhật số lượng tồn kho của sản phẩm
-                $product->stock_quantity = $newStock;
-                $product->save();
-
-                // Cập nhật currentStock cho lô tiếp theo
-                $currentStock = $newStock;
-            }
-        });
+    if ($expiredBatches->isEmpty()) {
+        return;
     }
+
+    DB::transaction(function () use ($expiredBatches, $productId, $currentTime) {
+        $product = Product::lockForUpdate()->findOrFail($productId);
+
+        // Tính tổng stock_quantity từ tất cả các giao dịch trong inventory_transactions
+        $totalStockChange = InventoryTransaction::where('product_id', $productId)
+            ->sum('quantity_change');
+        $currentStock = max(0, $totalStockChange); // Đảm bảo không âm
+
+        // Tính số lượng cần trừ dựa trên received_quantity của các lô hết hạn
+        $quantityToDeduct = $expiredBatches->sum('received_quantity');
+
+        // Đảm bảo không trừ quá số lượng tồn kho hiện tại
+        $quantityToDeduct = min($quantityToDeduct, $currentStock);
+        $newStock = $currentStock - $quantityToDeduct;
+
+        // Cập nhật trạng thái các lô hết hạn
+        BatchItem::whereIn('id', $expiredBatches->pluck('id'))
+            ->update([
+                'inventory_status' => 'expired',
+                'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+            ]);
+
+        // Ghi giao dịch trừ kho nếu có số lượng để trừ
+        if ($quantityToDeduct > 0) {
+            // Tính giá trị trung bình của các lô hết hạn
+            $totalValue = $expiredBatches->sum(function ($batchItem) {
+                return $batchItem->received_quantity * $batchItem->purchase_price;
+            });
+            $averageUnitPrice = $quantityToDeduct > 0 ? $totalValue / $quantityToDeduct : 0;
+
+            InventoryTransaction::create([
+                'transaction_type_id' => 3, // Giả sử 3 là loại giao dịch cho hàng hết hạn
+                'product_id' => $productId,
+                'quantity_change' => -$quantityToDeduct,
+                'stock_after' => $newStock,
+                'unit_price' => $averageUnitPrice,
+                'total_value' => $totalValue,
+                'transaction_date' => Carbon::now('Asia/Ho_Chi_Minh'),
+                'related_batch_id' => null, // Có thể lưu danh sách batch_id nếu cần
+                'user_id' => auth()->id() ?? 1, // Sử dụng user_id mặc định
+                'created_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+                'updated_at' => Carbon::now('Asia/Ho_Chi_Minh'),
+                'note' => 'Hàng hóa hết hạn được tự động cập nhật',
+            ]);
+
+            // Cập nhật stock_quantity trong bảng products
+            $product->stock_quantity = $newStock;
+            $product->save();
+
+            // Ghi log để theo dõi
+            Log::info('Expired batches processed for product ' . $productId, [
+                'expired_batch_ids' => $expiredBatches->pluck('id')->toArray(),
+                'quantity_deducted' => $quantityToDeduct,
+                'new_stock' => $newStock,
+            ]);
+
+            // Cảnh báo nếu stock_quantity âm
+            if ($newStock < 0) {
+                Log::warning('Negative stock detected for product ' . $productId, [
+                    'new_stock' => $newStock,
+                    'expired_batch_ids' => $expiredBatches->pluck('id')->toArray(),
+                ]);
+            }
+        }
+    });
+}
 }
