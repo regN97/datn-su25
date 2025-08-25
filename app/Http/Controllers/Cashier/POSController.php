@@ -1025,33 +1025,44 @@ class POSController
     public function syncInventory()
     {
         try {
-            $products = Product::where('is_active', true)
-                ->whereNull('deleted_at')
-                ->get();
+            return DB::transaction(function () {
+                $updatedCount = 0;
+                $products = Product::where('is_active', true)
+                    ->whereNull('deleted_at')
+                    ->select('id', 'stock_quantity')
+                    ->get();
 
-            foreach ($products as $product) {
-                $batchQuantity = BatchItem::where('product_id', $product->id)
-                    ->whereIn('inventory_status', ['active', 'low_stock'])
-                    ->where('current_quantity', '>', 0)
-                    ->whereHas('batch', function ($query) {
-                        $query->whereNull('deleted_at')
-                            ->whereIn('receipt_status', ['completed', 'partially_received']);
-                    })
-                    ->where(function ($query) {
-                        $query->whereNull('expiry_date')
-                            ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
-                    })
-                    ->sum('current_quantity');
+                foreach ($products as $product) {
+                    $query = BatchItem::where('product_id', $product->id)
+                        ->whereIn('inventory_status', ['active', 'expiring_soon'])
+                        ->where('current_quantity', '>', 0)
+                        ->whereHas('batch', function ($q) {
+                            $q->whereNull('deleted_at')
+                                ->where('receipt_status', 'completed');
+                        })
+                        ->where(function ($q) {
+                            $q->whereNull('expiry_date')
+                                ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
+                        });
 
-                if ($product->stock_quantity != $batchQuantity) {
-                    $product->stock_quantity = $batchQuantity;
-                    $product->save();
+                    $totalBatchQuantity = $query->sum('current_quantity');
+
+                    if ($product->stock_quantity != $totalBatchQuantity) {
+                        $product->stock_quantity = $totalBatchQuantity;
+                        $product->save();
+                        $updatedCount++;
+                    }
                 }
-            }
 
-            return response()->json(['message' => 'Đồng bộ tồn kho hoàn tất!'], 200);
+                return response()->json([
+                    'message' => 'Đồng bộ tồn kho hoàn tất!',
+                    'updated_products' => $updatedCount
+                ], 200);
+            });
         } catch (\Exception $e) {
-            return response()->json(['errors' => ['server' => 'Có lỗi khi đồng bộ tồn kho.']], 500);
+            return response()->json([
+                'errors' => ['server' => 'Có lỗi khi đồng bộ tồn kho.']
+            ], 500);
         }
     }
 

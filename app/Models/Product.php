@@ -70,7 +70,7 @@ class Product extends Model
     public function getCurrentStock()
     {
         return $this->batchItems()
-            ->where('inventory_status', 'active')
+            ->whereIn('inventory_status', ['active', 'low_stock', 'expiring_soon'])
             ->sum('current_quantity');
     }
 
@@ -89,18 +89,18 @@ class Product extends Model
     {
         return $this->belongsToMany(Supplier::class, 'product_suppliers', 'product_id', 'supplier_id')->withTimestamps()->withPivot('purchase_price');
     }
-        public function bills()
+    public function bills()
     {
         return $this->belongsToMany(Bill::class, 'bill_details', 'product_id', 'bill_id')
-                    ->withPivot(['quantity', 'unit_cost', 'unit_price', 'discount_per_item', 'subtotal']);
+            ->withPivot(['quantity', 'unit_cost', 'unit_price', 'discount_per_item', 'subtotal']);
     }
-        public function billDetails()
+    public function billDetails()
     {
         return $this->hasMany(BillDetail::class);
     }
 
     public function inventoryTransactions()
-{
-    return $this->hasMany(InventoryTransaction::class);
-}
+    {
+        return $this->hasMany(InventoryTransaction::class);
+    }
 }
