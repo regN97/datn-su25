@@ -57,7 +57,8 @@ const formatDateTimeForPrint = (dateString: string | null) => {
 
 const formatCurrency = (value: number | null): string => {
     if (value === null || isNaN(value)) return '0 đ';
-    return value.toLocaleString('vi-VN') + ' đ';
+    // Round to remove decimal places and format with vi-VN locale
+    return Math.round(value).toLocaleString('vi-VN') + ' đ';
 };
 
 const statusTextClass = (status: string) => {

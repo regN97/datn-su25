@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { CheckCircle, ChevronLeft, CircleAlert, Edit, CheckSquare } from 'lucide-vue-next';
+import { CheckCircle, CheckSquare, ChevronLeft, CircleAlert, Edit } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { Money3Directive } from 'v-money3';
 import { computed, ref } from 'vue';
@@ -35,10 +34,10 @@ interface Batch {
     received_date: string;
     invoice_number: string | null;
     total_amount: number;
-    payment_status: "unpaid" | "partially_paid" | "paid";
+    payment_status: 'unpaid' | 'partially_paid' | 'paid';
     paid_amount: number;
-    received_status: "completed"; // Receipt status từ migration
-    status: "draft" | "pending" | "completed"; // Status chính để quản lý workflow
+    received_status: 'completed'; // Receipt status từ migration
+    status: 'draft' | 'pending' | 'completed'; // Status chính để quản lý workflow
     notes: string | null;
     created_by: number;
     creator?: User;
@@ -96,10 +95,11 @@ interface User {
 }
 
 interface Props {
-    suppliers?: Supplier[];
-    users?: User[];
-    batch: Batch | null; // Cập nhật kiểu dữ liệu
+    suppliers: Supplier[];
+    users: User[];
+    batch: Batch | null;
     batchItem: BatchItem[];
+    purchaseOrders: PurchaseOrder[];
 }
 
 interface POStatus {
@@ -151,7 +151,7 @@ interface PurchaseOrder {
     updated_at: string;
     deleted_at: string | null;
     items?: PurchaseOrderItem[];
-};
+}
 
 const props = withDefaults(defineProps<Props>(), {
     suppliers: () => [],
@@ -160,12 +160,7 @@ const props = withDefaults(defineProps<Props>(), {
     batchItem: () => [],
 });
 
-const po_products = ref<BatchItem[]>(
-    props.batchItem.map((item) => ({
-        ...item,
-        received_quantity: item.received_quantity || 0,
-    })),
-);
+
 
 const aggregatedProducts = computed(() => {
     const productMap = new Map();
@@ -194,6 +189,11 @@ const selectedUser = computed(() => props.users.find((u) => u.id === currentBatc
 const selectedSupplier = computed(() => props.suppliers.find((s) => s.id === currentBatch.value?.supplier_id) || null);
 
 const batchNumber = computed(() => currentBatch.value?.batch_number || 'Chưa có mã lô');
+
+const purchaseOrderNumber = computed(() => {
+    const po = props.purchaseOrders?.find((po) => po.id === currentBatch.value?.purchase_order_id);
+    return po ? po.po_number : 'Không có đơn đặt hàng';
+});
 
 const formattedReceivedDate = computed(() => {
     const date = currentBatch.value?.received_date;
@@ -255,12 +255,7 @@ function formatPrice(price: number): string {
     }).format(price);
 }
 
-// Updated receipt status label để bao gồm draft
-const receivedStatusLabel = computed(() => {
-    const receivedStatus = currentBatch.value?.received_status;
-    if (receivedStatus === 'completed') return 'Hoàn thành';
-    return 'Không rõ';
-});
+
 
 // Status label cho workflow chính
 const statusLabel = computed(() => {
@@ -301,9 +296,8 @@ const isPaid = computed(() => currentBatch.value?.payment_status === 'paid');
 const isUnpaidOrPartial = computed(() => {
     const totalAmount = currentBatch.value?.total_amount ?? 0;
     const paymentStatus = currentBatch.value?.payment_status;
-    
-    return totalAmount > 0 && 
-           ['unpaid', 'partially_paid'].includes(paymentStatus ?? '');
+
+    return totalAmount > 0 && ['unpaid', 'partially_paid'].includes(paymentStatus ?? '');
 });
 
 const formattedPaidAmount = computed(() => {
@@ -383,9 +377,7 @@ function handleApproveBatch() {
             <p>Sau khi duyệt, bạn sẽ không thể chỉnh sửa đơn này nữa.</p>
             <p><strong>Dữ liệu sẽ được cập nhật vào kho:</strong></p>
             <ul style="text-align: left; margin: 10px 0;">
-                ${aggregatedProducts.value.map(item =>
-                    `<li>${item.product_name}: +${item.received_quantity} sản phẩm</li>`
-                ).join('')}
+                ${aggregatedProducts.value.map((item) => `<li>${item.product_name}: +${item.received_quantity} sản phẩm</li>`).join('')}
             </ul>
         `,
         icon: 'warning',
@@ -397,8 +389,8 @@ function handleApproveBatch() {
         reverseButtons: true,
         width: 600,
         customClass: {
-            htmlContainer: 'text-left'
-        }
+            htmlContainer: 'text-left',
+        },
     }).then((result) => {
         if (result.isConfirmed) {
             // Hiển thị loading
@@ -410,54 +402,58 @@ function handleApproveBatch() {
                 showConfirmButton: false,
                 didOpen: () => {
                     Swal.showLoading();
-                }
+                },
             });
 
             // Call API to approve batch
-            router.post(route('admin.batches.approve', { id: currentBatch.value?.id }), {}, {
-                preserveScroll: true,
-                onSuccess: (page) => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Duyệt đơn thành công!',
-                        html: `
+            router.post(
+                route('admin.batches.approve', { id: currentBatch.value?.id }),
+                {},
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Duyệt đơn thành công!',
+                            html: `
                             <p>Dữ liệu đã được cập nhật vào kho.</p>
                             <p>Trạng thái đơn đã chuyển sang <strong>Hoàn thành</strong></p>
                         `,
-                        showConfirmButton: true,
-                        confirmButtonText: 'Tải lại trang',
-                        timer: 3000,
-                        timerProgressBar: true
-                    }).then(() => {
-                        // Refresh page để cập nhật UI
-                        router.visit(route('admin.batches.show', { id: currentBatch.value?.id }));
-                    });
-                },
-                onError: (errors) => {
-                    console.error('Approval errors:', errors);
-                    let errorMessage = 'Không thể duyệt đơn. Vui lòng thử lại.';
+                            showConfirmButton: true,
+                            confirmButtonText: 'Tải lại trang',
+                            timer: 3000,
+                            timerProgressBar: true,
+                        }).then(() => {
+                            // Refresh page để cập nhật UI
+                            router.visit(route('admin.batches.show', { id: currentBatch.value?.id }));
+                        });
+                    },
+                    onError: (errors) => {
+                        console.error('Approval errors:', errors);
+                        let errorMessage = 'Không thể duyệt đơn. Vui lòng thử lại.';
 
-                    // Xử lý lỗi cụ thể nếu có
-                    if (errors.general) {
-                        errorMessage = errors.general;
-                    } else if (typeof errors === 'string') {
-                        errorMessage = errors;
-                    }
+                        // Xử lý lỗi cụ thể nếu có
+                        if (errors.general) {
+                            errorMessage = errors.general;
+                        } else if (typeof errors === 'string') {
+                            errorMessage = errors;
+                        }
 
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Có lỗi xảy ra!',
-                        text: errorMessage,
-                        confirmButtonText: 'Đóng'
-                    });
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Có lỗi xảy ra!',
+                            text: errorMessage,
+                            confirmButtonText: 'Đóng',
+                        });
+                    },
+                    onFinish: () => {
+                        // Đảm bảo loading được tắt
+                        if (Swal.isLoading()) {
+                            Swal.close();
+                        }
+                    },
                 },
-                onFinish: () => {
-                    // Đảm bảo loading được tắt
-                    if (Swal.isLoading()) {
-                        Swal.close();
-                    }
-                }
-            });
+            );
         }
     });
 }
@@ -480,31 +476,7 @@ function formatCurrency(value: number | null | undefined) {
     }).format(value);
 }
 
-function formatDateTime(dateString: string | null | undefined) {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const options = {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-    };
-    return new Intl.DateTimeFormat('vi-VN', options).format(date);
-}
 
-function getStatusDisplayName(status: string | undefined) {
-    switch (status) {
-        case 'paid':
-            return 'Đã thanh toán';
-        case 'partially_paid':
-            return 'Thanh toán một phần';
-        case 'unpaid':
-            return 'Chưa thanh toán';
-        default:
-            return 'Không rõ';
-    }
-}
 
 defineExpose({});
 defineOptions({
@@ -596,7 +568,7 @@ function goBack() {
 <template>
     <Head title="Chi tiết lô hàng" />
     <AppLayout>
-        <div class="min-h-screen bg-gray-50 p-4 no-print">
+        <div class="no-print min-h-screen bg-gray-50 p-4">
             <div class="mx-auto max-w-7xl">
                 <div class="mb-4 flex items-center justify-between">
                     <div class="flex items-center">
@@ -616,7 +588,6 @@ function goBack() {
                         >
                             {{ statusLabel }}
                         </span>
-
                     </div>
                     <div class="flex items-center gap-2 pr-2">
                         <!-- Draft Status Buttons -->
@@ -665,28 +636,28 @@ function goBack() {
                         </template>
 
                         <!-- Print button - always show -->
-                         <template v-if="isCompleted">
-                        <button
-                            @click="printOrder"
-                            class="flex items-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-300 hover:bg-gray-100"
-                            title="In đơn"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="h-5 w-5 text-gray-500"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="1.5"
+                        <template v-if="isCompleted">
+                            <button
+                                @click="printOrder"
+                                class="flex items-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-800 transition hover:border-gray-300 hover:bg-gray-100"
+                                title="In đơn"
                             >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M6 9V4a2 2 0 012-2h8a2 2 0 012 2v5M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-6 0h4"
-                                />
-                            </svg>
-                            <span>In đơn</span>
-                        </button>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-5 w-5 text-gray-500"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M6 9V4a2 2 0 012-2h8a2 2 0 012 2v5M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-6 0h4"
+                                    />
+                                </svg>
+                                <span>In đơn</span>
+                            </button>
                         </template>
                     </div>
                 </div>
@@ -842,9 +813,12 @@ function goBack() {
                                         </div>
 
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Ngày ghi nhận</label>
-                                            <input type="date" v-model="paymentForm.paymentDate"
-                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                            <label class="mb-1 block text-sm font-medium text-gray-700">Ngày ghi nhận</label>
+                                            <input
+                                                type="date"
+                                                v-model="paymentForm.paymentDate"
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                            />
                                         </div>
 
                                         <div>
@@ -921,16 +895,24 @@ function goBack() {
                                     />
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn nhập hàng</label>
-                                    <input type="text" disabled :value="batchNumber"
-                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                    <label class="mb-1 block text-sm font-medium text-gray-700">Mã đơn đặt hàng</label>
+                                    <input
+                                        type="text"
+                                        disabled
+                                        :value="purchaseOrderNumber"
+                                        class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
 
                                 <!-- Draft Status Info -->
-                                <div v-if="isDraft" class="rounded-md bg-amber-50 border border-amber-200 p-3">
+                                <div v-if="isDraft" class="rounded-md border border-amber-200 bg-amber-50 p-3">
                                     <div class="flex items-center">
-                                        <svg class="h-5 w-5 text-amber-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        <svg class="mr-2 h-5 w-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                clip-rule="evenodd"
+                                            />
                                         </svg>
                                         <span class="text-sm font-medium text-amber-800">Đơn hàng chưa được duyệt</span>
                                     </div>
@@ -977,22 +959,22 @@ function goBack() {
                 <table class="receipt-table">
                     <thead>
                         <tr>
-                            <th style="width: 5%;">STT</th>
-                            <th style="width: 45%; text-align: left;">Tên sản phẩm</th>
-                            <th style="width: 15%;">SL</th>
-                            <th style="width: 20%;">Đơn giá</th>
-                            <th style="width: 15%; text-align: right;">Thành tiền</th>
+                            <th style="width: 5%">STT</th>
+                            <th style="width: 45%; text-align: left">Tên sản phẩm</th>
+                            <th style="width: 15%">SL</th>
+                            <th style="width: 20%">Đơn giá</th>
+                            <th style="width: 15%; text-align: right">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(item, index) in aggregatedProducts" :key="item.product_id">
-                            <td style="text-align: center;">{{ index + 1 }}</td>
-                            <td style="text-align: left;">
+                            <td style="text-align: center">{{ index + 1 }}</td>
+                            <td style="text-align: left">
                                 {{ item.product_name }}
                             </td>
-                            <td style="text-align: center;">{{ item.received_quantity }}</td>
-                            <td style="text-align: right;">{{ formatPrice(item.purchase_price) }}</td>
-                            <td style="text-align: right;">{{ formatPrice(item.total_amount) }}</td>
+                            <td style="text-align: center">{{ item.received_quantity }}</td>
+                            <td style="text-align: right">{{ formatPrice(item.purchase_price) }}</td>
+                            <td style="text-align: right">{{ formatPrice(item.total_amount) }}</td>
                         </tr>
                     </tbody>
                 </table>

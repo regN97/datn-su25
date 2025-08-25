@@ -66,33 +66,6 @@ class BillDetailSeeder extends Seeder
                 'subtotal'          => 38000,
             ],
 
-            // Chi tiết cho BILL-0003
-            [
-                'bill_id'           => 3,
-                'product_id'        => 5,
-                'batch_id'          => 3,
-                'p_name'            => 'Kẹo Chupa Chups 12g',
-                'p_sku'             => 'CCP-001',
-                'p_barcode'         => '8936003456789',
-                'quantity'          => 10,
-                'unit_cost'         => 3000,
-                'unit_price'        => 5000,
-                'discount_per_item' => 0,
-                'subtotal'          => 50000,
-            ],
-            [
-                'bill_id'           => 3,
-                'product_id'        => 6,
-                'batch_id'          => 3,
-                'p_name'            => 'Bánh Chocopie Orion 330g',
-                'p_sku'             => 'ORI-001',
-                'p_barcode'         => '8936003456796',
-                'quantity'          => 2,
-                'unit_cost'         => 30000,
-                'unit_price'        => 45000,
-                'discount_per_item' => 2000,
-                'subtotal'          => 86000,
-            ],
         ];
 
         foreach ($billDetails as $detail) {

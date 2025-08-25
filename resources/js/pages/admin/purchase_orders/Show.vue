@@ -329,7 +329,7 @@ function printOrder() {
                     <!-- Nhóm bên phải: 4 nút chức năng -->
                     <div class="flex space-x-2">
                         <button
-                            v-if="purchase_order[0].status_id != 5 && purchase_order[0].status_id != 3 && purchase_order[0].status_id != 4"
+                            v-if="purchase_order[0].status_id == 1"
                             @click="editOrder"
                             class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                         >
@@ -347,7 +347,7 @@ function printOrder() {
                         </button>
 
                         <button
-                            v-if="purchase_order[0].status_id == 2 || purchase_order[0].status_id == 3"
+                            v-if="purchase_order[0].status_id == 2"
                             @click="importOrder"
                             class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                         >
@@ -356,7 +356,7 @@ function printOrder() {
                         </button>
 
                         <button
-                            v-if="purchase_order[0].status_id != 5 && purchase_order[0].status_id != 3 && purchase_order[0].status_id != 4"
+                            v-if="purchase_order[0].status_id != 4 && purchase_order[0].status_id != 3"
                             @click="cancelOrder"
                             class="flex h-10 items-center rounded px-4 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800"
                         >

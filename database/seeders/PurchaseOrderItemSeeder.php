@@ -76,58 +76,58 @@ class PurchaseOrderItemSeeder extends Seeder
             // Items for PO-20250605-003 (PepsiCo)
             [
                 'purchase_order_id' => 3,
-                'product_id' => 2, // Coca Cola
+                'product_id' => 18, // Coca Cola
                 'product_name' => 'Coca Cola Original 330ml',
                 'product_sku' => 'CCL-001',
                 'ordered_quantity' => 1000,
-                'received_quantity' => 600,
+                'received_quantity' => 1000,
                 'quantity_returned' => 0,
                 'unit_cost' => 7000,
                 'subtotal' => 700000,
                 'discount_type' => 'amount',
                 'discount_amount' => 50000,
-                'notes' => 'Nhận hàng một phần',
+                'notes' => 'Nhận hàng đầy đủ',
             ],
             [
                 'purchase_order_id' => 3,
-                'product_id' => 8, // Pepsi Black Lime
+                'product_id' => 19, // Pepsi Black Lime
                 'product_name' => 'Pepsi Black Lime 330ml',
                 'product_sku' => 'PBL-001',
                 'ordered_quantity' => 1000,
-                'received_quantity' => 500,
+                'received_quantity' => 1000,
                 'quantity_returned' => 0,
                 'unit_cost' => 7000,
                 'subtotal' => 700000,
                 'discount_type' => 'amount',
                 'discount_amount' => 50000,
-                'notes' => 'Nhận hàng một phần',
+                'notes' => 'Nhận hàng đầy đủ',
             ],
 
             // Items for PO-20250608-004 (Nestlé)
             [
                 'purchase_order_id' => 4,
-                'product_id' => 9, // Nước khoáng
+                'product_id' => 20, // Nước khoáng
                 'product_name' => 'Nước khoáng LaVie 500ml',
                 'product_sku' => 'LV-001',
                 'ordered_quantity' => 2000,
                 'received_quantity' => 2000,
                 'quantity_returned' => 0,
                 'unit_cost' => 4000,
-                'subtotal' => 800000,
+                'subtotal' => 8000000,
                 'discount_type' => 'percent',
                 'discount_amount' => 10, // 10%
                 'notes' => null,
             ],
             [
                 'purchase_order_id' => 4,
-                'product_id' => 10, // Cà phê
-                'product_name' => 'Cà phê Trung Nguyên Sáng tạo 2',
-                'product_sku' => 'TNST2-001',
+                'product_id' => 22, // Cà phê
+                'product_name' => 'Cà phê lon Birdy sữa 170ml',
+                'product_sku' => 'BS-001',
                 'ordered_quantity' => 500,
                 'received_quantity' => 500,
                 'quantity_returned' => 0,
-                'unit_cost' => 55000,
-                'subtotal' => 2750000,
+                'unit_cost' => 10000,
+                'subtotal' => 5000000,
                 'discount_type' => 'percent',
                 'discount_amount' => 10, // 10%
                 'notes' => null,

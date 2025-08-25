@@ -184,6 +184,7 @@ class BatchController extends Controller
                 'batchItem' => $batchItems,
                 'suppliers' => $suppliers,
                 'users' => $users,
+                'purchaseOrders' => PurchaseOrder::all(),
                 'flash' => [
                     'success' => session('success'),
                     'error' => session('error'),
@@ -214,7 +215,7 @@ class BatchController extends Controller
             'purchaseOrder' => $purchaseOrder,
             'purchaseOrderItem' => $purchaseOrderItems,
             'suppliers' => Supplier::all(),
-            'user' => auth()->user(),
+            'user' => Auth::user(),
         ]);
     }
 
