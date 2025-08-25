@@ -3,7 +3,6 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Chi tiết tồn kho',
@@ -86,7 +85,7 @@ interface BatchItem {
     total_amount: number;
     manufacturing_date: string | null;
     expiry_date: string | null;
-    inventory_status: 'active' | 'low_stock' | 'out_of_stock' | 'expired' | 'damaged';
+    inventory_status: 'active' | 'low_stock' | 'out_of_stock' | 'expired' | 'damaged' | 'expiring_soon';
     product?: {
         name: string;
         sku: string;
@@ -330,6 +329,7 @@ function goBack() {
                                                                     'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold': true,
                                                                     'bg-green-100 text-green-800': item.inventory_status === 'active',
                                                                     'bg-yellow-100 text-yellow-800': item.inventory_status === 'low_stock',
+                                                                    'bg-orange-100 text-orange-800': item.inventory_status === 'expiring_soon',
                                                                     'bg-red-100 text-red-800':
                                                                         item.inventory_status === 'out_of_stock' ||
                                                                         item.inventory_status === 'expired',
@@ -341,11 +341,13 @@ function goBack() {
                                                                         ? 'Còn hàng'
                                                                         : item.inventory_status === 'low_stock'
                                                                           ? 'Sắp hết'
-                                                                          : item.inventory_status === 'out_of_stock'
-                                                                            ? 'Hết hàng'
-                                                                            : item.inventory_status === 'expired'
-                                                                              ? 'Hết hạn'
-                                                                              : 'Hư hỏng'
+                                                                          : item.inventory_status === 'expiring_soon'
+                                                                            ? 'Sắp hết hạn'
+                                                                            : item.inventory_status === 'out_of_stock'
+                                                                              ? 'Hết hàng'
+                                                                              : item.inventory_status === 'expired'
+                                                                                ? 'Hết hạn'
+                                                                                : 'Hư hỏng'
                                                                 }}
                                                             </span>
                                                         </td>

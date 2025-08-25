@@ -85,6 +85,7 @@ Route::prefix('admin')
         Route::resource('batches', BatchController::class);
 
         // Inventory
+        Route::post('inventory/sync', [InventoryController::class, 'syncInventory'])->name('inventory.sync');
         Route::resource('inventory', InventoryController::class);
 
         // Users

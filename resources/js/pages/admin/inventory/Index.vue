@@ -59,23 +59,23 @@ type Batch = {
     id: number;
     batch_number: string;
     supplier_id: number;
-    receipt_status: "pending" | "completed";
+    receipt_status: 'pending' | 'completed';
     batch_items?: BatchItem[];
-}
+};
 
 type BatchItem = {
     id: number;
     batch_id: number;
     product_id: number;
     current_quantity: number;
-    inventory_status: "active" | "low_stock" | "out_of_stock" | "expired" | "damaged";
-}
+    inventory_status: 'active' | 'low_stock' | 'out_of_stock' | 'expired' | 'damaged';
+};
 
 type AvailableProduct = {
     product_id: number;
     name: string;
     value: number;
-}
+};
 
 const page = usePage<SharedData>();
 const categories = page.props.categories as Category[];
@@ -210,7 +210,9 @@ function toggleSidebar() {
     isSidebarOpen.value = !isSidebarOpen.value;
 }
 
-
+function syncInventory() {
+    router.post(route('admin.inventory.sync'));
+}
 </script>
 
 <template>
@@ -225,6 +227,12 @@ function toggleSidebar() {
                         <div class="flex items-center space-x-4">
                             <button @click="toggleSidebar" class="rounded-3xl bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
                                 <Filter class="h-5 w-5" />
+                            </button>
+                            <button
+                                @click="syncInventory"
+                                class="rounded-3xl bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:bg-green-300"
+                            >
+                                Đồng bộ tồn kho
                             </button>
                         </div>
                     </div>
@@ -385,7 +393,7 @@ function toggleSidebar() {
                                             {{ product.stock_quantity }}
                                         </td>
                                         <td class="p-3">
-                                            {{ availableProducts.find(ap => ap.product_id === product.id)?.value || 0 }}
+                                            {{ availableProducts.find((ap) => ap.product_id === product.id)?.value || 0 }}
                                         </td>
                                         <td class="p-3">
                                             {{ product.selling_price }}

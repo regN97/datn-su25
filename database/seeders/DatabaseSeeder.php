@@ -38,7 +38,9 @@ class DatabaseSeeder extends Seeder
             CustomerSeeder::class,        // Customers
 
             BillSeeder::class,
-            BillDetailSeeder::class
+            BillDetailSeeder::class,
+
+            InventoryTransactionSeeder::class
         ]);
     }
 }
