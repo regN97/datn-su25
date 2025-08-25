@@ -15,7 +15,7 @@ ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScal
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Sales Dashboard',
         href: 'admin/dashboard/SalesDashboard',
     },
 ];
@@ -62,50 +62,101 @@ const filters = page.props.filters ?? {
 const startDate = ref(filters.start_date);
 const endDate = ref(filters.end_date);
 
-// 👇 Hàm gọi lại route khi nhấn nút "Lọc"
-function applyFilter() {
-    if (startDate.value && endDate.value) {
-        router.get(
-            route('admin.dashboard'),
-            {
-                start_date: startDate.value,
-                end_date: endDate.value,
-            },
-            {
-                preserveState: false,
-                preserveScroll: true,
-            },
-        );
+// Thêm ref để lưu lỗi validation
+const dateErrors = ref({
+    start: '',
+    end: ''
+});
+
+// Hàm validate dates
+function validateDates(): boolean {
+    dateErrors.value = { start: '', end: '' };
+
+    // Kiểm tra ngày bắt đầu được chọn
+    if (!startDate.value) {
+        dateErrors.value.start = 'Vui lòng chọn ngày bắt đầu';
+        return false;
     }
+
+    // Kiểm tra ngày kết thúc được chọn
+    if (!endDate.value) {
+        dateErrors.value.end = 'Vui lòng chọn ngày kết thúc';
+        return false;
+    }
+
+    const start = new Date(startDate.value);
+    const end = new Date(endDate.value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+
+    // Kiểm tra ngày bắt đầu không được lớn hơn ngày kết thúc
+    if (start > end) {
+        dateErrors.value.start = 'Ngày bắt đầu không được lớn hơn ngày kết thúc';
+        return false;
+    }
+
+    // Kiểm tra khoảng thời gian không được quá 12 tháng
+    const monthDiff = (end.getFullYear() - start.getFullYear()) * 12 +
+        (end.getMonth() - start.getMonth());
+    if (monthDiff > 12) {
+        dateErrors.value.end = 'Khoảng thời gian không được quá 12 tháng';
+        return false;
+    }
+
+    return true;
+}
+
+// Sửa lại hàm applyFilter
+function applyFilter() {
+    if (!validateDates()) {
+        return;
+    }
+
+    router.get(route('admin.dashboard'), {
+        start_date: startDate.value,
+        end_date: endDate.value,
+    }, {
+        preserveState: false,
+        preserveScroll: true,
+    });
 }
 </script>
 
 <template>
-    <Head title="Dashboard" />
+
+    <Head title="Sales Dashboard" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-6 p-6">
             <!-- Bộ lọc thời gian -->
-            <div class="mb-6 flex flex-wrap items-end gap-4">
-                <div>
-                    <label for="start-date" class="block text-sm font-medium text-gray-700">Từ ngày</label>
-                    <input
-                        id="start-date"
-                        type="date"
-                        v-model="startDate"
-                        class="rounded-md border-gray-300 p-2 shadow-sm focus:ring focus:ring-indigo-200"
-                    />
+            <div class="flex flex-wrap gap-4 items-start mb-6">
+                <div class="flex flex-col">
+                    <label for="start-date" class="block text-lg font-medium text-gray-700">Từ ngày</label>
+                    <input id="start-date" type="date" v-model="startDate" :max="new Date().toISOString().split('T')[0]"
+                        class="w-100 border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200 p-2"
+                        :class="{ 'border-red-500': dateErrors.start }" />
+                    <!-- Thêm div cố định có chiều cao min -->
+                    <div class="h-6 mt-1">
+                        <p v-if="dateErrors.start" class="text-sm text-red-600">{{ dateErrors.start }}</p>
+                    </div>
                 </div>
-                <div>
-                    <label for="end-date" class="block text-sm font-medium text-gray-700">Đến ngày</label>
-                    <input
-                        id="end-date"
-                        type="date"
-                        v-model="endDate"
-                        class="rounded-md border-gray-300 p-2 shadow-sm focus:ring focus:ring-indigo-200"
-                    />
+
+                <div class="flex flex-col">
+                    <label for="end-date" class="block text-lg font-medium text-gray-700">Đến ngày</label>
+                    <input id="end-date" type="date" v-model="endDate" :max="new Date().toISOString().split('T')[0]"
+                        class="w-100 border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200 p-2"
+                        :class="{ 'border-red-500': dateErrors.end }" />
+                    <!-- Thêm div cố định có chiều cao min -->
+                    <div class="h-6 mt-1">
+                        <p v-if="dateErrors.end" class="text-sm text-red-600">{{ dateErrors.end }}</p>
+                    </div>
                 </div>
-                <div>
-                    <button @click="applyFilter" class="rounded-md bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700">Lọc</button>
+
+                <div class="self-start mt-6">
+                    <button @click="applyFilter"
+                        class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
+                        Lọc
+                    </button>
                 </div>
             </div>
 
