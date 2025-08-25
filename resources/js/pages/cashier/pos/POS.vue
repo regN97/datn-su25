@@ -744,8 +744,8 @@ const confirmPayment = async () => {
             printReceipt(cartSnapshot, paymentMethodSnapshot, amountReceivedSnapshot, customerSnapshot, walletAmountSnapshot);
         }
         showPaymentModal.value = false;
-        successMessage.value = 'Thanh toán thành công!';
-        showSuccessModal.value = true;
+        // successMessage.value = 'Thanh toán thành công!';
+        // showSuccessModal.value = true;
         bankQRCode.value = null;
         bankTransactionInfo.value = null;
         walletAmount.value = 0;
