@@ -106,7 +106,7 @@ class InventoryController extends Controller
                     }
                 }
 
-                return redirect()->route('admin.inventory.index')->with('success', 'Đồng bộ tồn kho hoàn tất!');
+                return redirect()->route('admin.inventory.index')->with('success', 'Đồng bộ tồn kho hoàn tất với ' . $updatedCount . ' sản phẩm được update!');
 
                 // return response()->json([
                 //     'message' => 'Đồng bộ tồn kho hoàn tất!',

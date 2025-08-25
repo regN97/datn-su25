@@ -133,11 +133,11 @@ class POSController
         $productIds = is_array($productIds) ? $productIds : [$productIds];
 
         $batchQuantities = BatchItem::whereIn('product_id', $productIds)
-            ->whereIn('inventory_status', ['active', 'low_stock'])
+            ->whereIn('inventory_status', ['active', 'low_stock', 'expiring_soon'])
             ->where('current_quantity', '>', 0)
             ->whereHas('batch', function ($query) {
                 $query->whereNull('deleted_at')
-                    ->whereIn('receipt_status', ['completed', 'partially_received']);
+                    ->whereIn('receipt_status', ['completed']);
             })
             ->where(function ($query) {
                 $query->whereNull('expiry_date')
@@ -572,23 +572,6 @@ class POSController
                 ], 200);
             }
 
-            $batchItems = BatchItem::where('product_id', $productId)
-                ->whereIn('inventory_status', ['active', 'low_stock'])
-                ->where('current_quantity', '>', 0)
-                ->whereHas('batch', function ($query) {
-                    $query->whereNull('deleted_at')
-                        ->whereIn('receipt_status', ['completed', 'partially_received']);
-                })
-                ->where(function ($query) {
-                    $query->whereNull('expiry_date')
-                        ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
-                })
-                ->get();
-
-            $hasPartiallyReceived = $batchItems->contains(function ($batchItem) {
-                return $batchItem->batch->receipt_status === 'partially_received';
-            });
-
             return response()->json([
                 'hasValidBatch' => true,
                 'availableStock' => $availableStock,
@@ -783,11 +766,11 @@ class POSController
                     $currentProductStock = $product->stock_quantity;
 
                     $batchItems = BatchItem::where('product_id', $item['id'])
-                        ->whereIn('inventory_status', ['active', 'low_stock'])
+                        ->whereIn('inventory_status', ['active', 'low_stock', 'expiring_soon'])
                         ->where('current_quantity', '>', 0)
                         ->whereHas('batch', function ($query) {
                             $query->whereNull('deleted_at')
-                                ->whereIn('receipt_status', ['completed', 'partially_received']);
+                                ->whereIn('receipt_status', ['completed']);
                         })
                         ->where(function ($query) {
                             $query->whereNull('expiry_date')
@@ -886,11 +869,11 @@ class POSController
                     $currentProductStock = $product->stock_quantity;
 
                     $batchItems = BatchItem::where('product_id', $freeItem['product_id'])
-                        ->whereIn('inventory_status', ['active', 'low_stock'])
+                        ->whereIn('inventory_status', ['active', 'low_stock', 'expiring_soon'])
                         ->where('current_quantity', '>', 0)
                         ->whereHas('batch', function ($query) {
                             $query->whereNull('deleted_at')
-                                ->whereIn('receipt_status', ['completed', 'partially_received']);
+                                ->whereIn('receipt_status', ['completed']);
                         })
                         ->where(function ($query) {
                             $query->whereNull('expiry_date')
@@ -1022,49 +1005,49 @@ class POSController
         }
     }
 
-    public function syncInventory()
-    {
-        try {
-            return DB::transaction(function () {
-                $updatedCount = 0;
-                $products = Product::where('is_active', true)
-                    ->whereNull('deleted_at')
-                    ->select('id', 'stock_quantity')
-                    ->get();
+    // public function syncInventory()
+    // {
+    //     try {
+    //         return DB::transaction(function () {
+    //             $updatedCount = 0;
+    //             $products = Product::where('is_active', true)
+    //                 ->whereNull('deleted_at')
+    //                 ->select('id', 'stock_quantity')
+    //                 ->get();
 
-                foreach ($products as $product) {
-                    $query = BatchItem::where('product_id', $product->id)
-                        ->whereIn('inventory_status', ['active', 'expiring_soon'])
-                        ->where('current_quantity', '>', 0)
-                        ->whereHas('batch', function ($q) {
-                            $q->whereNull('deleted_at')
-                                ->where('receipt_status', 'completed');
-                        })
-                        ->where(function ($q) {
-                            $q->whereNull('expiry_date')
-                                ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
-                        });
+    //             foreach ($products as $product) {
+    //                 $query = BatchItem::where('product_id', $product->id)
+    //                     ->whereIn('inventory_status', ['active', 'expiring_soon'])
+    //                     ->where('current_quantity', '>', 0)
+    //                     ->whereHas('batch', function ($q) {
+    //                         $q->whereNull('deleted_at')
+    //                             ->where('receipt_status', 'completed');
+    //                     })
+    //                     ->where(function ($q) {
+    //                         $q->whereNull('expiry_date')
+    //                             ->orWhere('expiry_date', '>=', Carbon::today('Asia/Ho_Chi_Minh'));
+    //                     });
 
-                    $totalBatchQuantity = $query->sum('current_quantity');
+    //                 $totalBatchQuantity = $query->sum('current_quantity');
 
-                    if ($product->stock_quantity != $totalBatchQuantity) {
-                        $product->stock_quantity = $totalBatchQuantity;
-                        $product->save();
-                        $updatedCount++;
-                    }
-                }
+    //                 if ($product->stock_quantity != $totalBatchQuantity) {
+    //                     $product->stock_quantity = $totalBatchQuantity;
+    //                     $product->save();
+    //                     $updatedCount++;
+    //                 }
+    //             }
 
-                return response()->json([
-                    'message' => 'Đồng bộ tồn kho hoàn tất!',
-                    'updated_products' => $updatedCount
-                ], 200);
-            });
-        } catch (\Exception $e) {
-            return response()->json([
-                'errors' => ['server' => 'Có lỗi khi đồng bộ tồn kho.']
-            ], 500);
-        }
-    }
+    //             return response()->json([
+    //                 'message' => 'Đồng bộ tồn kho hoàn tất!',
+    //                 'updated_products' => $updatedCount
+    //             ], 200);
+    //         });
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'errors' => ['server' => 'Có lỗi khi đồng bộ tồn kho.']
+    //         ], 500);
+    //     }
+    // }
 
     public function createCustomer(Request $request)
     {
