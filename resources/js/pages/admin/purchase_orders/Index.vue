@@ -130,9 +130,8 @@ const selectedOrderStatus = ref('');
 const poStatusOptions: POStatus[] = [
     { id: 1, name: 'Đơn nháp', code: 'DRAFT' },
     { id: 2, name: 'Chờ nhập', code: 'PENDING' },
-    { id: 3, name: 'Nhập một phần', code: 'PARTIAL RECEIVED' },
-    { id: 4, name: 'Nhập toàn bộ', code: 'FULLY RECEIVED' },
-    { id: 5, name: 'Đã hủy', code: 'CANCELLED' },
+    { id: 3, name: 'Hoàn thành', code: 'FULLY RECEIVED' },
+    { id: 4, name: 'Đã hủy', code: 'CANCELLED' },
 ];
 
 // --- Cấu hình phân trang ---
@@ -243,6 +242,7 @@ function handleDeletePurchaseOrder() {
                 showDeleteModal.value = false;
             },
             preserveState: true,
+            
         });
     }
 }
@@ -293,8 +293,6 @@ function getOrderStatusClass(statusCode: string | undefined): string {
             return 'bg-green-100 text-green-600';
         case 'pending':
             return 'bg-yellow-100 text-yellow-600';
-        case 'partial received':
-            return 'bg-blue-100 text-blue-600';
         case 'fully received':
             return 'bg-gray-100 text-gray-600';
         case 'cancelled':

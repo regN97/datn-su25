@@ -20,7 +20,7 @@ public function index(Request $request)
 
     if ($request->has('filter_date') && $request->input('filter_date')) {
         $filter = $request->input('filter_date');
-        
+
         switch ($filter) {
             case 'today':
                 $query->whereDate('created_at', now()->toDateString());

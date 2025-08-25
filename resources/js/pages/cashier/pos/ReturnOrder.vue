@@ -79,10 +79,9 @@ const confirmReturn = () => {
     }
 };
 
-const returnBill = async () => {
+const returnBill = () => {
     if (!bill.value) {
         error.value = 'Không có hóa đơn để xử lý.';
-        successMessage.value = '';
         return;
     }
 
@@ -95,31 +94,29 @@ const returnBill = async () => {
 
     if (itemsToReturn.length === 0) {
         error.value = 'Vui lòng chọn ít nhất một sản phẩm để trả lại.';
-        successMessage.value = '';
         return;
     }
 
     returnForm.bill_id = bill.value.id;
     returnForm.return_items = itemsToReturn;
     
-    try {
-        await axios.post(route('cashier.returns.process'), returnForm);
-        
-        error.value = '';
-        successMessage.value = 'Xử lý trả hàng thành công! Lý do: ' + (returnForm.reason || 'Không có lý do');
-        
-        bill.value = null;
-        searchQuery.value = '';
-        selectedItems.value = {};
-        returnForm.reset();
-    } catch (err) {
-        if (err.response && err.response.data && err.response.data.error) {
-            error.value = err.response.data.error;
-        } else {
-            error.value = 'Đã xảy ra lỗi khi xử lý trả hàng.';
-        }
-        successMessage.value = '';
-    }
+
+    // Thay thế axios.post bằng form.post
+    returnForm.post(route('cashier.returns.process'), {
+        onSuccess: () => {
+            // Inertia sẽ tự động chuyển hướng khi controller trả về redirect
+            // Bạn có thể xử lý các logic sau khi chuyển hướng thành công
+            // Ví dụ: hiển thị thông báo flash message nếu có
+            console.log('Chuyển hướng thành công!');
+        },
+        onError: (errors) => {
+            if (errors && errors.error) {
+                error.value = errors.error;
+            } else {
+                error.value = 'Đã xảy ra lỗi khi xử lý trả hàng.';
+            }
+        },
+    });
 };
 
 const totalAmountReturned = computed(() => {
@@ -188,7 +185,7 @@ const groupedBillDetails = computed(() => {
                 <div class="flex items-center gap-4 mb-4">
                     <div class="relative flex-1">
                         <Search class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
-                        <input v-model="searchQuery" type="text" placeholder="Nhập mã bill hoặc SĐT khách hàng..."
+                        <input v-model="searchQuery" type="text" placeholder="Nhập mã hoá đơn..."
                             class="w-full p-3 pl-12 pr-4 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200" />
                     </div>
                     <div v-if="loading" class="text-blue-500">Đang tìm...</div>

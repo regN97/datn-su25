@@ -340,6 +340,22 @@ watch(searchQuery, (newQuery) => {
     }
 });
 
+const now = () => {
+  const d = new Date();
+const pad = (n: number) => n.toString().padStart(2, "0");
+  return (
+    d.getFullYear() +
+    "-" +
+    pad(d.getMonth() + 1) +
+    "-" +
+    pad(d.getDate()) +
+    "T" +
+    pad(d.getHours()) +
+    ":" +
+    pad(d.getMinutes())
+  );
+};
+
 const note = ref('');
 const supplierError = ref('');
 
@@ -618,7 +634,7 @@ onUnmounted(() => {
                         <!-- Suppliers Search -->
                         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 p-4">
-                                <h2 class="text-lg font-semibold">Tìm kiếm hay thêm mới nhà cung cấp</h2>
+                                <h2 class="text-lg font-semibold">Tìm kiếm nhà cung cấp</h2>
                                 <div v-if="supplierError.length > 0" class="text-sm text-red-500">
                                     {{ supplierError }}
                                 </div>
@@ -720,7 +736,7 @@ onUnmounted(() => {
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Ngày nhập dự kiến</label>
                                     <input
                                         type="datetime-local"
-                                        v-model="expectedImportDate"
+                                        v-model="expectedImportDate" :min="now()"
                                         class="h-10 w-full rounded-md border border-gray-300 px-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>

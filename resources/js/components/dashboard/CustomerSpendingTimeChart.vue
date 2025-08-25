@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import { Chart, registerables } from 'chart.js'
-Chart.register(...registerables)
+import { Chart, registerables } from 'chart.js';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+Chart.register(...registerables);
 
 const props = defineProps<{
-    labels: string[]
-    multiData: number[]   // Khách mua nhiều lần
-    oneData: number[]     // Khách mua 1 lần
-}>()
+    labels: string[];
+    multiData: number[]; // Khách mua nhiều lần
+    oneData: number[]; // Khách mua 1 lần
+}>();
 
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-let chart: Chart<'line'> | null = null
+const canvasRef = ref<HTMLCanvasElement | null>(null);
+let chart: Chart<'line'> | null = null;
 
 const renderChart = () => {
-    if (!canvasRef.value) return
+    if (!canvasRef.value) return;
     if (chart) {
-        chart.destroy()
-        chart = null
+        chart.destroy();
+        chart = null;
     }
 
     chart = new Chart(canvasRef.value, {
@@ -33,7 +33,7 @@ const renderChart = () => {
                     pointRadius: 4,
                     pointHoverRadius: 6,
                     tension: 0.4, // độ cong
-                    fill: true,   // bật fill
+                    fill: true, // bật fill
                 },
                 {
                     label: 'Khách mua một lần',
@@ -45,14 +45,14 @@ const renderChart = () => {
                     pointHoverRadius: 6,
                     tension: 0.4, // độ cong
                     fill: true,
-                }
-            ]
+                },
+            ],
         },
         options: {
             layout: {
                 padding: {
-                    bottom: 20
-                }
+                    bottom: 20,
+                },
             },
             responsive: true,
             maintainAspectRatio: false,
@@ -62,58 +62,64 @@ const renderChart = () => {
                     position: 'bottom',
                     labels: {
                         usePointStyle: true,
-                        pointStyle: 'line'
-                    }
+                        pointStyle: 'line',
+                    },
                 },
                 tooltip: {
                     callbacks: {
                         label: (context) => {
-                            const value = context.raw as number
-                            return value.toLocaleString('vi-VN') + ' đ'
-                        }
-                    }
+                            const value = context.raw as number;
+                            return value.toLocaleString('vi-VN') + ' đ';
+                        },
+                    },
                 },
                 title: {
-                    display: false
-                }
+                    display: false,
+                },
             },
             scales: {
                 y: {
                     beginAtZero: true,
                     ticks: {
                         callback: (value) => {
-                            const val = Number(value)
-                            if (val < 1) return ''
-                            return val.toLocaleString('vi-VN') + ' đ'
-                        }
+                            const val = Number(value);
+                            if (val < 1) return '';
+                            return val.toLocaleString('vi-VN') + ' đ';
+                        },
                     },
                     grid: {
-                        color: '#e5e7eb'
-                    }
+                        color: '#e5e7eb',
+                    },
                 },
                 x: {
                     grid: {
-                        display: false
+                        display: false,
                     },
                     ticks: {
                         autoSkip: true,
                         maxRotation: 0,
-                        minRotation: 0
-                    }
-                }
-            }
-        }
-    })
-}
+                        minRotation: 0,
+                    },
+                },
+            },
+        },
+    });
+};
 
-onMounted(() => renderChart())
-watch(() => [props.labels, props.multiData, props.oneData], () => renderChart(), { deep: true })
-onBeforeUnmount(() => { if (chart) chart.destroy() })
+onMounted(() => renderChart());
+watch(
+    () => [props.labels, props.multiData, props.oneData],
+    () => renderChart(),
+    { deep: true },
+);
+onBeforeUnmount(() => {
+    if (chart) chart.destroy();
+});
 </script>
 
 <template>
-    <div class="bg-white p-4 rounded-xl shadow h-96">
-        <h2 class="text-lg font-semibold mb-2">Chi tiêu khách hàng theo thời gian</h2>
+    <div class="h-96 rounded-xl bg-white p-4 shadow">
+        <h2 class="mb-2 text-lg font-semibold">Chi tiêu khách hàng theo thời gian</h2>
         <canvas ref="canvasRef"></canvas>
     </div>
 </template>

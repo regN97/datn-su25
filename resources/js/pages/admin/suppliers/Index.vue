@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { PackagePlus, Pencil, Trash2 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 // import { router } from '@inertiajs/vue3';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -30,12 +30,39 @@ const perPageOptions = [5, 10, 25, 50];
 const perPage = ref(5);
 const currentPage = ref(1);
 
-const total = computed(() => suppliers.value.length);
+const searchTerm = ref('');
+
+function normalize(str: string) {
+    return str
+        ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+        : '';
+}
+
+// danh sách sau khi lọc
+const filteredSuppliers = computed(() => {
+    if (!searchTerm.value) return suppliers.value;
+    const term = normalize(searchTerm.value);
+    return suppliers.value.filter(
+        (s) =>
+            normalize(s.name).includes(term) ||
+            normalize(s.contact_person || '').includes(term) ||
+            normalize(s.email || '').includes(term) ||
+            normalize(s.phone || '').includes(term) ||
+            normalize(s.address || '').includes(term)
+    );
+});
+
+const total = computed(() => filteredSuppliers.value.length);
 const totalPages = computed(() => Math.ceil(total.value / perPage.value));
 
 const paginatedSuppliers = computed(() => {
     const start = (currentPage.value - 1) * perPage.value;
-    return suppliers.value.slice(start, start + perPage.value);
+    return filteredSuppliers.value.slice(start, start + perPage.value);
+});
+
+//  reset về trang 1 khi search
+watch(searchTerm, () => {
+    currentPage.value = 1;
 });
 
 function goToPage(page: number) {
@@ -88,7 +115,8 @@ function handleDeleteSupplier() {
             showDeleteModal.value = false;
             supplierToDelete.value = null;
         },
-        preserveState: true,
+        preserveScroll: true,
+        preserveState: false,
     });
 }
 
@@ -99,21 +127,36 @@ function cancelDelete() {
 </script>
 
 <template>
+
     <Head title="Suppliers" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-            <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
+            <div
+                class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="container mx-auto p-6">
                     <!-- Tiêu đề và nút Thêm mới và thùng rác -->
                     <div class="mb-4 flex items-center justify-between">
                         <h1 class="text-2xl font-bold">Nhà cung cấp</h1>
                         <div class="flex gap-2">
-                            <button @click="goToCreatePage" class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
+                            <button @click="goToCreatePage"
+                                class="rounded-3xl bg-green-500 px-8 py-2 text-white hover:bg-green-600">
                                 <PackagePlus />
                             </button>
-                            <button @click="goToTrashedPage" class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng rác</button>
+                            <button @click="goToTrashedPage"
+                                class="rounded-3xl bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">Thùng
+                                rác</button>
                         </div>
+                    </div>
+
+                    <!-- Ô tìm kiếm -->
+                    <div class="mb-4">
+                        <input
+                            v-model="searchTerm"
+                            type="text"
+                            placeholder="Tìm kiếm nhà cung cấp..."
+                            class="border rounded px-3 py-2 w-64 md:w-72 lg:w-80"
+                        />
                     </div>
 
                     <!-- Bảng danh mục -->
@@ -132,7 +175,8 @@ function cancelDelete() {
                             </thead>
                             <tbody>
                                 <tr v-for="(supplier, idx) in paginatedSuppliers" :key="supplier.id" class="border-t">
-                                    <td class="w-[5%] p-3 text-center text-sm">{{ (currentPage - 1) * perPage + idx + 1 }}</td>
+                                    <td class="w-[5%] p-3 text-center text-sm">{{ (currentPage - 1) * perPage + idx + 1
+                                        }}</td>
                                     <td class="w-[20%] p-3 text-left text-sm">
                                         {{ supplier.name }}
                                     </td>
@@ -155,14 +199,12 @@ function cancelDelete() {
                                     <td class="w-[10%] p-3 text-center text-sm">
                                         <button
                                             class="me-1 rounded-md bg-blue-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-                                            @click="goToEditSupplier(supplier.id)"
-                                        >
+                                            @click="goToEditSupplier(supplier.id)">
                                             <Pencil class="h-4 w-4" />
                                         </button>
                                         <button
                                             class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
-                                            @click="confirmDelete(supplier.id)"
-                                        >
+                                            @click="confirmDelete(supplier.id)">
                                             <Trash2 class="h-4 w-4" />
                                         </button>
                                     </td>
@@ -184,23 +226,19 @@ function cancelDelete() {
                             trên tổng <span class="font-semibold">{{ total }}</span>
                         </p>
                         <div class="flex items-center space-x-2">
-                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700" :disabled="currentPage === 1" @click="prevPage">
+                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+                                :disabled="currentPage === 1" @click="prevPage">
                                 &larr; Trang trước
                             </button>
                             <template v-for="page in totalPages" :key="page">
-                                <button
-                                    class="rounded px-3 py-1 text-sm"
+                                <button class="rounded px-3 py-1 text-sm"
                                     :class="page === currentPage ? 'bg-gray-200 font-bold' : 'text-gray-500 hover:text-gray-700'"
-                                    @click="goToPage(page)"
-                                >
+                                    @click="goToPage(page)">
                                     {{ page }}
                                 </button>
                             </template>
-                            <button
-                                class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-                                :disabled="currentPage === totalPages"
-                                @click="nextPage"
-                            >
+                            <button class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+                                :disabled="currentPage === totalPages" @click="nextPage">
                                 Trang sau &rarr;
                             </button>
                         </div>
@@ -216,13 +254,9 @@ function cancelDelete() {
             </div>
         </div>
 
-        <DeleteModal
-            :is-open="showDeleteModal"
-            title="Xóa nhà cung cấp"
-            message="Bạn có chắc chắn muốn xóa nhà cung cấp này?"
-            @confirm="handleDeleteSupplier"
-            @cancel="cancelDelete"
-        />
+        <DeleteModal :is-open="showDeleteModal" title="Xóa nhà cung cấp"
+            message="Bạn có chắc chắn muốn xóa nhà cung cấp này?" @confirm="handleDeleteSupplier"
+            @cancel="cancelDelete" />
     </AppLayout>
 </template>
 

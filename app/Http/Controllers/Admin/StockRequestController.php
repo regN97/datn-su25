@@ -23,7 +23,7 @@ class StockRequestController extends Controller
             ->notifications()
             ->where('type', 'App\Notifications\StockReplenishmentRequest')
             ->get();
-        
+
         return Inertia::render('admin/notifications/StockRequests', [
             'stockRequests' => $stockRequests,
         ]);
@@ -32,31 +32,56 @@ class StockRequestController extends Controller
     /**
      * Đánh dấu một thông báo là đã đọc.
      */
-    public function markAsRead($notificationId)
-    {
+public function markAsRead($notificationId)
+{
+    try {
         $admin = Auth::user();
         $notification = $admin->notifications()->findOrFail($notificationId);
-        
+
         if (is_null($notification->read_at)) {
             $notification->markAsRead();
         }
-        
-        // Trả về một phản hồi JSON và flash message cho Inertia
-        return Redirect::back()->with('success', 'Thông báo đã được đánh dấu là đã đọc.');
+
+        // Lấy lại danh sách notifications sau khi cập nhật
+        $stockRequests = Auth::user()
+            ->notifications()
+            ->where('type', 'App\Notifications\StockReplenishmentRequest')
+            ->get();
+
+        return Redirect::back()
+            ->with('success', 'Thông báo đã được đánh dấu là đã đọc.')
+            ->with('stockRequests', $stockRequests);
+    } catch (\Exception $e) {
+        return Redirect::back()
+            ->with('error', 'Có lỗi xảy ra khi đánh dấu đã đọc: ' . $e->getMessage());
     }
+}
 
     /**
      * Xóa một thông báo.
      */
-    public function delete($notificationId)
-    {
+public function delete($notificationId)
+{
+    try {
         $admin = Auth::user();
         $notification = $admin->notifications()->findOrFail($notificationId);
         $notification->delete();
 
-        // Trả về một flash message cho Inertia
-        return Redirect::back()->with('success', 'Yêu cầu đã được xóa thành công.');
+        // Lấy lại danh sách notifications sau khi xóa
+        $stockRequests = Auth::user()
+            ->notifications()
+            ->where('type', 'App\Notifications\StockReplenishmentRequest')
+            ->get();
+
+        // Trả về Inertia response với dữ liệu mới
+        return Redirect::back()
+            ->with('success', 'Yêu cầu đã được xóa thành công.')
+            ->with('stockRequests', $stockRequests);
+    } catch (\Exception $e) {
+        return Redirect::back()
+            ->with('error', 'Có lỗi xảy ra khi xóa yêu cầu: ' . $e->getMessage());
     }
+}
 
     /**
      * Lấy số lượng thông báo chưa đọc (dành cho API hoặc Inertia prop).
@@ -68,7 +93,7 @@ class StockRequestController extends Controller
         $unreadCount = Auth::user()->unreadNotifications()
             ->where('type', 'App\Notifications\StockReplenishmentRequest')
             ->count();
-        
+
         return response()->json(['count' => $unreadCount]);
     }
 }

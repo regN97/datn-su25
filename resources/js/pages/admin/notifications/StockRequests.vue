@@ -53,14 +53,20 @@ const changePerPage = (event) => {
     currentPage.value = 1;
 };
 
+
 const markAsRead = async (notificationId) => {
     try {
-        await axios.post(route('admin.stock.requests.read', notificationId));
-        router.reload({
-            only: ['stockRequests'],
+
+        // Sử dụng router.post thay vì axios.post
+        router.post(route('admin.stock.requests.read', notificationId), {}, {
+
             preserveState: true,
             onSuccess: () => {
-                // Xử lý thành công
+                console.log('Đánh dấu đã đọc thành công');
+            },
+            onError: (errors) => {
+                console.error('Lỗi khi đánh dấu đã đọc:', errors);
+                alert('Có lỗi xảy ra khi đánh dấu đã đọc.');
             }
         });
     } catch (error) {
@@ -72,12 +78,17 @@ const markAsRead = async (notificationId) => {
 const deleteRequest = async (notificationId) => {
     if (confirm('Bạn có chắc chắn muốn xóa yêu cầu này?')) {
         try {
-            await axios.delete(route('admin.stock.requests.delete', notificationId));
-            router.reload({
-                only: ['stockRequests'],
+
+            // Sử dụng router.delete thay vì axios.delete để tương thích với Inertia
+            router.delete(route('admin.stock.requests.delete', notificationId), {
+
                 preserveState: true,
                 onSuccess: () => {
-                    // Xử lý thành công
+                    // Không cần reload vì Inertia sẽ tự động cập nhật
+                },
+                onError: (errors) => {
+                    console.error('Lỗi khi xóa yêu cầu:', errors);
+                    alert('Có lỗi xảy ra khi xóa yêu cầu.');
                 }
             });
         } catch (error) {
@@ -94,7 +105,7 @@ const deleteRequest = async (notificationId) => {
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
             <div class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min">
                 <div class="p-6">
-                    <div class="mb-4 flex items-center justify-between">
+                       <div class="mb-4 flex items-center justify-between">
                         <h1 class="text-xl font-bold flex items-center gap-2">
                             <Bell class="h-6 w-6 text-gray-700" />
                             Thông báo nhập hàng
@@ -126,7 +137,7 @@ const deleteRequest = async (notificationId) => {
                                         {{ new Date(request.created_at).toLocaleString() }}
                                     </td>
                                     <td class="flex items-center justify-start space-x-2 p-3">
-                                        <button 
+                                        <button
                                             @click="markAsRead(request.id)"
                                             class="rounded-md bg-blue-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
                                             :disabled="!!request.read_at"
@@ -135,8 +146,8 @@ const deleteRequest = async (notificationId) => {
                                         >
                                             <Check class="h-4 w-4" />
                                         </button>
-                                        <button 
-                                            @click="deleteRequest(request.id)" 
+                                        <button
+                                            @click="deleteRequest(request.id)"
                                             class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
                                             title="Xóa yêu cầu"
                                         >

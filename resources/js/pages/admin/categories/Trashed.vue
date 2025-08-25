@@ -2,8 +2,8 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { Trash2, Undo2 } from 'lucide-vue-next';
 import { ref } from 'vue';
-import { Undo2, Trash2 } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quản lý danh mục', href: '/admin/categories' },
@@ -64,7 +64,6 @@ function comback() {
 </script>
 
 <template>
-
     <Head title="Thùng rác danh mục" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -86,29 +85,31 @@ function comback() {
                             <td class="p-3 text-sm">{{ cat.name }}</td>
                             <td class="p-3 text-sm">{{ getParentName(cat.parent_id) }}</td>
                             <td class="p-3 text-sm">{{ cat.description }}</td>
-                            <td class="p-3 text-sm text-center">
+                            <td class="p-3 text-center text-sm">
                                 <div class="flex items-center justify-center space-x-2">
-                                    <button @click="restoreCategory(cat.id)"
-                                        class="rounded-md bg-green-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none">
+                                    <button
+                                        @click="restoreCategory(cat.id)"
+                                        class="rounded-md bg-green-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none"
+                                    >
                                         <Undo2 class="h-4 w-4" />
                                     </button>
-                                    <button @click="forceDeleteCategory(cat.id)"
-                                        class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none">
+                                    <button
+                                        @click="forceDeleteCategory(cat.id)"
+                                        class="rounded-md bg-red-600 px-3 py-1 text-white transition duration-150 ease-in-out hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+                                    >
                                         <Trash2 class="h-4 w-4" />
                                     </button>
                                 </div>
                             </td>
                         </tr>
                         <tr v-if="categories.length === 0">
-                            <td colspan="7" class="p-3 text-center text-sm">Không có nhà cung cấp nào trong thùng rác
-                            </td>
+                            <td colspan="7" class="p-3 text-center text-sm">Không có nhà cung cấp nào trong thùng rác</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
             <div class="flex justify-end">
-                <button @click="comback()" class="text-primary-700 rounded bg-gray-200 px-6 py-2 hover:bg-gray-300">Quay
-                    lại</button>
+                <button @click="comback()" class="text-primary-700 rounded bg-gray-200 px-6 py-2 hover:bg-gray-300">Quay lại</button>
             </div>
         </div>
     </AppLayout>

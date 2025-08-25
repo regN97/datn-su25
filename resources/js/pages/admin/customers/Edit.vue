@@ -125,9 +125,7 @@ const submitForm = () => {
                             </div>
 
                             <div>
-                                <label for="wallet" class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
-                                    Ví tiền
-                                </label>
+                                <label for="wallet" class="mb-2 block font-medium text-gray-700 dark:text-gray-300"> Ví tiền </label>
                                 <input
                                     type="number"
                                     id="wallet"

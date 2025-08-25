@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, router, usePage } from '@inertiajs/vue3';
+
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -95,6 +96,15 @@ interface BatchItem {
         image_url?: string;
     };
 }
+
+type AvailableProduct = {
+    product_id: number;
+    name: string;
+    value: number;
+};
+
+const page = usePage<SharedData>();
+const availableProducts = page.props.availableProducts as AvailableProduct[];
 // Nhận prop product từ Inertia
 const props = defineProps<{
     product: Product;
@@ -110,7 +120,7 @@ function formatCurrency(value: number | null): string {
 }
 
 function getBatchNumber(batchId: number): string {
-    const foundBatch = props.batch.find(b => b.id === batchId);
+    const foundBatch = props.batch.find((b) => b.id === batchId);
     return foundBatch ? foundBatch.batch_number : `#${batchId}`;
 }
 
@@ -253,7 +263,7 @@ function goBack() {
                                     <input
                                         type="text"
                                         class="block w-full rounded-md border-gray-300 px-2 py-2 shadow-sm"
-                                        :value="props.product.stock_quantity"
+                                        :value="availableProducts.find((ap) => ap.product_id === props.product.id)?.value || 0"
                                         disabled
                                     />
                                 </div>
@@ -273,37 +283,83 @@ function goBack() {
                                         <table class="min-w-full divide-y divide-gray-200">
                                             <thead class="bg-gray-50">
                                                 <tr>
-                                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã lô</th>
-                                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày sản xuất</th>
-                                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hạn sử dụng</th>
-                                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tồn kho</th>
+                                                    <th
+                                                        scope="col"
+                                                        class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    >
+                                                        Mã lô
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    >
+                                                        Trạng thái
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    >
+                                                        Ngày sản xuất
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    >
+                                                        Hạn sử dụng
+                                                    </th>
+                                                    <th
+                                                        scope="col"
+                                                        class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    >
+                                                        Tồn kho
+                                                    </th>
                                                 </tr>
                                             </thead>
-                                            <tbody class="bg-white divide-y divide-gray-200">
+                                            <tbody class="divide-y divide-gray-200 bg-white">
                                                 <tr v-if="!Array.isArray(props.batchItems) || props.batchItems.length === 0">
                                                     <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Không có dữ liệu lô hàng</td>
                                                 </tr>
                                                 <template v-else>
                                                     <tr v-for="item in props.batchItems" :key="item.id" class="hover:bg-gray-50">
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ getBatchNumber(item.batch_id) }}</td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                            <span :class="{
-                                                                'px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full': true,
-                                                                'bg-green-100 text-green-800': item.inventory_status === 'active',
-                                                                'bg-yellow-100 text-yellow-800': item.inventory_status === 'low_stock',
-                                                                'bg-red-100 text-red-800': item.inventory_status === 'out_of_stock' || item.inventory_status === 'expired',
-                                                                'bg-gray-100 text-gray-800': item.inventory_status === 'damaged'
-                                                            }">
-                                                                {{ item.inventory_status === 'active' ? 'Còn hàng' :
-                                                                item.inventory_status === 'low_stock' ? 'Sắp hết' :
-                                                                item.inventory_status === 'out_of_stock' ? 'Hết hàng' :
-                                                                item.inventory_status === 'expired' ? 'Hết hạn' : 'Hư hỏng' }}
+                                                        <td class="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
+                                                            {{ getBatchNumber(item.batch_id) }}
+                                                        </td>
+                                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                            <span
+                                                                :class="{
+                                                                    'inline-flex rounded-full px-2 py-1 text-xs leading-5 font-semibold': true,
+                                                                    'bg-green-100 text-green-800': item.inventory_status === 'active',
+                                                                    'bg-yellow-100 text-yellow-800': item.inventory_status === 'low_stock',
+                                                                    'bg-red-100 text-red-800':
+                                                                        item.inventory_status === 'out_of_stock' ||
+                                                                        item.inventory_status === 'expired',
+                                                                    'bg-gray-100 text-gray-800': item.inventory_status === 'damaged',
+                                                                }"
+                                                            >
+                                                                {{
+                                                                    item.inventory_status === 'active'
+                                                                        ? 'Còn hàng'
+                                                                        : item.inventory_status === 'low_stock'
+                                                                          ? 'Sắp hết'
+                                                                          : item.inventory_status === 'out_of_stock'
+                                                                            ? 'Hết hàng'
+                                                                            : item.inventory_status === 'expired'
+                                                                              ? 'Hết hạn'
+                                                                              : 'Hư hỏng'
+                                                                }}
                                                             </span>
                                                         </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.manufacturing_date ? new Date(item.manufacturing_date).toLocaleDateString('vi-VN') : 'N/A' }}</td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('vi-VN') : 'N/A' }}</td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.current_quantity }}</td>
+                                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                            {{
+                                                                item.manufacturing_date
+                                                                    ? new Date(item.manufacturing_date).toLocaleDateString('vi-VN')
+                                                                    : 'N/A'
+                                                            }}
+                                                        </td>
+                                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                            {{ item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('vi-VN') : 'N/A' }}
+                                                        </td>
+                                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">{{ item.current_quantity }}</td>
                                                     </tr>
                                                 </template>
                                             </tbody>

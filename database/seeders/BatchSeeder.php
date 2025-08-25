@@ -65,7 +65,7 @@ class BatchSeeder extends Seeder
                 'payment_method' => null,
                 'payment_date' => null,
                 'paid_amount' => 0,
-                'receipt_status' => 'partially_received',
+                'receipt_status' => 'completed',
                 'status' => 'completed',
                 'notes' => 'Chưa thanh toán. Hàng mới nhận một phần.',
                 'created_by' => 1,

@@ -71,9 +71,6 @@ class BillLookupController extends Controller
                     ->orWhereHas('customer', function ($q) use ($query) {
                         $q->where('customer_name', 'like', "%{$query}%")
                             ->orWhere('phone', 'like', "%{$query}%");
-                    })
-                    ->orWhereHas('details.batch', function ($q) use ($query) {
-                        $q->where('batch_number', 'like', "%{$query}%");
                     });
             })
             ->latest()
@@ -89,8 +86,10 @@ class BillLookupController extends Controller
                 'total_amount' => $bill->total_amount,
                 'discount_amount' => $bill->discount_amount ?? 0,
                 'payment_method' => $bill->payment_method,
+
                 'payment_status_id' => $bill->payment_status_id,
                 'payment_status_name' => $bill->paymentStatus?->name ?? 'Không xác định',
+
                 'payment_proof_url' => $bill->payment_proof_url ? Storage::url($bill->payment_proof_url) : null,
                 'cashier_name' => $bill->cashier?->name,
                 'created_at' => $bill->created_at->format('d/m/Y H:i'),

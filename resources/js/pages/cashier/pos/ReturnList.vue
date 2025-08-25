@@ -148,7 +148,8 @@ const groupedReturnDetails = computed(() => {
                                 <tr class="border-t">
                                     <td class="p-3">{{ returnBill.return_bill_number }}</td>
                                     <td class="p-3">{{ returnBill.bill?.bill_number }}</td>
-                                    <td class="p-3">{{ returnBill.customer?.name || 'Khách lẻ' }}</td>
+
+                                    <td class="p-3">{{ returnBill.customer?.customer_name || 'Khách lẻ' }}</td>
                                     <td class="p-3">{{ formatCurrency(returnBill.total_amount_returned) }}</td>
                                     <td class="p-3">{{ formatDate(returnBill.created_at) }}</td>
                                     <td class="p-3">{{ returnBill.cashier?.name || 'N/A' }}</td>
