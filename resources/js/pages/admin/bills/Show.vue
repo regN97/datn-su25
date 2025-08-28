@@ -71,16 +71,18 @@ const groupedBillDetails = computed(() => {
 
 function getPaymentMethodName(method: string) {
     switch (method) {
-        case 'cash':
-            return 'Tiền mặt';
         case 'credit_card':
-            return 'Thẻ ngân hàng';
+            return 'Thẻ tín dụng';
         case 'bank_transfer':
             return 'Chuyển khoản';
-        case 'wallet':
-            return 'Ví khách hàng';
+        case 'cash':
+            return 'Tiền mặt';
+        case 'card':
+            return 'Thẻ';
+        case 'vnpay':
+            return 'VNPay';
         default:
-            return 'Khác';
+            return method || '-';
     }
 }
 
@@ -159,6 +161,9 @@ function printInvoice() {
                 <div class="text-right">
                     <p class="mb-1">
                         Tổng tiền hàng: <span class="font-semibold">{{ formatCurrency(subtotal_amount) }}</span>
+                    </p>
+                    <p class="mb-1">
+                        Điểm khách hàng sử dụng: <span class="font-semibold">{{ formatCurrency(subtotal_amount - bill.total_amount) }}</span>
                     </p>
                     <p class="text-lg font-bold">
                         Tổng thanh toán: <span class="font-bold">{{ formatCurrency(bill.total_amount) }}</span>
