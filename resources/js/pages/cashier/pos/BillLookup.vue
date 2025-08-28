@@ -351,7 +351,7 @@ const isMarkAsPaidDisabled = (bill) => {
                         <hr class="border-t border-gray-400 my-4">
                         <div class="text-right">
                             <p class="mb-1">Tổng tiền hàng: <span class="font-semibold">{{ formatCurrency(subtotal_amount) }}</span></p>
-                            <p class="mb-1">Giảm giá: <span class="font-semibold">{{ formatCurrency(selectedBill.discount_amount ?? 0) }}</span></p>
+                            <p class="mb-1">Điểm khách hàng sử dụng: <span class="font-semibold">{{ formatCurrency(subtotal_amount - selectedBill.total_amount ?? 0) }}</span></p>
                             <p class="text-lg font-bold">Tổng thanh toán: <span class="font-bold">{{ formatCurrency(selectedBill.total_amount) }}</span></p>
                         </div>
                         <hr class="border-t-2 border-dashed border-gray-400 my-4">
